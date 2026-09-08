@@ -1,0 +1,44 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Datos generados (no versionar datasets grandes)
+backend/datos/temp_*
+
+# Node / Nuxt
+node_modules/
+.nuxt/
+.output/
+.nitro/
+.cache/
+dist/
+
+# Logs
+*.log
+logs/
+
+# Env
+.env
+.env.*
+
+# IDE / SO
+.idea/
+.vscode/
+*.suo
+*.user
+.DS_Store
+Thumbs.db
+
+# Notebooks sin procesar
+.ipynb_checkpoints/
