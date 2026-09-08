@@ -87,6 +87,9 @@ class AtributosArista(BaseModel):
     peaje: bool = Field(False, description="Tiene peaje")
     costo_peaje: Optional[float] = Field(None, ge=0, description="Costo del peaje")
     restricciones: List[str] = Field(default_factory=list, description="Restricciones (ej: solo_bus, peso_max)")
+    geometria: Optional[List[List[float]]] = Field(
+        None, description="Trazado real de la vía en OSM [[lon, lat], ...]"
+    )
 
 
 class Nodo(BaseModel):
@@ -238,22 +241,37 @@ class Grafo(BaseModel):
                     id=str(nodo_id),
                     nombre=data.get("nombre", f"Nodo {nodo_id}"),
                     coordenadas=Coordenadas(
-                        latitud=data.get("lat", 0.0), longitud=data.get("lon", 0.0)
+                        latitud=data.get("lat", data.get("y", 0.0)),
+                        longitud=data.get("lon", data.get("x", 0.0)),
                     ),
                     tipo=TipoNodo(data.get("tipo", "interseccion")),
                 )
             )
 
         for u, v, data in G.edges(data=True):
+            # OSMnx provee 'length' (metros); permitir también 'distancia'/'tiempo'
+            distancia = data.get("distancia", data.get("length", 100.0))
+            tiempo = data.get("tiempo", data.get("travel_time", 0.0))
+            velocidad = data.get("velocidad", 50.0)
+            if not tiempo or tiempo <= 0:
+                tiempo = (distancia / 1000.0) / velocidad * 60.0  # min
+            # ID único (evitar colisiones en aristas paralelas del MultiDiGraph)
+            ids_usados = {a.id for a in grafo.aristas}
+            base_id = str(data.get("id", data.get("osmid", f"{u}-{v}")))
+            arista_id = base_id
+            contador = 1
+            while arista_id in ids_usados:
+                arista_id = f"{base_id}#{contador}"
+                contador += 1
             grafo.agregar_arista(
                 Arista(
-                    id=str(data.get("id", f"{u}-{v}")),
+                    id=arista_id,
                     origen=str(u),
                     destino=str(v),
-                    distancia=data.get("distancia", 100.0),
-                    tiempo_estimado=data.get("tiempo", 1.0),
+                    distancia=distancia,
+                    tiempo_estimado=tiempo,
                     costo=data.get("costo", 0.0),
-                    velocidad_promedio=data.get("velocidad", 50.0),
+                    velocidad_promedio=velocidad,
                     congestion=NivelCongestion(data.get("congestion", "baja")),
                     incidentes=data.get("incidentes", 0),
                 )

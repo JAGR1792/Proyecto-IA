@@ -1,4 +1,4 @@
-﻿"""Repositorio para persistencia del grafo (JSON, GraphML, GeoJSON)."""
+"""Repositorio para persistencia del grafo (JSON, GraphML, GeoJSON)."""
 
 import json
 from datetime import datetime
@@ -118,15 +118,19 @@ class RepositorioGrafo:
             nodo_origen = grafo.nodos[arista.origen]
             nodo_destino = grafo.nodos[arista.destino]
 
+            geometria = arista.atributos.geometria
+            if not geometria:
+                geometria = [
+                    [nodo_origen.coordenadas.longitud, nodo_origen.coordenadas.latitud],
+                    [nodo_destino.coordenadas.longitud, nodo_destino.coordenadas.latitud],
+                ]
+
             features_aristas.append(
                 {
                     "type": "Feature",
                     "geometry": {
                         "type": "LineString",
-                        "coordinates": [
-                            [nodo_origen.coordenadas.longitud, nodo_origen.coordenadas.latitud],
-                            [nodo_destino.coordenadas.longitud, nodo_destino.coordenadas.latitud],
-                        ],
+                        "coordinates": geometria,
                     },
                     "properties": {
                         "id": arista.id,
@@ -357,32 +361,56 @@ class RepositorioGrafo:
         return grafo
 
     def _enriquecer_desde_osm(self, grafo: Grafo, G: nx.MultiDiGraph) -> None:
-        """AÃ±ade atributos de OSM a las aristas."""
+        """Añade atributos de OSM a las aristas."""
+        # Velocidades por defecto según tipo de vía OSM (km/h)
+        velocidad_por_tipo = {
+            "motorway": 90, "trunk": 70, "primary": 60, "secondary": 50,
+            "tertiary": 45, "residential": 30, "service": 20, "pedestrian": 5,
+            "cycleway": 15, "living_street": 10, "unclassified": 40, "road": 30,
+        }
         for arista in grafo.aristas:
-            # Buscar edge data en grafo original
-            edges_data = G.get_edge_data(arista.origen, arista.destino)
-            if edges_data:
-                # Tomar la primera arista (puede haber mÃºltiples en MultiDiGraph)
-                edge_data = list(edges_data.values())[0]
+            # Dict de llaves: OSMnx usa ints; nuestro modelo usa str
+            try:
+                origen_nx: Any = int(arista.origen)
+                destino_nx: Any = int(arista.destino)
+            except ValueError:
+                origen_nx, destino_nx = arista.origen, arista.destino
+            edges_data = G.get_edge_data(origen_nx, destino_nx)
+            if not edges_data:
+                continue
+            # Tomar la primera arista (puede haber múltiples en MultiDiGraph)
+            edge_data = list(edges_data.values())[0]
 
-                if "highway" in edge_data:
-                    arista.atributos.tipo_via = self._mapear_highway(edge_data["highway"])
-                if "name" in edge_data:
-                    arista.atributos.nombre_via = edge_data["name"]
-                if "maxspeed" in edge_data:
-                    try:
-                        arista.velocidad_promedio = float(str(edge_data["maxspeed"]).split()[0])
-                    except (ValueError, TypeError):
-                        pass
-                if "lanes" in edge_data:
-                    try:
-                        arista.atributos.carriles = int(edge_data["lanes"])
-                    except (ValueError, TypeError):
-                        pass
-                if "oneway" in edge_data:
-                    arista.atributos.sentido_unico = edge_data["oneway"] in [True, "yes", "1"]
-                if "surface" in edge_data:
-                    arista.atributos.superficie = edge_data["surface"]
+            tipo_highway = edge_data.get("highway")
+            if "highway" in edge_data:
+                arista.atributos.tipo_via = self._mapear_highway(tipo_highway)
+            if "name" in edge_data and edge_data["name"]:
+                nombre = edge_data["name"]
+                arista.atributos.nombre_via = nombre[0] if isinstance(nombre, list) else str(nombre)
+            if "maxspeed" in edge_data and edge_data["maxspeed"]:
+                try:
+                    arista.velocidad_promedio = float(str(edge_data["maxspeed"]).split()[0])
+                except (ValueError, TypeError):
+                    pass
+            else:
+                clave = tipo_highway[0] if isinstance(tipo_highway, list) else tipo_highway
+                arista.velocidad_promedio = velocidad_por_tipo.get(str(clave).lower(), 40.0)
+            if "lanes" in edge_data and edge_data["lanes"]:
+                try:
+                    arista.atributos.carriles = int(edge_data["lanes"])
+                except (ValueError, TypeError):
+                    pass
+            if "oneway" in edge_data:
+                arista.atributos.sentido_unico = edge_data["oneway"] in [True, "yes", "1"]
+            if "surface" in edge_data:
+                arista.atributos.superficie = edge_data["surface"]
+            if edge_data.get("geometry") is not None:
+                try:
+                    arista.atributos.geometria = [
+                        [float(x), float(y)] for x, y in edge_data["geometry"].coords
+                    ]
+                except (AttributeError, TypeError):
+                    pass
 
     def _mapear_highway(self, highway: Any) -> TipoVia:
         """Mapea etiqueta highway de OSM a nuestro enum."""
