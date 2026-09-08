@@ -1,80 +1,431 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* 
+  TransMilenio IA - Sistema de Diseño "Control Center"
+  CSS Vanilla - Sin utilidades genéricas
+*/
 
-/* Estilos globales */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Paleta de Colores (Dark Mode Nativo) */
+  --bg-base: #09090b; /* Negro profundo */
+  --bg-surface: #18181b; /* Paneles */
+  --bg-surface-glass: rgba(24, 24, 27, 0.6);
+  --bg-surface-hover: #27272a;
+  --bg-surface-active: #3f3f46;
+  
+  --border-color: #27272a;
+  --border-focus: #3f3f46;
+  
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  
+  --accent-brand: #e11d48; /* Carmesí TransMilenio */
+  --accent-brand-hover: #be123c;
+  
+  --accent-route: #a3e635; /* Verde ácido neón para ruta activa */
+  --accent-route-glow: rgba(163, 230, 53, 0.4);
+  
+  --status-warning: #f59e0b;
+  --status-warning-bg: rgba(245, 158, 11, 0.1);
+  --status-error: #ef4444;
+  --status-error-bg: rgba(239, 68, 68, 0.1);
+  --status-success: #10b981;
+  --status-success-bg: rgba(16, 185, 129, 0.1);
+  --status-neutral: #3f3f46;
+  --status-neutral-bg: rgba(63, 63, 70, 0.2);
+
+  /* Tipografía */
+  --font-ui: 'Outfit', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  /* Elevación y Efectos */
+  --shadow-panel: 0 10px 30px -10px rgba(0, 0, 0, 0.8);
+  --shadow-glow: 0 0 20px var(--accent-route-glow);
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  
+  /* Transiciones */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Reset y Base */
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  @apply antialiased;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar personalizada */
+/* Scrollbar Personalizada */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100;
+  background: var(--bg-base);
 }
-
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
+  background: #3f3f46;
+  border-radius: var(--radius-sm);
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
+  background: #52525b;
 }
 
-/* Focus visible para accesibilidad */
-:focus-visible {
-  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+/* Tipografía */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
-/* Transiciones suaves */
-button, select, input {
-  @apply transition-colors duration-150;
+/* --- Sistema de Layout (Dashboard) --- */
+
+.tm-dashboard {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-/* Animaciones para Cytoscape */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+.tm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: var(--bg-surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+.tm-header-brand {
+  display: flex;
+  flex-direction: column;
 }
 
-/* Clases utilitarias para estados */
-.loading-skeleton {
-  @apply animate-pulse bg-gray-200 rounded;
+.tm-header-title {
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-/* Contenedor del grafo */
-.cytoscape-container {
-  @apply w-full h-[600px] bg-gray-50 rounded-lg border border-gray-200;
+.tm-header-title::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: var(--accent-brand);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(225, 29, 72, 0.6);
 }
 
-/* Tooltip personalizado para Cytoscape */
-.cytoscape-tooltip {
-  @apply absolute z-50 px-3 py-2 bg-gray-900 text-white text-xs rounded shadow-lg pointer-events-none;
-  @apply whitespace-nowrap;
+.tm-header-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  font-family: var(--font-ui);
+}
+
+.tm-header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.tm-main {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  flex: 1;
 }
 
 /* Responsive */
 @media (max-width: 1024px) {
-  .cytoscape-container {
-    @apply h-[500px];
+  .tm-main {
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 768px) {
-  .cytoscape-container {
-    @apply h-[400px];
-  }
+/* --- Componentes de UI --- */
+
+/* Paneles */
+.tm-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-panel);
+}
+
+.tm-panel-title {
+  font-size: 1.125rem;
+  color: var(--text-primary);
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Formularios y Controles */
+.tm-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.tm-label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  font-family: var(--font-ui);
+}
+
+.tm-select {
+  width: 100%;
+  appearance: none;
+  background-color: var(--bg-base);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  /* Icono flecha nativo pero oscuro */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23a1a1aa'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+}
+
+.tm-select:hover {
+  border-color: var(--border-focus);
+}
+
+.tm-select:focus {
+  outline: none;
+  border-color: var(--accent-brand);
+  box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.2);
+}
+
+/* Botones */
+.tm-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-fast);
+}
+
+.tm-button-primary {
+  background-color: var(--accent-brand);
+  color: white;
+  box-shadow: 0 4px 14px 0 rgba(225, 29, 72, 0.39);
+}
+
+.tm-button-primary:hover:not(:disabled) {
+  background-color: var(--accent-brand-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(225, 29, 72, 0.5);
+}
+
+.tm-button-action {
+  background-color: transparent;
+  color: var(--accent-route);
+  border: 1px solid var(--accent-route);
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.tm-button-action:hover:not(:disabled) {
+  background-color: rgba(163, 230, 53, 0.1);
+  box-shadow: var(--shadow-glow);
+}
+
+.tm-button-secondary {
+  background-color: var(--bg-surface-active);
+  color: var(--text-primary);
+}
+
+.tm-button-secondary:hover:not(:disabled) {
+  background-color: #52525b;
+}
+
+.tm-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Listas de datos y diccionarios */
+.tm-data-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tm-data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.tm-data-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.tm-data-term {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.tm-data-value {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.tm-font-mono {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Badges y Tags */
+.tm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tm-badge-baja {
+  background-color: var(--status-success-bg);
+  color: var(--status-success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.tm-badge-media {
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.tm-badge-alta {
+  background-color: var(--status-error-bg);
+  color: var(--status-error);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.tm-badge-bloqueada {
+  background-color: var(--status-neutral-bg);
+  color: var(--status-neutral);
+  border: 1px solid rgba(161, 161, 170, 0.2);
+}
+
+/* Contenedor del Grafo (Cytoscape) */
+.tm-graph-container {
+  background-color: var(--bg-base);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  height: calc(100vh - 12rem);
+  min-height: 500px;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5); /* Efecto viñeta profunda */
+}
+
+/* Rejilla de fondo para sensación técnica */
+.tm-graph-container::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: 
+    linear-gradient(rgba(39, 39, 42, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(39, 39, 42, 0.3) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.cytoscape-element {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+/* Leyenda del Mapa */
+.tm-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.tm-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.tm-legend-node {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 5px currentColor;
+}
+
+.tm-legend-edge {
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* Alerts / Errores */
+.tm-alert {
+  background-color: var(--status-error-bg);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }

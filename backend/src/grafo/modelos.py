@@ -235,7 +235,7 @@ class Grafo(BaseModel):
         for nodo_id, data in G.nodes(data=True):
             grafo.agregar_nodo(
                 Nodo(
-                    id=nodo_id,
+                    id=str(nodo_id),
                     nombre=data.get("nombre", f"Nodo {nodo_id}"),
                     coordenadas=Coordenadas(
                         latitud=data.get("lat", 0.0), longitud=data.get("lon", 0.0)
@@ -247,9 +247,9 @@ class Grafo(BaseModel):
         for u, v, data in G.edges(data=True):
             grafo.agregar_arista(
                 Arista(
-                    id=data.get("id", f"{u}-{v}"),
-                    origen=u,
-                    destino=v,
+                    id=str(data.get("id", f"{u}-{v}")),
+                    origen=str(u),
+                    destino=str(v),
                     distancia=data.get("distancia", 100.0),
                     tiempo_estimado=data.get("tiempo", 1.0),
                     costo=data.get("costo", 0.0),

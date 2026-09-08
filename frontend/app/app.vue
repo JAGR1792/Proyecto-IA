@@ -14,6 +14,10 @@ const aristaSeleccionada = ref<AristaGrafo | null>(null)
 const stats = ref<any>(null)
 const apiBase = 'http://localhost:8000/api/v1'
 
+const origenSeleccionado = ref<string>('')
+const destinoSeleccionado = ref<string>('')
+const criterioSeleccionado = ref<string>('ruta_equilibrada')
+
 async function cargarGrafo() {
   cargando.value = true
   error.value = null
@@ -72,10 +76,6 @@ function limpiarRuta() {
   aristaResaltada.value = []
 }
 
-const origenSeleccionado = ref<string>('')
-const destinoSeleccionado = ref<string>('')
-const criterioSeleccionado = ref<string>('ruta_equilibrada')
-
 async function buscarRuta() {
   if (!origenSeleccionado.value || !destinoSeleccionado.value) return
   if (origenSeleccionado.value === destinoSeleccionado.value) return
@@ -95,12 +95,12 @@ async function buscarRuta() {
 
 function claseCongestion(nivel: string) {
   const clases: Record<string, string> = {
-    baja: 'bg-green-100 text-green-800',
-    media: 'bg-yellow-100 text-yellow-800',
-    alta: 'bg-red-100 text-red-800',
-    bloqueada: 'bg-gray-100 text-gray-800',
+    baja: 'tm-badge tm-badge-baja',
+    media: 'tm-badge tm-badge-media',
+    alta: 'tm-badge tm-badge-alta',
+    bloqueada: 'tm-badge tm-badge-bloqueada',
   }
-  return clases[nivel] || 'bg-gray-100 text-gray-800'
+  return clases[nivel] || 'tm-badge tm-badge-bloqueada'
 }
 
 onMounted(() => {
@@ -109,147 +109,165 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="tm-dashboard">
     <!-- Header -->
-    <header class="bg-blue-900 text-white shadow-lg">
-      <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-        <div>
-          <h1 class="text-2xl font-bold">TransMilenio IA</h1>
-          <p class="text-blue-200 text-sm">Sistema Inteligente de Planificación de Rutas</p>
-        </div>
-        <div class="flex gap-3 items-center">
-          <button
-            @click="cargarGrafo"
-            :disabled="cargando"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg transition"
-          >
-            {{ cargando ? 'Cargando...' : 'Actualizar Grafo' }}
-          </button>
-          <button
-            @click="limpiarRuta"
-            class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition"
-          >
-            Limpiar Ruta
-          </button>
-        </div>
+    <header class="tm-header">
+      <div class="tm-header-brand">
+        <h1 class="tm-header-title">TransMilenio IA</h1>
+        <p class="tm-header-subtitle">Control Center &amp; Routing Engine</p>
+      </div>
+      <div class="tm-header-actions">
+        <button
+          @click="cargarGrafo"
+          :disabled="cargando"
+          class="tm-button tm-button-primary"
+        >
+          {{ cargando ? 'Sincronizando...' : 'Actualizar Grafo' }}
+        </button>
+        <button
+          @click="limpiarRuta"
+          class="tm-button tm-button-secondary"
+        >
+          Limpiar Sesión
+        </button>
       </div>
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <main class="tm-main">
       <!-- Panel Izquierdo: Controles y Info -->
-      <aside class="lg:col-span-1 space-y-4">
+      <aside class="tm-sidebar">
         <!-- Selector Origen/Destino -->
-        <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
-          <h3 class="font-semibold text-gray-900 mb-4">Planificar Ruta</h3>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm text-gray-600 mb-1">Origen</label>
-              <select
-                v-model="origenSeleccionado"
-                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Seleccionar...</option>
-                <option v-for="n in nodos" :key="n.id" :value="n.id">{{ n.nombre }} ({{ n.id }})</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm text-gray-600 mb-1">Destino</label>
-              <select
-                v-model="destinoSeleccionado"
-                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Seleccionar...</option>
-                <option v-for="n in nodos" :key="n.id" :value="n.id">{{ n.nombre }} ({{ n.id }})</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm text-gray-600 mb-1">Criterio</label>
-              <select
-                v-model="criterioSeleccionado"
-                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="ruta_equilibrada">Ruta Equilibrada</option>
-                <option value="menor_tiempo">Menor Tiempo</option>
-                <option value="menor_estaciones">Menor Estaciones</option>
-                <option value="menos_transbordos">Menos Transbordos</option>
-                <option value="menor_demanda">Menor Demanda</option>
-              </select>
-            </div>
-            <button
-              @click="buscarRuta"
-              :disabled="!origenSeleccionado || !destinoSeleccionado || origenSeleccionado === destinoSeleccionado"
-              class="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-500 disabled:opacity-50 transition font-medium"
-            >
-              Buscar Ruta
-            </button>
+        <div class="tm-panel">
+          <h3 class="tm-panel-title">Parámetros de Ruta</h3>
+          <div class="tm-form-group">
+            <label class="tm-label">Punto de Origen</label>
+            <select v-model="origenSeleccionado" class="tm-select">
+              <option value="">Seleccionar estación...</option>
+              <option v-for="n in nodos" :key="n.id" :value="n.id">{{ n.nombre }} ({{ n.id }})</option>
+            </select>
           </div>
+          <div class="tm-form-group">
+            <label class="tm-label">Destino Final</label>
+            <select v-model="destinoSeleccionado" class="tm-select">
+              <option value="">Seleccionar estación...</option>
+              <option v-for="n in nodos" :key="n.id" :value="n.id">{{ n.nombre }} ({{ n.id }})</option>
+            </select>
+          </div>
+          <div class="tm-form-group">
+            <label class="tm-label">Función de Optimización</label>
+            <select v-model="criterioSeleccionado" class="tm-select">
+              <option value="ruta_equilibrada">Ruta Equilibrada (IA)</option>
+              <option value="menor_tiempo">Menor Tiempo Total</option>
+              <option value="menor_estaciones">Menor Cantidad Estaciones</option>
+              <option value="menos_transbordos">Menos Transbordos</option>
+              <option value="menor_demanda">Evitar Alta Demanda</option>
+            </select>
+          </div>
+          <button
+            @click="buscarRuta"
+            :disabled="!origenSeleccionado || !destinoSeleccionado || origenSeleccionado === destinoSeleccionado"
+            class="tm-button tm-button-action"
+          >
+            Ejecutar Motor de Búsqueda
+          </button>
         </div>
 
         <!-- Estadísticas del Grafo -->
-        <div class="bg-white p-4 rounded-lg shadow border border-gray-200" v-if="stats">
-          <h3 class="font-semibold text-gray-900 mb-3">Estadísticas</h3>
-          <dl class="space-y-2 text-sm">
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Nodos</dt>
-              <dd class="font-medium">{{ stats.estadisticas?.nodos || 0 }}</dd>
+        <div class="tm-panel" v-if="stats" style="margin-top: 1.5rem;">
+          <h3 class="tm-panel-title">Métricas de Red</h3>
+          <dl class="tm-data-list">
+            <div class="tm-data-row">
+              <dt class="tm-data-term">Nodos Activos</dt>
+              <dd class="tm-data-value tm-font-mono">{{ stats.estadisticas?.nodos || 0 }}</dd>
             </div>
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Aristas</dt>
-              <dd class="font-medium">{{ stats.estadisticas?.aristas_totales || 0 }}</dd>
+            <div class="tm-data-row">
+              <dt class="tm-data-term">Enlaces (Aristas)</dt>
+              <dd class="tm-data-value tm-font-mono">{{ stats.estadisticas?.aristas_totales || 0 }}</dd>
             </div>
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Dist. Promedio</dt>
-              <dd class="font-medium">{{ stats.estadisticas?.distancia_promedio_m ? (stats.estadisticas.distancia_promedio_m / 1000).toFixed(1) + ' km' : '-' }}</dd>
+            <div class="tm-data-row">
+              <dt class="tm-data-term">Dist. Promedio</dt>
+              <dd class="tm-data-value tm-font-mono">{{ stats.estadisticas?.distancia_promedio_m ? (stats.estadisticas.distancia_promedio_m / 1000).toFixed(1) + ' km' : '-' }}</dd>
             </div>
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Tiempo Prom.</dt>
-              <dd class="font-medium">{{ stats.estadisticas?.tiempo_promedio_min ? stats.estadisticas.tiempo_promedio_min.toFixed(1) + ' min' : '-' }}</dd>
+            <div class="tm-data-row">
+              <dt class="tm-data-term">Tiempo Prom.</dt>
+              <dd class="tm-data-value tm-font-mono">{{ stats.estadisticas?.tiempo_promedio_min ? stats.estadisticas.tiempo_promedio_min.toFixed(1) + ' min' : '-' }}</dd>
             </div>
-            <div class="flex justify-between">
-              <dt class="text-gray-600">Vel. Promedio</dt>
-              <dd class="font-medium">{{ stats.estadisticas?.velocidad_promedio_kmh ? stats.estadisticas.velocidad_promedio_kmh.toFixed(0) + ' km/h' : '-' }}</dd>
+            <div class="tm-data-row">
+              <dt class="tm-data-term">Vel. Promedio</dt>
+              <dd class="tm-data-value tm-font-mono">{{ stats.estadisticas?.velocidad_promedio_kmh ? stats.estadisticas.velocidad_promedio_kmh.toFixed(0) + ' km/h' : '-' }}</dd>
             </div>
           </dl>
         </div>
 
         <!-- Nodo Seleccionado -->
-        <div class="bg-white p-4 rounded-lg shadow border border-gray-200" v-if="nodoSeleccionado">
-          <h3 class="font-semibold text-gray-900 mb-3">Estación Seleccionada</h3>
-          <dl class="space-y-2 text-sm">
-            <div><dt class="text-gray-600">ID:</dt> <dd class="font-mono">{{ nodoSeleccionado.id }}</dd></div>
-            <div><dt class="text-gray-600">Nombre:</dt> <dd>{{ nodoSeleccionado.nombre }}</dd></div>
-            <div><dt class="text-gray-600">Tipo:</dt> <dd class="capitalize">{{ nodoSeleccionado.tipo }}</dd></div>
-            <div><dt class="text-gray-600">Coords:</dt> <dd class="font-mono text-xs">{{ nodoSeleccionado.lat.toFixed(6) }}, {{ nodoSeleccionado.lon.toFixed(6) }}</dd></div>
+        <div class="tm-panel" v-if="nodoSeleccionado" style="margin-top: 1.5rem;">
+          <h3 class="tm-panel-title">Telemetría de Estación</h3>
+          <dl class="tm-data-list">
+            <div class="tm-data-row">
+              <dt class="tm-data-term">ID</dt> 
+              <dd class="tm-data-value tm-font-mono">{{ nodoSeleccionado.id }}</dd>
+            </div>
+            <div class="tm-data-row">
+              <dt class="tm-data-term">Nombre</dt> 
+              <dd class="tm-data-value">{{ nodoSeleccionado.nombre }}</dd>
+            </div>
+            <div class="tm-data-row">
+              <dt class="tm-data-term">Tipo</dt> 
+              <dd class="tm-data-value" style="text-transform: capitalize;">{{ nodoSeleccionado.tipo }}</dd>
+            </div>
+            <div class="tm-data-row">
+              <dt class="tm-data-term">Coords</dt> 
+              <dd class="tm-data-value tm-font-mono">{{ nodoSeleccionado.lat.toFixed(6) }}, {{ nodoSeleccionado.lon.toFixed(6) }}</dd>
+            </div>
           </dl>
         </div>
 
         <!-- Arista Seleccionada -->
-        <div class="bg-white p-4 rounded-lg shadow border border-gray-200" v-if="aristaSeleccionada">
-          <h3 class="font-semibold text-gray-900 mb-3">Conexión Seleccionada</h3>
-          <dl class="space-y-2 text-sm">
-            <div><dt class="text-gray-600">ID:</dt> <dd class="font-mono">{{ aristaSeleccionada.id }}</dd></div>
-            <div><dt class="text-gray-600">Origen → Destino:</dt> <dd>{{ aristaSeleccionada.origen }} → {{ aristaSeleccionada.destino }}</dd></div>
-            <div><dt class="text-gray-600">Distancia:</dt> <dd>{{ (aristaSeleccionada.distancia / 1000).toFixed(2) }} km</dd></div>
-            <div><dt class="text-gray-600">Tiempo:</dt> <dd>{{ aristaSeleccionada.tiempo_estimado.toFixed(1) }} min</dd></div>
-            <div><dt class="text-gray-600">Congestión:</dt> <dd>
-              <span :class="claseCongestion(aristaSeleccionada.congestion)" class="px-2 py-0.5 rounded text-xs font-medium">
-                {{ aristaSeleccionada.congestion }}
-              </span>
-            </dd></div>
-            <div v-if="aristaSeleccionada.nombre_via"><dt class="text-gray-600">Vía:</dt> <dd>{{ aristaSeleccionada.nombre_via }}</dd></div>
+        <div class="tm-panel" v-if="aristaSeleccionada" style="margin-top: 1.5rem;">
+          <h3 class="tm-panel-title">Telemetría de Enlace</h3>
+          <dl class="tm-data-list">
+            <div class="tm-data-row">
+              <dt class="tm-data-term">ID</dt> 
+              <dd class="tm-data-value tm-font-mono">{{ aristaSeleccionada.id }}</dd>
+            </div>
+            <div class="tm-data-row">
+              <dt class="tm-data-term">Vector</dt> 
+              <dd class="tm-data-value">{{ aristaSeleccionada.origen }} → {{ aristaSeleccionada.destino }}</dd>
+            </div>
+            <div class="tm-data-row">
+              <dt class="tm-data-term">Distancia</dt> 
+              <dd class="tm-data-value tm-font-mono">{{ (aristaSeleccionada.distancia / 1000).toFixed(2) }} km</dd>
+            </div>
+            <div class="tm-data-row">
+              <dt class="tm-data-term">Tiempo Est.</dt> 
+              <dd class="tm-data-value tm-font-mono">{{ aristaSeleccionada.tiempo_estimado.toFixed(1) }} min</dd>
+            </div>
+            <div class="tm-data-row">
+              <dt class="tm-data-term">Congestión</dt> 
+              <dd class="tm-data-value">
+                <span :class="claseCongestion(aristaSeleccionada.congestion)">
+                  {{ aristaSeleccionada.congestion }}
+                </span>
+              </dd>
+            </div>
+            <div class="tm-data-row" v-if="aristaSeleccionada.nombre_via">
+              <dt class="tm-data-term">Vía</dt> 
+              <dd class="tm-data-value">{{ aristaSeleccionada.nombre_via }}</dd>
+            </div>
           </dl>
         </div>
 
         <!-- Error -->
-        <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-sm">
+        <div v-if="error" class="tm-alert" style="margin-top: 1.5rem;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
           {{ error }}
         </div>
       </aside>
 
       <!-- Panel Central: Grafo -->
-      <section class="lg:col-span-3 space-y-4">
-        <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+      <section class="tm-graph-section">
+        <div class="tm-panel" style="padding: 0; border: none;">
           <GraphView
             :nodos="nodos"
             :aristas="aristas"
@@ -261,44 +279,35 @@ onMounted(() => {
         </div>
 
         <!-- Leyenda -->
-        <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
-          <h4 class="font-semibold text-gray-900 mb-3">Leyenda</h4>
-          <div class="flex flex-wrap gap-6 text-sm">
-            <div class="flex items-center gap-2">
-              <span class="w-4 h-4 rounded-full bg-red-500 border-2 border-white"></span>
-              <span>Portal</span>
+        <div class="tm-panel" style="margin-top: 1.5rem;">
+          <h4 class="tm-panel-title" style="margin-bottom: 0.5rem;">Simbología</h4>
+          <div class="tm-legend">
+            <div class="tm-legend-item">
+              <span class="tm-legend-node" style="color: #ef4444;"></span> Portal
             </div>
-            <div class="flex items-center gap-2">
-              <span class="w-4 h-4 rounded-full bg-yellow-500 border-2 border-white"></span>
-              <span>Intercambio</span>
+            <div class="tm-legend-item">
+              <span class="tm-legend-node" style="color: #f59e0b;"></span> Intercambio
             </div>
-            <div class="flex items-center gap-2">
-              <span class="w-4 h-4 rounded-full bg-blue-500 border-2 border-white"></span>
-              <span>Edificio/Estación</span>
+            <div class="tm-legend-item">
+              <span class="tm-legend-node" style="color: #3b82f6;"></span> Edificio
             </div>
-            <div class="flex items-center gap-2">
-              <span class="w-4 h-4 rounded-full bg-green-500 border-2 border-white"></span>
-              <span>Zona</span>
+            <div class="tm-legend-item">
+              <span class="tm-legend-node" style="color: #10b981;"></span> Zona
             </div>
-            <div class="flex items-center gap-2">
-              <span class="w-4 h-4 rounded-full bg-purple-500 border-2 border-white"></span>
-              <span>Estación TransMilenio</span>
+            <div class="tm-legend-item">
+              <span class="tm-legend-node" style="color: #a855f7;"></span> Estación
             </div>
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-1 bg-green-500 rounded"></div>
-              <span>Congestión Baja</span>
+            <div class="tm-legend-item" style="margin-left: 1rem;">
+              <div class="tm-legend-edge" style="background-color: #3f3f46;"></div> Congestión Baja
             </div>
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-1.5 bg-yellow-500 rounded"></div>
-              <span>Congestión Media</span>
+            <div class="tm-legend-item">
+              <div class="tm-legend-edge" style="background-color: #f59e0b;"></div> Congestión Media
             </div>
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-2 bg-red-500 rounded"></div>
-              <span>Congestión Alta</span>
+            <div class="tm-legend-item">
+              <div class="tm-legend-edge" style="background-color: #ef4444;"></div> Congestión Alta
             </div>
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-3 bg-green-600 rounded border-2 border-green-300"></div>
-              <span>Ruta Calculada</span>
+            <div class="tm-legend-item" style="margin-left: 1rem;">
+              <div class="tm-legend-edge" style="background-color: var(--accent-route); box-shadow: var(--shadow-glow);"></div> Ruta Activa
             </div>
           </div>
         </div>

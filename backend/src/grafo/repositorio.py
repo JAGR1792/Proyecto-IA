@@ -1,4 +1,4 @@
-"""Repositorio para persistencia del grafo (JSON, GraphML, GeoJSON)."""
+﻿"""Repositorio para persistencia del grafo (JSON, GraphML, GeoJSON)."""
 
 import json
 from datetime import datetime
@@ -12,13 +12,13 @@ from .modelos import Arista, Grafo, Nodo, Coordenadas, TipoNodo, NivelCongestion
 
 
 class ExcepcionRepositorio(Exception):
-    """Excepción base para errores del repositorio."""
+    """ExcepciÃ³n base para errores del repositorio."""
 
     pass
 
 
 class RepositorioGrafo:
-    """Maneja carga y guardado del grafo en múltiples formatos."""
+    """Maneja carga y guardado del grafo en mÃºltiples formatos."""
 
     def __init__(self, directorio_datos: Union[str, Path] = "datos"):
         self.directorio = Path(directorio_datos)
@@ -300,22 +300,45 @@ class RepositorioGrafo:
 
     def descargar_desde_osm(
         self,
-        lugar: str = "Universidad Sergio Arboleda, Bogotá, Colombia",
+        lugar: str = "Universidad Sergio Arboleda, BogotÃ¡, Colombia",
         radio_metros: int = 1500,
         tipo_red: str = "drive",
         nombre_salida: str = "osm_grafo",
     ) -> Grafo:
-        """Descarga red vial de OpenStreetMap usando OSMnx."""
+        """Descarga red vial de OpenStreetMap usando OSMnx.
+
+        Args:
+            lugar: DirecciÃ³n o lugar de referencia para geo-codificar el centro.
+            radio_metros: Radio de descarga alrededor del punto central.
+            tipo_red: Tipo de red OSM ('drive', 'walk', 'bike', 'all').
+            nombre_salida: Prefijo para archivos GraphML/JSON generados.
+
+        Returns:
+            Grafo poblado con nodos y aristas reales de OpenStreetMap.
+
+        Raises:
+            ExcepcionRepositorio: Si OSMnx no estÃ¡ instalado o la descarga falla.
+        """
         try:
             import osmnx as ox
         except ImportError:
             raise ExcepcionRepositorio("OSMnx no instalado. Ejecute: pip install osmnx")
 
-        G = ox.graph_from_place(lugar, network_type=tipo_red, dist=radio_metros)
-        # O por punto central: ox.graph_from_point((lat, lon), dist=radio_metros, network_type=tipo_red)
+        # Geo-codificar lugar â†’ punto central (lat, lon)
+        try:
+            punto = ox.geocode(lugar)  # (lat, lon)
+        except Exception as e:
+            raise ExcepcionRepositorio(f"No se pudo geocodificar '{lugar}': {e}")
+
+        # osmnx 2.x: graph_from_point(center_point, dist, network_type)
+        G = ox.graph_from_point(
+            punto,
+            dist=radio_metros,
+            network_type=tipo_red,
+        )
 
         # Guardar GraphML original
-        ox.save_graphml(G, self.directorio / f"{nombre_salida}.graphml")
+        ox.save_graphml(G, filepath=self.directorio / f"{nombre_salida}.graphml")
 
         # Convertir a nuestro modelo
         grafo = Grafo.desde_networkx(G, dirigido=True)
@@ -334,12 +357,12 @@ class RepositorioGrafo:
         return grafo
 
     def _enriquecer_desde_osm(self, grafo: Grafo, G: nx.MultiDiGraph) -> None:
-        """Añade atributos de OSM a las aristas."""
+        """AÃ±ade atributos de OSM a las aristas."""
         for arista in grafo.aristas:
             # Buscar edge data en grafo original
             edges_data = G.get_edge_data(arista.origen, arista.destino)
             if edges_data:
-                # Tomar la primera arista (puede haber múltiples en MultiDiGraph)
+                # Tomar la primera arista (puede haber mÃºltiples en MultiDiGraph)
                 edge_data = list(edges_data.values())[0]
 
                 if "highway" in edge_data:
@@ -396,7 +419,7 @@ class RepositorioGrafo:
         """Descarga y extrae GTFS oficial del SITP (TransMilenio).
 
         Returns:
-            Dict con rutas a archivos extraídos: stops.txt, routes.txt, trips.txt, stop_times.txt, calendar.txt
+            Dict con rutas a archivos extraÃ­dos: stops.txt, routes.txt, trips.txt, stop_times.txt, calendar.txt
         """
         import zipfile
         import requests
@@ -426,9 +449,9 @@ class RepositorioGrafo:
             ruta = dir_gtfs / arch
             if ruta.exists():
                 archivos_encontrados[arch] = ruta
-                print(f"  ✓ {arch}")
+                print(f"  âœ“ {arch}")
             else:
-                print(f"  ✗ {arch} (no encontrado)")
+                print(f"  âœ— {arch} (no encontrado)")
 
         return archivos_encontrados
 
@@ -440,12 +463,12 @@ class RepositorioGrafo:
     ) -> Grafo:
         """Procesa archivos GTFS y genera grafo de TransMilenio (solo troncal).
 
-        Pipeline según PDF:
+        Pipeline segÃºn PDF:
         1. Filtrar routes.txt -> solo componente troncal
         2. trips.txt -> viajes de esas rutas
         3. stop_times.txt -> conexiones ordenadas entre estaciones
         4. stops.txt -> coordenadas y nombres de estaciones
-        5. calendar.txt -> disponibilidad por día
+        5. calendar.txt -> disponibilidad por dÃ­a
         6. Cruce con estaciones_geo -> verificar estado operativo (activa/cerrada)
         """
         import pandas as pd
@@ -466,7 +489,7 @@ class RepositorioGrafo:
         # En GTFS SITP, route_type=3 = bus, pero necesitamos identificar troncales
         # Generalmente route_id empieza con 'T' o route_short_name tiene formato troncal
         if solo_troncales:
-            # Heurística: rutas troncales suelen tener route_short_name como 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'K', 'L' o contener 'Portal'
+            # HeurÃ­stica: rutas troncales suelen tener route_short_name como 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'K', 'L' o contener 'Portal'
             mask_troncales = (
                 routes["route_short_name"].str.match(r"^[A-HKL]$", na=False) |
                 routes["route_long_name"].str.contains("Portal|Troncal", case=False, na=False) |
@@ -492,7 +515,7 @@ class RepositorioGrafo:
         stops_troncal = stops[stops["stop_id"].isin(stop_ids_usados)].copy()
         print(f"Estaciones en viajes troncales: {len(stops_troncal)}")
 
-        # 6. CRUCE CON ESTACIONES GEOGRÁFICAS OFICIALES (para estado operativo)
+        # 6. CRUCE CON ESTACIONES GEOGRÃFICAS OFICIALES (para estado operativo)
         estaciones_activas = set()
         if archivo_estaciones_geo and archivo_estaciones_geo.exists():
             import geopandas as gpd
@@ -501,7 +524,7 @@ class RepositorioGrafo:
             if "estado_operativo" in gdf.columns:
                 gdf_activas = gdf[gdf["estado_operativo"].isin(["activa", "temporal_activa"])]
                 estaciones_activas = set(gdf_activas["id_estacion"].astype(str).tolist())
-                print(f"Estaciones activas según geo: {len(estaciones_activas)}")
+                print(f"Estaciones activas segÃºn geo: {len(estaciones_activas)}")
             else:
                 # Si no hay campo estado, asumir todas
                 estaciones_activas = set(gdf["id_estacion"].astype(str).tolist()) if "id_estacion" in gdf.columns else stop_ids_usados
@@ -517,7 +540,7 @@ class RepositorioGrafo:
             grafo.agregar_nodo(
                 Nodo(
                     id=stop_id,
-                    nombre=row.get("stop_name", f"Estación {stop_id}"),
+                    nombre=row.get("stop_name", f"EstaciÃ³n {stop_id}"),
                     coordenadas=Coordenadas(
                         latitud=float(row["stop_lat"]),
                         longitud=float(row["stop_lon"]),
@@ -554,7 +577,7 @@ class RepositorioGrafo:
                 origen = paradas[i]
                 destino = paradas[i + 1]
 
-                # Solo si ambas estaciones están activas
+                # Solo si ambas estaciones estÃ¡n activas
                 if origen not in grafo.nodos or destino not in grafo.nodos:
                     continue
 
@@ -571,7 +594,7 @@ class RepositorioGrafo:
                 nodo_d = grafo.nodos[destino]
                 distancia_m = nodo_o.coordenadas.distancia_a(nodo_d.coordenadas)
 
-                # ID único para la arista
+                # ID Ãºnico para la arista
                 arista_id = f"{origen}-{destino}-{nombre_ruta}"
                 if arista_id in aristas_creadas:
                     continue
@@ -617,7 +640,7 @@ class RepositorioGrafo:
         stops_troncal: "pd.DataFrame",
         stop_times_ordenado: "pd.DataFrame",
     ) -> None:
-        """Guarda los 3 CSVs del dataset inicial según especificación del PDF."""
+        """Guarda los 3 CSVs del dataset inicial segÃºn especificaciÃ³n del PDF."""
         import pandas as pd
 
         # 1. estaciones_troncales_activas.csv
@@ -633,7 +656,7 @@ class RepositorioGrafo:
                 "estado_operativo": "activa",
                 "es_temporal": "No",
                 "fecha_verificacion": "2026-09-07",
-                "incluir_en_grafo": "Sí",
+                "incluir_en_grafo": "SÃ­",
             })
         pd.DataFrame(filas_estaciones).to_csv(self.directorio / "estaciones_troncales_activas.csv", index=False, encoding="utf-8")
 
@@ -644,14 +667,14 @@ class RepositorioGrafo:
                 "origen": arista.origen,
                 "destino": arista.destino,
                 "ruta": arista.atributos.nombre_via,
-                "secuencia_origen": 0,  # Se llenaría con datos reales
+                "secuencia_origen": 0,  # Se llenarÃ­a con datos reales
                 "secuencia_destino": 0,
                 "hora_salida": "",
                 "hora_llegada": "",
                 "tiempo_min": round(arista.tiempo_estimado, 1),
                 "distancia_km": round(arista.distancia / 1000, 3),
-                "transbordo": "No",  # Se detectaría si ruta cambia
-                "disponible": "Sí" if arista.disponible else "No",
+                "transbordo": "No",  # Se detectarÃ­a si ruta cambia
+                "disponible": "SÃ­" if arista.disponible else "No",
             })
         pd.DataFrame(filas_conexiones).to_csv(self.directorio / "conexiones_troncales.csv", index=False, encoding="utf-8")
 
@@ -663,8 +686,8 @@ class RepositorioGrafo:
         print(f"Datasets guardados en {self.directorio}/")
 
     def _obtener_troncal_estacion(self, estacion_id: str, routes: "pd.DataFrame", stop_times: "pd.DataFrame") -> str:
-        """Determina a qué troncal pertenece una estación."""
-        # Buscar rutas que pasan por esta estación
+        """Determina a quÃ© troncal pertenece una estaciÃ³n."""
+        # Buscar rutas que pasan por esta estaciÃ³n
         trips_en_estacion = stop_times[stop_times["stop_id"].astype(str) == estacion_id]["trip_id"].unique()
         if len(trips_en_estacion) == 0:
             return "desconocida"
@@ -672,7 +695,7 @@ class RepositorioGrafo:
         # Obtener route_ids
         import pandas as pd
         trips_df = pd.DataFrame({"trip_id": trips_en_estacion})
-        # Necesitaríamos trips dataframe completo... simplificar
+        # NecesitarÃ­amos trips dataframe completo... simplificar
         return "principal"
 
     def _clasificar_tipo_estacion(self, estacion_id: str, grafo: Grafo) -> str:
@@ -695,10 +718,10 @@ class RepositorioGrafo:
         usar_gtfs_real: bool = True,
         descargar_geo: bool = True,
     ) -> Grafo:
-        """Método principal: genera dataset completo TransMilenio para Corte 1.
+        """MÃ©todo principal: genera dataset completo TransMilenio para Corte 1.
 
         Si usar_gtfs_real=True: descarga GTFS oficial + geo estaciones
-        Si False: crea dataset sintético de ejemplo (6 nodos PDF)
+        Si False: crea dataset sintÃ©tico de ejemplo (6 nodos PDF)
         """
         if usar_gtfs_real:
             print("=== GENERANDO DATASET TRANSMILENIO REAL (GTFS) ===")
@@ -706,7 +729,7 @@ class RepositorioGrafo:
             # 1. Descargar GTFS
             archivos_gtfs = self.descargar_gtfs_transmilenio()
 
-            # 2. Descargar estaciones geográficas (para estado operativo)
+            # 2. Descargar estaciones geogrÃ¡ficas (para estado operativo)
             archivo_geo = None
             if descargar_geo:
                 archivo_geo = self._descargar_estaciones_geo()
@@ -714,7 +737,7 @@ class RepositorioGrafo:
             # 3. Procesar a grafo
             grafo = self.procesar_gtfs_a_grafo(archivos_gtfs, archivo_geo)
 
-            # 4. Guardar en múltiples formatos
+            # 4. Guardar en mÃºltiples formatos
             self.guardar_json(grafo, "transmilenio_grafo.json")
             self.guardar_graphml(grafo, "transmilenio_grafo.graphml")
             self.guardar_geojson(grafo, "transmilenio_nodos.geojson", "transmilenio_aristas.geojson")
@@ -722,8 +745,50 @@ class RepositorioGrafo:
 
             return grafo
         else:
-            print("=== GENERANDO DATASET SINTÉTICO (EJEMPLO PDF - 6 NODOS) ===")
+            print("=== GENERANDO DATASET SINTÃ‰TICO (EJEMPLO PDF - 6 NODOS) ===")
             return self._crear_dataset_sintetico_pdf()
+
+    def generar_dataset_osm(
+        self,
+        lugar: str = "Universidad Sergio Arboleda, BogotÃ¡, Colombia",
+        radio_metros: int = 1500,
+        tipo_red: str = "drive",
+    ) -> Grafo:
+        """Genera dataset real desde OpenStreetMap y lo persiste en todos los formatos.
+
+        Args:
+            lugar: Lugar/geocodificaciÃ³n para descargar la red vial.
+            radio_metros: Radio de descarga alrededor del punto central.
+            tipo_red: Tipo de red OSM ('drive', 'walk', 'bike', 'all').
+
+        Returns:
+            Grafo real de OpenStreetMap guardado en datos/.
+        """
+        print(f"=== GENERANDO DATASET OPENSTREETMAP (OSMnx) ===")
+        print(f"  Lugar: {lugar}")
+        print(f"  Radio: {radio_metros} m | Red: {tipo_red}")
+
+        grafo = self.descargar_desde_osm(
+            lugar=lugar,
+            radio_metros=radio_metros,
+            tipo_red=tipo_red,
+            nombre_salida="osm_grafo",
+        )
+
+        print(f"  âœ“ Descargados: {grafo.metadata['nodos_originales']} nodos, "
+              f"{grafo.metadata['aristas_originales']} aristas originales")
+
+        # Persistir en todos los formatos
+        self.guardar_json(grafo, "grafo_osm.json")
+        self.guardar_graphml(grafo, "grafo_osm.graphml")
+        self.guardar_geojson(grafo, "grafo_osm_nodos.geojson", "grafo_osm_aristas.geojson")
+        self.guardar_csv(grafo, "grafo_osm")
+
+        # Guardar tambiÃ©n como dataset principal para la API
+        self.guardar_json(grafo, "dataset_osm.json")
+
+        print(f"  âœ“ Guardado: grafo_osm.json, graphml, geojson, csv")
+        return grafo
 
     def _descargar_estaciones_geo(self) -> Optional[Path]:
         """Descarga capa geoJSON de estaciones troncales oficiales."""
@@ -734,7 +799,7 @@ class RepositorioGrafo:
         ruta = self.directorio / "estaciones_troncales_oficiales.geojson"
 
         try:
-            print(f"Descargando estaciones geográficas desde {url}...")
+            print(f"Descargando estaciones geogrÃ¡ficas desde {url}...")
             response = requests.get(url, timeout=60)
             response.raise_for_status()
 
@@ -743,12 +808,12 @@ class RepositorioGrafo:
 
             # Verificar que se puede leer
             gdf = gpd.read_file(ruta)
-            print(f"  ✓ Estaciones geo descargadas: {len(gdf)} features")
+            print(f"  âœ“ Estaciones geo descargadas: {len(gdf)} features")
             print(f"  Columnas: {list(gdf.columns)}")
 
             return ruta
         except Exception as e:
-            print(f"  ✗ Error descargando geo: {e}")
+            print(f"  âœ— Error descargando geo: {e}")
             return None
 
     def _crear_dataset_sintetico_pdf(self) -> Grafo:
@@ -758,9 +823,9 @@ class RepositorioGrafo:
         # 6 Nodos del PDF
         nodos = [
             Nodo(id="n1", nombre="Entrada Principal", coordenadas=Coordenadas(latitud=4.6097, longitud=-74.0817), tipo=TipoNodo.EDIFICIO),
-            Nodo(id="n2", nombre="Edificio Ingeniería", coordenadas=Coordenadas(latitud=4.6102, longitud=-74.0820), tipo=TipoNodo.EDIFICIO),
+            Nodo(id="n2", nombre="Edificio IngenierÃ­a", coordenadas=Coordenadas(latitud=4.6102, longitud=-74.0820), tipo=TipoNodo.EDIFICIO),
             Nodo(id="n3", nombre="Biblioteca", coordenadas=Coordenadas(latitud=4.6105, longitud=-74.0815), tipo=TipoNodo.EDIFICIO),
-            Nodo(id="n4", nombre="Cafetería", coordenadas=Coordenadas(latitud=4.6100, longitud=-74.0825), tipo=TipoNodo.ZONA),
+            Nodo(id="n4", nombre="CafeterÃ­a", coordenadas=Coordenadas(latitud=4.6100, longitud=-74.0825), tipo=TipoNodo.ZONA),
             Nodo(id="n5", nombre="Laboratorios", coordenadas=Coordenadas(latitud=4.6110, longitud=-74.0818), tipo=TipoNodo.EDIFICIO),
             Nodo(id="n6", nombre="Zona Deportiva", coordenadas=Coordenadas(latitud=4.6115, longitud=-74.0822), tipo=TipoNodo.ZONA),
         ]

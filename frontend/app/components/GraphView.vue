@@ -134,15 +134,16 @@ function obtenerEstilos() {
         'text-valign': 'center',
         'text-halign': 'center',
         'font-size': '10px',
+        'font-family': '"JetBrains Mono", monospace',
         'font-weight': 'bold',
-        'color': '#1a1a2e',
+        'color': '#fafafa',
         'text-outline-width': 2,
-        'text-outline-color': '#ffffff',
-        'background-color': '#3b82f6',
-        'width': 30,
-        'height': 30,
+        'text-outline-color': '#09090b',
+        'background-color': '#3f3f46',
+        'width': 24,
+        'height': 24,
         'border-width': 2,
-        'border-color': '#ffffff',
+        'border-color': '#71717a',
         'overlay-padding': '6px',
         'z-index': 10,
       },
@@ -151,10 +152,10 @@ function obtenerEstilos() {
     {
       selector: 'node[tipo = "portal"]',
       style: {
-        'background-color': '#ef4444',
-        'width': 40,
-        'height': 40,
-        'border-color': '#dc2626',
+        'background-color': '#e11d48',
+        'width': 32,
+        'height': 32,
+        'border-color': '#f43f5e',
         'font-size': '11px',
       },
     },
@@ -163,9 +164,9 @@ function obtenerEstilos() {
       selector: 'node[tipo = "intercambio"]',
       style: {
         'background-color': '#f59e0b',
-        'width': 35,
-        'height': 35,
-        'border-color': '#d97706',
+        'width': 28,
+        'height': 28,
+        'border-color': '#fbbf24',
       },
     },
     // Nodo edificio
@@ -186,7 +187,7 @@ function obtenerEstilos() {
     {
       selector: 'node[tipo = "estacion"]',
       style: {
-        'background-color': '#8b5cf6',
+        'background-color': '#a855f7',
       },
     },
     // Nodo seleccionado
@@ -194,36 +195,38 @@ function obtenerEstilos() {
       selector: 'node:selected',
       style: {
         'border-width': 4,
-        'border-color': '#f59e0b',
-        'background-color': '#fef3c7',
-        'color': '#1a1a2e',
+        'border-color': '#fafafa',
+        'background-color': '#f59e0b',
+        'color': '#ffffff',
       },
     },
     // Nodo en ruta resaltada
     {
       selector: '.en-ruta',
       style: {
-        'border-width': 3,
-        'border-color': '#22c55e',
-        'background-color': '#dcfce7',
+        'border-width': 4,
+        'border-color': '#a3e635',
+        'background-color': '#a3e635',
+        'color': '#fafafa',
+        'text-outline-color': '#1a2e05',
       },
     },
     // Nodo destino
     {
       selector: '.destino',
       style: {
-        'border-width': 3,
-        'border-color': '#ef4444',
-        'background-color': '#fee2e2',
+        'border-width': 4,
+        'border-color': '#e11d48',
+        'background-color': '#be123c',
       },
     },
     // Nodo origen
     {
       selector: '.origen',
       style: {
-        'border-width': 3,
+        'border-width': 4,
         'border-color': '#3b82f6',
-        'background-color': '#dbeafe',
+        'background-color': '#1d4ed8',
       },
     },
 
@@ -232,15 +235,16 @@ function obtenerEstilos() {
       selector: 'edge',
       style: {
         'width': 2,
-        'line-color': '#64748b',
+        'line-color': '#3f3f46',
         'target-arrow-shape': 'triangle',
-        'target-arrow-color': '#64748b',
+        'target-arrow-color': '#3f3f46',
         'curve-style': 'bezier',
         'label': 'data(label)',
+        'font-family': '"JetBrains Mono", monospace',
         'font-size': '8px',
-        'color': '#374151',
-        'text-background-color': '#ffffff',
-        'text-background-opacity': 0.8,
+        'color': '#a1a1aa',
+        'text-background-color': '#18181b',
+        'text-background-opacity': 0.9,
         'text-background-padding': '2px',
         'text-background-shape': 'roundrect',
         'edge-text-rotation': 'autorotate',
@@ -250,35 +254,35 @@ function obtenerEstilos() {
     {
       selector: 'edge[congestion = "baja"]',
       style: {
-        'line-color': '#22c55e',
-        'target-arrow-color': '#22c55e',
-        'width': 3,
+        'line-color': '#3f3f46',
+        'target-arrow-color': '#3f3f46',
+        'width': 2,
       },
     },
     // Arista congestión media
     {
       selector: 'edge[congestion = "media"]',
       style: {
-        'line-color': '#f59e0b',
-        'target-arrow-color': '#f59e0b',
-        'width': 3,
+        'line-color': '#b45309',
+        'target-arrow-color': '#b45309',
+        'width': 2.5,
       },
     },
     // Arista congestión alta
     {
       selector: 'edge[congestion = "alta"]',
       style: {
-        'line-color': '#ef4444',
-        'target-arrow-color': '#ef4444',
-        'width': 4,
+        'line-color': '#b91c1c',
+        'target-arrow-color': '#b91c1c',
+        'width': 3,
       },
     },
     // Arista bloqueada
     {
       selector: 'edge[congestion = "bloqueada"]',
       style: {
-        'line-color': '#999999',
-        'target-arrow-color': '#999999',
+        'line-color': '#27272a',
+        'target-arrow-color': '#27272a',
         'line-style': 'dashed',
         'opacity': 0.5,
       },
@@ -287,8 +291,8 @@ function obtenerEstilos() {
     {
       selector: '.en-ruta',
       style: {
-        'line-color': '#22c55e',
-        'target-arrow-color': '#22c55e',
+        'line-color': '#a3e635',
+        'target-arrow-color': '#a3e635',
         'width': 5,
         'line-style': 'solid',
         'z-index': 100,
@@ -298,9 +302,9 @@ function obtenerEstilos() {
     {
       selector: 'edge:selected',
       style: {
-        'line-color': '#f59e0b',
-        'target-arrow-color': '#f59e0b',
-        'width': 5,
+        'line-color': '#fafafa',
+        'target-arrow-color': '#fafafa',
+        'width': 4,
       },
     },
   ]
@@ -449,8 +453,7 @@ onUnmounted(() => {
 <template>
   <div
     ref="containerRef"
-    class="w-full h-full min-h-[600px] bg-gray-50 rounded-lg border border-gray-200"
-    style="width: 100%; height: 600px;"
+    class="tm-graph-container cytoscape-element"
   />
 </template>
 

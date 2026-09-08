@@ -27,8 +27,8 @@ def obtener_grafo() -> Grafo:
     global _grafo_cache
     if _grafo_cache is None:
         repo = obtener_repositorio()
-        # Intentar cargar grafo existente
-        for nombre in ["transmilenio_grafo.json", "dataset_inicial_pdf.json", "grafo.json"]:
+        # Prioridad: dataset OSM real (si existe) → TransMilenio GTFS → sintético PDF
+        for nombre in ["dataset_osm.json", "transmilenio_grafo.json", "dataset_inicial_pdf.json", "grafo.json"]:
             try:
                 _grafo_cache = repo.cargar_json(nombre)
                 break
