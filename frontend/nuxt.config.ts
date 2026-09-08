@@ -7,7 +7,10 @@ export default defineNuxtConfig({
     '@nuxtjs/tailwindcss',
   ],
 
-  css: ['~/assets/css/main.css'],
+  css: [
+    '~/assets/css/main.css',
+    'leaflet/dist/leaflet.css',
+  ],
 
   app: {
     head: {
@@ -30,7 +33,7 @@ export default defineNuxtConfig({
 
   vite: {
     optimizeDeps: {
-      include: ['cytoscape', 'cytoscape-cose-bilkent', 'cytoscape-dagre'],
+      include: ['cytoscape', 'cytoscape-cose-bilkent', 'cytoscape-dagre', 'leaflet'],
     },
   },
 

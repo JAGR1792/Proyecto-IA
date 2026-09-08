@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import GraphView from '@/components/GraphView.vue'
+import MapaOSM from '@/components/MapaOSM.vue'
 import type { NodoGrafo, AristaGrafo } from '@/components/GraphView.vue'
 
 const nodos = ref<NodoGrafo[]>([])
@@ -17,6 +18,7 @@ const apiBase = 'http://localhost:8000/api/v1'
 const origenSeleccionado = ref<string>('')
 const destinoSeleccionado = ref<string>('')
 const criterioSeleccionado = ref<string>('ruta_equilibrada')
+const vistaActiva = ref<'grafo' | 'mapa'>('mapa')
 
 async function cargarGrafo() {
   cargando.value = true
@@ -267,8 +269,35 @@ onMounted(() => {
 
       <!-- Panel Central: Grafo -->
       <section class="tm-graph-section">
+        <div class="tm-view-toggle">
+          <button
+            class="tm-button tm-button-secondary"
+            :class="{ 'tm-view-btn-activo': vistaActiva === 'mapa' }"
+            @click="vistaActiva = 'mapa'"
+          >
+            Mapa OSM
+          </button>
+          <button
+            class="tm-button tm-button-secondary"
+            :class="{ 'tm-view-btn-activo': vistaActiva === 'grafo' }"
+            @click="vistaActiva = 'grafo'"
+          >
+            Vista Grafo
+          </button>
+        </div>
         <div class="tm-panel" style="padding: 0; border: none;">
+          <MapaOSM
+            v-if="vistaActiva === 'mapa'"
+            :nodos="nodos"
+            :aristas="aristas"
+            :ruta-resaltada="rutaResaltada"
+            :arista-resaltada="aristaResaltada"
+            :api-base="apiBase"
+            @nodo-click="manejarClickNodo"
+            @arista-click="manejarClickArista"
+          />
           <GraphView
+            v-else
             :nodos="nodos"
             :aristas="aristas"
             :ruta-resaltada="rutaResaltada"
@@ -315,3 +344,17 @@ onMounted(() => {
     </main>
   </div>
 </template>
+
+<style scoped>
+.tm-view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tm-view-btn-activo {
+  background-color: var(--bg-surface-active);
+  color: var(--text-primary, #fafafa);
+  border-color: var(--border-focus);
+}
+</style>
