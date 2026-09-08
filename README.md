@@ -76,13 +76,14 @@ backend/
 └── pyproject.toml
 ```
 
-### Frontend (Nuxt 3 + Vue.js)
+### Frontend (Nuxt 4 + Vue 3)
 ```
 frontend/
-├── componentes/         # GraphView, RoutePanel, MetricsChart, NodeInfo
-├── composables/         # useGrafo, useBusqueda, useAgente, useMapa
-├── paginas/             # index, busqueda, analisis, configuracion
-├── utilidades/          # Helpers D3/Cytoscape, exportación, formato
+├── app/
+│   ├── app.vue              # Layout principal + toggle Mapa/Grafo
+│   ├── assets/css/          # Sistema de diseño "Control Center" (Vanilla CSS)
+│   └── components/          # GraphView (Cytoscape), MapaOSM (Leaflet)
+├── nuxt.config.ts           # runtimeConfig apiBase, css Leaflet, optimizeDeps
 └── package.json
 ```
 
@@ -143,6 +144,24 @@ edges.to_file("datos/aristas.geojson", driver="GeoJSON")
 # Costo = f(distancia, tipo_vía, peajes)
 # Congestión = f(hora_día, tipo_vía, incidentes_históricos)
 ```
+
+#### 6. **Comando integrado del proyecto (backend)**
+```bash
+cd backend
+.venv\Scripts\python.exe generar_dataset_transmilenio.py --osm --lugar "Universidad Sergio Arboleda, Bogotá, Colombia" --radio 1200 --tipo-red drive
+```
+Genera y persiste en `backend/datos/`: `grafo_osm.json`, `grafo_osm.graphml`, geojson de nodos/aristas, CSV y `dataset_osm.json` (dataset principal que consume la API).
+
+#### 7. **Endpoints de mapa y visualización**
+| Endpoint | Descripción |
+|----------|-------------|
+| `GET /api/v1/mapa/geojson/nodos` | FeatureCollection de nodos (Point) |
+| `GET /api/v1/mapa/geojson/aristas` | FeatureCollection de aristas (LineString con trazado real) |
+| `GET /api/v1/mapa/graphml` | Grafo exportado a GraphML |
+| `GET /api/v1/mapa/bbox` | Bounding box y centro para centrar el mapa |
+| `GET /api/v1/grafo/` | Grafo completo (nodos + aristas) |
+
+El frontend (Nuxt 4) muestra la red vial sobre OpenStreetMap con **Leaflet** vía el componente `MapaOSM.vue`, con toggle **Mapa OSM / Vista Grafo** (Cytoscape) en `app.vue`.
 
 ---
 
