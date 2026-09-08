@@ -1,0 +1,101 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.0817,
+          4.6097
+        ]
+      },
+      "properties": {
+        "id": "n1",
+        "nombre": "Entrada Principal",
+        "tipo": "edificio",
+        "accesible": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.082,
+          4.6102
+        ]
+      },
+      "properties": {
+        "id": "n2",
+        "nombre": "Edificio Ingeniería",
+        "tipo": "edificio",
+        "accesible": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.0815,
+          4.6105
+        ]
+      },
+      "properties": {
+        "id": "n3",
+        "nombre": "Biblioteca",
+        "tipo": "edificio",
+        "accesible": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.0825,
+          4.61
+        ]
+      },
+      "properties": {
+        "id": "n4",
+        "nombre": "Cafetería",
+        "tipo": "zona",
+        "accesible": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.0818,
+          4.611
+        ]
+      },
+      "properties": {
+        "id": "n5",
+        "nombre": "Laboratorios",
+        "tipo": "edificio",
+        "accesible": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.0822,
+          4.6115
+        ]
+      },
+      "properties": {
+        "id": "n6",
+        "nombre": "Zona Deportiva",
+        "tipo": "zona",
+        "accesible": true
+      }
+    }
+  ]
+}

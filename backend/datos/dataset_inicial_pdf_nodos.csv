@@ -1,0 +1,7 @@
+id,nombre,latitud,longitud,tipo,accesible
+n1,Entrada Principal,4.6097,-74.0817,edificio,True
+n2,Edificio Ingeniería,4.6102,-74.082,edificio,True
+n3,Biblioteca,4.6105,-74.0815,edificio,True
+n4,Cafetería,4.61,-74.0825,zona,True
+n5,Laboratorios,4.611,-74.0818,edificio,True
+n6,Zona Deportiva,4.6115,-74.0822,zona,True

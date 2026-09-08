@@ -1,0 +1,8 @@
+id,origen,destino,distancia,tiempo_estimado,costo,velocidad_promedio,congestion,disponible,incidentes,tipo_via,sentido_unico,peaje,restricciones
+e1,n1,n2,300.0,4.0,0.0,45.0,baja,True,0,otro,False,False,[]
+e2,n1,n4,200.0,3.0,0.0,40.0,baja,True,0,otro,False,False,[]
+e3,n2,n3,300.0,4.0,0.0,45.0,media,True,0,otro,False,False,[]
+e4,n2,n5,200.0,3.0,0.0,40.0,baja,True,0,otro,False,False,[]
+e5,n3,n6,400.0,5.0,0.0,48.0,baja,True,0,otro,False,False,[]
+e6,n4,n5,300.0,4.0,0.0,45.0,media,True,0,otro,False,False,[]
+e7,n5,n6,200.0,3.0,0.0,40.0,baja,True,0,otro,False,False,[]

@@ -1,0 +1,261 @@
+{
+  "dirigido": true,
+  "metadata": {
+    "fuente": "Ejemplo PDF Corte 1",
+    "sintetico": true
+  },
+  "nodos": {
+    "n1": {
+      "id": "n1",
+      "nombre": "Entrada Principal",
+      "coordenadas": {
+        "latitud": 4.6097,
+        "longitud": -74.0817
+      },
+      "tipo": "edificio",
+      "atributos": {
+        "capacidad": null,
+        "horario_apertura": null,
+        "horario_cierre": null,
+        "accesible": true,
+        "descripcion": null
+      }
+    },
+    "n2": {
+      "id": "n2",
+      "nombre": "Edificio Ingeniería",
+      "coordenadas": {
+        "latitud": 4.6102,
+        "longitud": -74.082
+      },
+      "tipo": "edificio",
+      "atributos": {
+        "capacidad": null,
+        "horario_apertura": null,
+        "horario_cierre": null,
+        "accesible": true,
+        "descripcion": null
+      }
+    },
+    "n3": {
+      "id": "n3",
+      "nombre": "Biblioteca",
+      "coordenadas": {
+        "latitud": 4.6105,
+        "longitud": -74.0815
+      },
+      "tipo": "edificio",
+      "atributos": {
+        "capacidad": null,
+        "horario_apertura": null,
+        "horario_cierre": null,
+        "accesible": true,
+        "descripcion": null
+      }
+    },
+    "n4": {
+      "id": "n4",
+      "nombre": "Cafetería",
+      "coordenadas": {
+        "latitud": 4.61,
+        "longitud": -74.0825
+      },
+      "tipo": "zona",
+      "atributos": {
+        "capacidad": null,
+        "horario_apertura": null,
+        "horario_cierre": null,
+        "accesible": true,
+        "descripcion": null
+      }
+    },
+    "n5": {
+      "id": "n5",
+      "nombre": "Laboratorios",
+      "coordenadas": {
+        "latitud": 4.611,
+        "longitud": -74.0818
+      },
+      "tipo": "edificio",
+      "atributos": {
+        "capacidad": null,
+        "horario_apertura": null,
+        "horario_cierre": null,
+        "accesible": true,
+        "descripcion": null
+      }
+    },
+    "n6": {
+      "id": "n6",
+      "nombre": "Zona Deportiva",
+      "coordenadas": {
+        "latitud": 4.6115,
+        "longitud": -74.0822
+      },
+      "tipo": "zona",
+      "atributos": {
+        "capacidad": null,
+        "horario_apertura": null,
+        "horario_cierre": null,
+        "accesible": true,
+        "descripcion": null
+      }
+    }
+  },
+  "aristas": [
+    {
+      "id": "e1",
+      "origen": "n1",
+      "destino": "n2",
+      "distancia": 300.0,
+      "tiempo_estimado": 4.0,
+      "costo": 0.0,
+      "velocidad_promedio": 45.0,
+      "congestion": "baja",
+      "disponible": true,
+      "incidentes": 0,
+      "atributos": {
+        "tipo_via": "otro",
+        "nombre_via": null,
+        "superficie": null,
+        "carriles": null,
+        "sentido_unico": false,
+        "peaje": false,
+        "costo_peaje": null,
+        "restricciones": []
+      }
+    },
+    {
+      "id": "e2",
+      "origen": "n1",
+      "destino": "n4",
+      "distancia": 200.0,
+      "tiempo_estimado": 3.0,
+      "costo": 0.0,
+      "velocidad_promedio": 40.0,
+      "congestion": "baja",
+      "disponible": true,
+      "incidentes": 0,
+      "atributos": {
+        "tipo_via": "otro",
+        "nombre_via": null,
+        "superficie": null,
+        "carriles": null,
+        "sentido_unico": false,
+        "peaje": false,
+        "costo_peaje": null,
+        "restricciones": []
+      }
+    },
+    {
+      "id": "e3",
+      "origen": "n2",
+      "destino": "n3",
+      "distancia": 300.0,
+      "tiempo_estimado": 4.0,
+      "costo": 0.0,
+      "velocidad_promedio": 45.0,
+      "congestion": "media",
+      "disponible": true,
+      "incidentes": 0,
+      "atributos": {
+        "tipo_via": "otro",
+        "nombre_via": null,
+        "superficie": null,
+        "carriles": null,
+        "sentido_unico": false,
+        "peaje": false,
+        "costo_peaje": null,
+        "restricciones": []
+      }
+    },
+    {
+      "id": "e4",
+      "origen": "n2",
+      "destino": "n5",
+      "distancia": 200.0,
+      "tiempo_estimado": 3.0,
+      "costo": 0.0,
+      "velocidad_promedio": 40.0,
+      "congestion": "baja",
+      "disponible": true,
+      "incidentes": 0,
+      "atributos": {
+        "tipo_via": "otro",
+        "nombre_via": null,
+        "superficie": null,
+        "carriles": null,
+        "sentido_unico": false,
+        "peaje": false,
+        "costo_peaje": null,
+        "restricciones": []
+      }
+    },
+    {
+      "id": "e5",
+      "origen": "n3",
+      "destino": "n6",
+      "distancia": 400.0,
+      "tiempo_estimado": 5.0,
+      "costo": 0.0,
+      "velocidad_promedio": 48.0,
+      "congestion": "baja",
+      "disponible": true,
+      "incidentes": 0,
+      "atributos": {
+        "tipo_via": "otro",
+        "nombre_via": null,
+        "superficie": null,
+        "carriles": null,
+        "sentido_unico": false,
+        "peaje": false,
+        "costo_peaje": null,
+        "restricciones": []
+      }
+    },
+    {
+      "id": "e6",
+      "origen": "n4",
+      "destino": "n5",
+      "distancia": 300.0,
+      "tiempo_estimado": 4.0,
+      "costo": 0.0,
+      "velocidad_promedio": 45.0,
+      "congestion": "media",
+      "disponible": true,
+      "incidentes": 0,
+      "atributos": {
+        "tipo_via": "otro",
+        "nombre_via": null,
+        "superficie": null,
+        "carriles": null,
+        "sentido_unico": false,
+        "peaje": false,
+        "costo_peaje": null,
+        "restricciones": []
+      }
+    },
+    {
+      "id": "e7",
+      "origen": "n5",
+      "destino": "n6",
+      "distancia": 200.0,
+      "tiempo_estimado": 3.0,
+      "costo": 0.0,
+      "velocidad_promedio": 40.0,
+      "congestion": "baja",
+      "disponible": true,
+      "incidentes": 0,
+      "atributos": {
+        "tipo_via": "otro",
+        "nombre_via": null,
+        "superficie": null,
+        "carriles": null,
+        "sentido_unico": false,
+        "peaje": false,
+        "costo_peaje": null,
+        "restricciones": []
+      }
+    }
+  ]
+}

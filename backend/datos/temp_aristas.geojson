@@ -1,0 +1,229 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -74.0817,
+            4.6097
+          ],
+          [
+            -74.082,
+            4.6102
+          ]
+        ]
+      },
+      "properties": {
+        "id": "e1",
+        "origen": "n1",
+        "destino": "n2",
+        "distancia": 300.0,
+        "tiempo_estimado": 4.0,
+        "costo": 0.0,
+        "velocidad_promedio": 45.0,
+        "congestion": "baja",
+        "disponible": true,
+        "incidentes": 0,
+        "tipo_via": "otro",
+        "sentido_unico": false,
+        "peaje": false,
+        "restricciones": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -74.0817,
+            4.6097
+          ],
+          [
+            -74.0825,
+            4.61
+          ]
+        ]
+      },
+      "properties": {
+        "id": "e2",
+        "origen": "n1",
+        "destino": "n4",
+        "distancia": 200.0,
+        "tiempo_estimado": 3.0,
+        "costo": 0.0,
+        "velocidad_promedio": 40.0,
+        "congestion": "baja",
+        "disponible": true,
+        "incidentes": 0,
+        "tipo_via": "otro",
+        "sentido_unico": false,
+        "peaje": false,
+        "restricciones": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -74.082,
+            4.6102
+          ],
+          [
+            -74.0815,
+            4.6105
+          ]
+        ]
+      },
+      "properties": {
+        "id": "e3",
+        "origen": "n2",
+        "destino": "n3",
+        "distancia": 300.0,
+        "tiempo_estimado": 4.0,
+        "costo": 0.0,
+        "velocidad_promedio": 45.0,
+        "congestion": "media",
+        "disponible": true,
+        "incidentes": 0,
+        "tipo_via": "otro",
+        "sentido_unico": false,
+        "peaje": false,
+        "restricciones": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -74.082,
+            4.6102
+          ],
+          [
+            -74.0818,
+            4.611
+          ]
+        ]
+      },
+      "properties": {
+        "id": "e4",
+        "origen": "n2",
+        "destino": "n5",
+        "distancia": 200.0,
+        "tiempo_estimado": 3.0,
+        "costo": 0.0,
+        "velocidad_promedio": 40.0,
+        "congestion": "baja",
+        "disponible": true,
+        "incidentes": 0,
+        "tipo_via": "otro",
+        "sentido_unico": false,
+        "peaje": false,
+        "restricciones": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -74.0815,
+            4.6105
+          ],
+          [
+            -74.0822,
+            4.6115
+          ]
+        ]
+      },
+      "properties": {
+        "id": "e5",
+        "origen": "n3",
+        "destino": "n6",
+        "distancia": 400.0,
+        "tiempo_estimado": 5.0,
+        "costo": 0.0,
+        "velocidad_promedio": 48.0,
+        "congestion": "baja",
+        "disponible": true,
+        "incidentes": 0,
+        "tipo_via": "otro",
+        "sentido_unico": false,
+        "peaje": false,
+        "restricciones": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -74.0825,
+            4.61
+          ],
+          [
+            -74.0818,
+            4.611
+          ]
+        ]
+      },
+      "properties": {
+        "id": "e6",
+        "origen": "n4",
+        "destino": "n5",
+        "distancia": 300.0,
+        "tiempo_estimado": 4.0,
+        "costo": 0.0,
+        "velocidad_promedio": 45.0,
+        "congestion": "media",
+        "disponible": true,
+        "incidentes": 0,
+        "tipo_via": "otro",
+        "sentido_unico": false,
+        "peaje": false,
+        "restricciones": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -74.0818,
+            4.611
+          ],
+          [
+            -74.0822,
+            4.6115
+          ]
+        ]
+      },
+      "properties": {
+        "id": "e7",
+        "origen": "n5",
+        "destino": "n6",
+        "distancia": 200.0,
+        "tiempo_estimado": 3.0,
+        "costo": 0.0,
+        "velocidad_promedio": 40.0,
+        "congestion": "baja",
+        "disponible": true,
+        "incidentes": 0,
+        "tipo_via": "otro",
+        "sentido_unico": false,
+        "peaje": false,
+        "restricciones": []
+      }
+    }
+  ]
+}
