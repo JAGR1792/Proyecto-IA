@@ -15,6 +15,8 @@ htmlcov/
 
 # Datos generados (no versionar datasets grandes)
 backend/datos/temp_*
+backend/datos/mapa_*.geojson
+backend/cache/
 
 # Node / Nuxt
 node_modules/

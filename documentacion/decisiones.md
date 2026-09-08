@@ -161,6 +161,77 @@ Agregar `http://localhost:3001` y `http://127.0.0.1:3001` a `allow_origins` en `
 
 ---
 
+## ADR-009 — Dataset real desde OpenStreetMap (OSMnx 2.x)
+
+**Fecha:** 2026-09  
+**Estado:** Aceptado
+
+### Contexto
+El dataset inicial de 6 nodos (ADR-004) era sintético para satisfacer el PDF del Corte 1. Para el frontend/mapa se necesita una red vial real que refleje calles, sentidos y geometría de Bogotá.
+
+### Decisión
+Descargar la red vial con **OSMnx 2.1.1** alrededor de la Universidad Sergio Arboleda (radio 1200 m, red `drive`):
+- `ox.geocode(lugar)` para geocodificar el punto central.
+- `ox.graph_from_point((lat, lon), dist=radio, network_type=...)` — **OJO**: en OSMnx 2.x `graph_from_place` ya no acepta `dist`/`buffer_dist`; hay que usar `graph_from_point`.
+- `ox.save_graphml(G, filepath=...)` (en 2.x el parámetro es `filepath`, no `filename`).
+
+Resultado persistido en `datos/` como `grafo_osm.json`, `grafo_osm.graphml`, geojson (nodos/aristas), CSV y `dataset_osm.json` (dataset principal consumido por la API).
+
+### Mapeo de atributos OSM → modelo
+- `length` (m) → `Arista.distancia` (en `Grafo.desde_networkx`).
+- `geometry` (shapely LineString) → `AtributosArista.geometria` para que las aristas sigan el trazado real de la calle en el mapa (en `_enriquecer_desde_osm`).
+- `highway` → `AtributosArista.tipo_via` (`_mapear_highway`).
+- `name` (puede venir como lista) → `AtributosArista.nombre_via` (se toma el primer elemento).
+- `maxspeed` → `Arista.velocidad_promedio`; si no existe, se usa tabla por tipo de vía OSM (motorway 90 … residencial 30, service 20, etc.).
+
+### Detalles técnicos relevantes
+- OSMnx usa IDs de nodos/aristas **enteros**; el modelo usa `str`. `Grafo.desde_networkx` convierte con `str()` y genera IDs únicos (`<nodo>-<nodo>#N`) para evitar colisiones con aristas paralelas del `MultiDiGraph`.
+- OSMnx expone coordenadas como **`x`/`y`** (no `lat`/`lon`), y `name`/`highway` pueden ser listas en vías con múltiples etiquetas.
+- `tiempo_estimado` se calcula como `(distancia_m / 1000) / velocidad_kmh * 60` si el grafo no trae `travel_time`.
+- En `_enriquecer_desde_osm` se convierten las llaves `str` del modelo a `int` de NetworkX para la búsqueda de edge data.
+
+### Consecuencias
+- ✅ 888 nodos, 1741 aristas reales alrededor de la universidad.
+- ✅ Velocidad promedio ~34 km/h (antes: 50 km/h hardcodeada).
+- ✅ 1127 aristas con geometría real (polilíneas que siguen las calles).
+- ✅ La API prioriza `dataset_osm.json` → `transmilenio_grafo.json` → `dataset_inicial_pdf.json` → `grafo.json`.
+- ⚠️ Dataset depende de OSM (puede variar al regenerarse).
+- ⚠️ La descarga requiere internet y ~30-60 s.
+
+---
+
+## ADR-010 — Vista de mapa OpenStreetMap en el frontend (Leaflet)
+
+**Fecha:** 2026-09  
+**Estado:** Aceptado
+
+### Contexto
+GraphView (Cytoscape.js) muestra el grafo como topología abstracta, sin contexto geográfico. Se pidió "toda la conexión" con OpenStreetMap en la UI.
+
+### Decisión
+Agregar `leaflet` (+ `@types/leaflet`) y un nuevo componente `frontend/app/components/MapaOSM.vue` que:
+- Carga tiles de `tile.openstreetmap.org`.
+- Consume `/api/v1/mapa/geojson/nodos` y `/api/v1/mapa/geojson/aristas`.
+- Ajusta la vista con `/api/v1/mapa/bbox`.
+- Colorea aristas por congestión y nodos por tipo (mismo criterio que GraphView).
+- Emite `nodo-click` / `arista-click` (misma interfaz que GraphView) para reutilizar el panel de telemetría de `app.vue`.
+- Resalta ruta activa (origen/destino + polilínea verde) y aristas de ruta.
+
+En `app.vue` se agrega alternador **Mapa OSM / Vista Grafo**.
+
+### Detalles técnicos
+- **SSR**: Leaflet accede a `window` al importarse; el import es **dinámico** (`await import('leaflet')`) dentro de `inicializarMapa()` para evitar errores en SSR (500).
+- El CSS de Leaflet se carga globalmente en `nuxt.config.ts` (`leaflet/dist/leaflet.css`).
+- Se agrega `leaflet` a `vite.optimizeDeps.include` y a `package.json`.
+
+### Consecuencias
+- ✅ Mapa geográfico real con la red vial descargada de OSM.
+- ✅ Los clicks en mapa rellenan el sidebar de telemetría sin código duplicado.
+- ⚠️ La vista Mapa requiere acceso a `tile.openstreetmap.org` (internet).
+- ⚠️ leaflet se bundlea client-side; el chunk inicial crece ligeramente.
+
+---
+
 ## Estado Corte 1 — Checklist
 
 | Componente | Estado |
@@ -180,6 +251,8 @@ Agregar `http://localhost:3001` y `http://127.0.0.1:3001` a `allow_origins` en `
 | Coverage Corte 1 | ✅ 89% (>80%) |
 | Frontend GraphView | ✅ Cytoscape.js |
 | CORS puertos 3000/3001 | ✅ |
+| Dataset OSM real (888 nodos/1741 aristas) | ✅ ADR-009 |
+| Vista Mapa OSM (Leaflet) en frontend | ✅ ADR-010 |
 
 ## Siguiente: Corte 2
 
