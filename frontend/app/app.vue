@@ -133,12 +133,18 @@ async function buscarRuta() {
       }),
     })
 
-    if (!response.ok) {
-      const detalle = await response.json().catch(() => null)
-      throw new Error(detalle?.detail || `Error ${response.status} en la búsqueda`)
+    const tipoContenido = response.headers.get('content-type') || ''
+    if (!tipoContenido.includes('application/json')) {
+      throw new Error(
+        `La API no respondió JSON (status ${response.status}). Verifica que el backend esté activo en ${apiBase}.`
+      )
     }
 
     const data = await response.json()
+    if (!response.ok) {
+      throw new Error(data.detail || `Error ${response.status} en la búsqueda`)
+    }
+
     rutaResaltada.value = data.camino || []
     aristaResaltada.value = data.aristas_camino || []
     resultadoRuta.value = data
