@@ -13,7 +13,8 @@ const error = ref<string | null>(null)
 const nodoSeleccionado = ref<NodoGrafo | null>(null)
 const aristaSeleccionada = ref<AristaGrafo | null>(null)
 const stats = ref<any>(null)
-const apiBase = 'http://localhost:8000/api/v1'
+const runtimeConfig = useRuntimeConfig()
+const apiBase = runtimeConfig.public.apiBase
 
 const origenSeleccionado = ref<string>('')
 const destinoSeleccionado = ref<string>('')
