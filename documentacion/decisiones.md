@@ -282,3 +282,25 @@ El PDF de referencia de la Primera Entrega define el proyecto como **"Sistema in
 - ✅ 73 tests pasan (cobertura 89%), build frontend y lint OK.
 - ⚠️ El pipeline GTFS real requiere internet y no es el foco del Corte 1 (stub funcional).
 - ⚠️ Las capturas de pantalla para la sustentación quedan pendientes de generar.
+
+---
+
+## ADR-012 — GeoJSON/GraphML en memoria para entorno read-only de Vercel
+
+**Fecha:** 2026-09
+**Estado:** Aceptado
+
+### Contexto
+En el deploy serverless de Vercel el filesystem es de solo lectura (excepto /tmp). Los endpoints `/api/v1/mapa/geojson/nodos`, `/api/v1/mapa/geojson/aristas`, `/api/v1/mapa/graphml` (y sus pares en `/api/v1/grafo/*`) hacían `open(ruta, "w")` sobre `datos/` durante cada request, fallando con `OSError: [Errno 30] Read-only file system`. Los logs de Vercel confirmaron 500 solo en esas rutas (grafo, estadísticas y bbox respondían 200).
+
+### Decisión
+- Añadir en `RepositorioGrafo`: `generar_geojson()` (FeatureCollections como dicts) y `generar_graphml()` (string vía `BytesIO`), sin tocar disco.
+- Refactorizar `guardar_geojson()` para reutilizar la construcción de features en `_construir_features_geojson()`.
+- Cambiar los 6 endpoints a `Response` con el contenido serializado (ya no `FileResponse`).
+- Limpiar imports sin uso en `main.py`/`rutas_grafo.py`.
+
+### Consecuencias
+- ✅ Los endpoints devuelven 200 sin escritura a disco, compatibles con Vercel y con local.
+- ✅ 73 tests pasan (coverage 89%); los artefactos `mapa_*.geojson`/`temp_*.geojson` ya no se generan en runtime.
+- ⚠️ `guardar_geojson()`/`guardar_graphml()` persisten para generación de datasets offline (scripts).
+- Siguiente: redeploy en Vercel y verificar 200 en las 6 rutas en producción y preview.
