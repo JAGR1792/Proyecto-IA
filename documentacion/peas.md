@@ -1,4 +1,4 @@
-# Modelo PEAS del Agente — Planificación de Rutas TransMilenio
+# Modelo PEAS del Agente — Rutas de Taxi en Chapinero
 
 Basado en la Primera Entrega del proyecto (PDF de referencia). Implementación en `backend/src/agente/peas.py`.
 
@@ -6,7 +6,7 @@ Basado en la Primera Entrega del proyecto (PDF de referencia). Implementación e
 
 ## 1. Descripción General
 
-El agente asiste al usuario en la planificación de rutas sobre la red troncal de TransMilenio. Recibe origen, destino y criterio de optimización; percibe el estado del ambiente (estaciones, conexiones, horarios, demanda, incidentes); decide qué acción ejecutar y avanza por la red hasta alcanzar el destino o agotar opciones.
+El agente asiste al usuario en la planificación de rutas de taxi sobre la red vial real de la zona de estudio de Chapinero (Bogotá), descargada de OpenStreetMap. Recibe origen, destino y criterio de optimización; percibe el estado del ambiente (intersecciones, segmentos viales, tiempos, congestión, incidentes); decide qué acción ejecutar y avanza por la red hasta alcanzar el destino o agotar opciones.
 
 ---
 
