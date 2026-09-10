@@ -5,7 +5,8 @@
             "framework": "nuxtjs"
         },
         "backend": {
-            "root": "backend"
+            "root": "backend",
+            "entrypoint": "src/api/main.py"
         }
     },
     "rewrites": [
