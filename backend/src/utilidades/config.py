@@ -6,7 +6,7 @@ from typing import Optional
 
 class Settings(BaseSettings):
     # App
-    app_name: str = "TransMilenio IA"
+    app_name: str = "Taxi IA - Chapinero"
     app_version: str = "0.1.0"
     debug: bool = True
 
@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # Datos
     datos_dir: str = "datos"
-    gtfs_dir: str = "gtfs_transmilenio"
+    gtfs_dir: str = "gtfs_taxis"
 
     # OSMnx
     osm_cache_dir: str = "cache_osm"

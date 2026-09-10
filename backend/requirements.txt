@@ -1,4 +1,4 @@
-# Backend dependencies - Proyecto IA TransMilenio
+# Backend dependencies - Proyecto IA Taxis (Chapinero)
 # Versiones fijadas para reproducibilidad
 
 # Core

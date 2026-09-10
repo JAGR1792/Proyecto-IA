@@ -430,7 +430,7 @@ class RepositorioGrafo:
             highway = highway[0]
         return mapeo.get(str(highway).lower(), TipoVia.OTRO)
 
-    # ==================== GTFS TransMilenio (Oficial) ====================
+# ==================== GTFS Movilidad (SITP Bogotá) ====================
 
     GTFS_URLS = {
         "gtfs_sitp": "https://datosabiertos.bogota.gov.co/dataset/56b6a5b4-82d2-4d8b-9a3b-7c6d5e4f3a2b/resource/gtfs_sitp.zip",
@@ -439,15 +439,19 @@ class RepositorioGrafo:
         "validaciones": "https://datosabiertos.bogota.gov.co/dataset/validaciones-mensuales-sitp-franja-horaria",
     }
 
-    def descargar_gtfs_transmilenio(
+    def descargar_gtfs_taxis(
         self,
-        directorio_gtfs: str = "gtfs_transmilenio",
+        directorio_gtfs: str = "gtfs_taxis",
         solo_troncales: bool = True,
     ) -> Dict[str, Path]:
-        """Descarga y extrae GTFS oficial del SITP (TransMilenio).
+        """Descarga y extrae GTFS oficial del SITP (transporte público de Bogotá).
+
+        El GTFS del SITP se usa como referencia de movilidad para calibrar la
+        red vial real (velocidades y congestión por franja) sobre la que operan
+        los taxis en la zona de estudio de Chapinero.
 
         Returns:
-            Dict con rutas a archivos extraÃ­dos: stops.txt, routes.txt, trips.txt, stop_times.txt, calendar.txt
+            Dict con rutas a archivos extraídos: stops.txt, routes.txt, trips.txt, stop_times.txt, calendar.txt
         """
         import zipfile
         import requests
@@ -489,20 +493,20 @@ class RepositorioGrafo:
         archivo_estaciones_geo: Optional[Path] = None,
         estado_operativo_path: Optional[Path] = None,
     ) -> Grafo:
-        """Procesa archivos GTFS y genera grafo de TransMilenio (solo troncal).
+        """Procesa archivos GTFS y genera grafo de movilidad para la red vial de taxis.
 
-        Pipeline segÃºn PDF:
+        Pipeline según PDF:
         1. Filtrar routes.txt -> solo componente troncal
         2. trips.txt -> viajes de esas rutas
         3. stop_times.txt -> conexiones ordenadas entre estaciones
         4. stops.txt -> coordenadas y nombres de estaciones
-        5. calendar.txt -> disponibilidad por dÃ­a
+        5. calendar.txt -> disponibilidad por día
         6. Cruce con estaciones_geo -> verificar estado operativo (activa/cerrada)
         """
         import pandas as pd
 
         grafo = Grafo(dirigido=True)
-        grafo.metadata = {"fuente": "GTFS TransMilenio Oficial", "procesado": True}
+        grafo.metadata = {"fuente": "GTFS SITP Bogotá (movilidad taxis)", "procesado": True}
 
         # 1. CARGAR ARCHIVOS
         routes = pd.read_csv(archivos_gtfs["routes.txt"])
@@ -651,7 +655,7 @@ class RepositorioGrafo:
         print(f"Aristas creadas: {len(grafo.aristas)}")
 
         # 9. GUARDAR CSVs LIMPIOS (formato PDF)
-        self._guardar_dataset_transmilenio(grafo, routes_troncal, stops_troncal, st_ordenado)
+        self._guardar_dataset_taxis(grafo, routes_troncal, stops_troncal, st_ordenado)
 
         return grafo
 
@@ -661,17 +665,17 @@ class RepositorioGrafo:
         h, m, s = map(int, str(hora_str).split(":"))
         return datetime(1900, 1, 1) + timedelta(hours=h, minutes=m, seconds=s)
 
-    def _guardar_dataset_transmilenio(
+    def _guardar_dataset_taxis(
         self,
         grafo: Grafo,
         routes_troncal: "pd.DataFrame",
         stops_troncal: "pd.DataFrame",
         stop_times_ordenado: "pd.DataFrame",
     ) -> None:
-        """Guarda los 3 CSVs del dataset inicial segÃºn especificaciÃ³n del PDF."""
+        """Guarda los 3 CSVs del dataset inicial según especificación del PDF."""
         import pandas as pd
 
-        # 1. estaciones_troncales_activas.csv
+        # 1. puntos_taxis_activos.csv
         filas_estaciones = []
         for nid, nodo in grafo.nodos.items():
             filas_estaciones.append({
@@ -684,11 +688,11 @@ class RepositorioGrafo:
                 "estado_operativo": "activa",
                 "es_temporal": "No",
                 "fecha_verificacion": "2026-09-07",
-                "incluir_en_grafo": "SÃ­",
+                "incluir_en_grafo": "Sí",
             })
-        pd.DataFrame(filas_estaciones).to_csv(self.directorio / "estaciones_troncales_activas.csv", index=False, encoding="utf-8")
+        pd.DataFrame(filas_estaciones).to_csv(self.directorio / "puntos_taxis_activos.csv", index=False, encoding="utf-8")
 
-        # 2. conexiones_troncales.csv
+        # 2. conexiones_taxis.csv
         filas_conexiones = []
         for arista in grafo.aristas:
             filas_conexiones.append({
@@ -704,7 +708,7 @@ class RepositorioGrafo:
                 "transbordo": "No",  # Se detectarÃ­a si ruta cambia
                 "disponible": "SÃ­" if arista.disponible else "No",
             })
-        pd.DataFrame(filas_conexiones).to_csv(self.directorio / "conexiones_troncales.csv", index=False, encoding="utf-8")
+        pd.DataFrame(filas_conexiones).to_csv(self.directorio / "conexiones_taxis.csv", index=False, encoding="utf-8")
 
         # 3. demanda_por_franja.csv (placeholder - requiere archivo validaciones)
         pd.DataFrame(columns=[
@@ -714,7 +718,7 @@ class RepositorioGrafo:
         print(f"Datasets guardados en {self.directorio}/")
 
     def _obtener_troncal_estacion(self, estacion_id: str, routes: "pd.DataFrame", stop_times: "pd.DataFrame") -> str:
-        """Determina a quÃ© troncal pertenece una estaciÃ³n."""
+        """Determina a quÃ© ruta/corredor pertenece una estaciÃ³n de referencia."""
         # Buscar rutas que pasan por esta estaciÃ³n
         trips_en_estacion = stop_times[stop_times["stop_id"].astype(str) == estacion_id]["trip_id"].unique()
         if len(trips_en_estacion) == 0:
@@ -741,23 +745,23 @@ class RepositorioGrafo:
         else:
             return "intermedia"
 
-    def generar_dataset_inicial_transmilenio(
+    def generar_dataset_inicial_taxis(
         self,
         usar_gtfs_real: bool = True,
         descargar_geo: bool = True,
     ) -> Grafo:
-        """MÃ©todo principal: genera dataset completo TransMilenio para Corte 1.
+        """Método principal: genera dataset inicial de red vial para taxis (Corte 1).
 
         Si usar_gtfs_real=True: descarga GTFS oficial + geo estaciones
-        Si False: crea dataset sintÃ©tico de ejemplo (6 nodos PDF)
+        Si False: crea dataset sintético de ejemplo (6 nodos PDF)
         """
         if usar_gtfs_real:
-            print("=== GENERANDO DATASET TRANSMILENIO REAL (GTFS) ===")
+            print("=== GENERANDO DATASET TAXIS REAL (GTFS SITP) ===")
 
             # 1. Descargar GTFS
-            archivos_gtfs = self.descargar_gtfs_transmilenio()
+            archivos_gtfs = self.descargar_gtfs_taxis()
 
-            # 2. Descargar estaciones geogrÃ¡ficas (para estado operativo)
+            # 2. Descargar estaciones geográficas (para estado operativo)
             archivo_geo = None
             if descargar_geo:
                 archivo_geo = self._descargar_estaciones_geo()
@@ -765,11 +769,11 @@ class RepositorioGrafo:
             # 3. Procesar a grafo
             grafo = self.procesar_gtfs_a_grafo(archivos_gtfs, archivo_geo)
 
-            # 4. Guardar en mÃºltiples formatos
-            self.guardar_json(grafo, "transmilenio_grafo.json")
-            self.guardar_graphml(grafo, "transmilenio_grafo.graphml")
-            self.guardar_geojson(grafo, "transmilenio_nodos.geojson", "transmilenio_aristas.geojson")
-            self.guardar_csv(grafo, "transmilenio")
+            # 4. Guardar en múltiples formatos
+            self.guardar_json(grafo, "taxis_grafo.json")
+            self.guardar_graphml(grafo, "taxis_grafo.graphml")
+            self.guardar_geojson(grafo, "taxis_nodos.geojson", "taxis_aristas.geojson")
+            self.guardar_csv(grafo, "taxis")
 
             return grafo
         else:
