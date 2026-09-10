@@ -138,11 +138,19 @@ onMounted(() => {
     <!-- Header -->
     <header class="tx-header">
       <div class="tx-header-brand">
-        <h1 class="tx-header-title">Taxi IA · Chapinero</h1>
-        <p class="tx-header-subtitle">Planificación de rutas sobre red vial real (OSM)</p>
+        <svg class="tx-header-logo" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"></path>
+          <circle cx="12" cy="9" r="2.5"></circle>
+        </svg>
+        <div class="tx-header-text">
+          <div class="tx-header-title-row">
+            <h1 class="tx-header-title">Taxi IA</h1>
+            <span class="tx-header-loc">Chapinero, Bogotá</span>
+          </div>
+          <p class="tx-header-subtitle">Planificación de rutas sobre la red vial real (OSM)</p>
+        </div>
       </div>
       <div class="tx-header-actions">
-        <span class="tx-header-chip">Zona de estudio · Bogotá</span>
         <button
           class="tx-theme-toggle"
           :class="{ 'tx-theme-toggle--activo': temaActivo === 'claro' }"
