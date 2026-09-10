@@ -106,7 +106,16 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color var(--transition-smooth), color var(--transition-smooth);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+/* Durante el cambio de tema: cero transiciones para evitar repintado masivo
+   por frame (fps caen con backdrop-filter + decenas de paneles animando). */
+.tx-theme-switching,
+.tx-theme-switching *,
+.tx-theme-switching *::before,
+.tx-theme-switching *::after {
+  transition: none !important;
 }
 
 /* Scrollbar Personalizada */
@@ -146,12 +155,11 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   padding: 1.5rem 2rem;
   background: var(--bg-surface-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
   z-index: 100;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .tx-header-brand {
@@ -235,17 +243,17 @@ h1, h2, h3, h4, h5, h6 {
   padding: 1.5rem;
   box-shadow: var(--shadow-panel);
   position: relative;
-  transition: background-color var(--transition-smooth), border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .tx-header {
-  transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .tx-alert,
 .tx-data-row,
 .tx-badge {
-  transition: background-color var(--transition-smooth), color var(--transition-smooth), border-color var(--transition-smooth);
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .tx-panel::before {

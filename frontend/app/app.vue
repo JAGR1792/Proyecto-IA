@@ -22,6 +22,17 @@ const criterioSeleccionado = ref<string>('ruta_equilibrada')
 const vistaActiva = ref<'grafo' | 'mapa'>('mapa')
 const temaActivo = ref<'oscuro' | 'claro'>('oscuro')
 
+function aplicarTema() {
+  const root = document.documentElement
+  // Congela transiciones durante el switch: el tema aplica en 1 frame
+  // y se evita el repintado masivo + recálculo de backdrop-filter.
+  root.classList.add('tx-theme-switching')
+  root.setAttribute('data-theme', temaActivo.value)
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => root.classList.remove('tx-theme-switching'))
+  )
+}
+
 function inicializarTema() {
   if (typeof window === 'undefined') return
   const guardado = localStorage.getItem('tx-tema')
@@ -31,7 +42,7 @@ function inicializarTema() {
     const prefSistema = window.matchMedia('(prefers-color-scheme: light)').matches
     temaActivo.value = prefSistema ? 'claro' : 'oscuro'
   }
-  document.documentElement.setAttribute('data-theme', temaActivo.value)
+  aplicarTema()
 }
 
 function alternarTema() {
@@ -39,7 +50,7 @@ function alternarTema() {
   if (typeof window !== 'undefined') {
     localStorage.setItem('tx-tema', temaActivo.value)
   }
-  document.documentElement.setAttribute('data-theme', temaActivo.value)
+  aplicarTema()
 }
 
 async function cargarGrafo() {
