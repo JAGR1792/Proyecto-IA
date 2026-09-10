@@ -43,7 +43,7 @@ El sistema modela la **red vial real de taxis** en la zona de estudio de **Chapi
 │   │   │   ├── percepcion.py        # Sensores / estado actual
 │   │   │   ├── acciones.py          # Acciones posibles (mover, esperar…)
 │   │   │   └── decision.py          # Selección de acción (MotorDecision)
-│   │   ├── busqueda/                # Algoritmos de búsqueda (Corte 2)
+│   │   ├── busqueda/                # Algoritmos de búsqueda (voraz implementado, resto Corte 2)
 │   │   ├── heuristicas/             # Heurísticas (Corte 2)
 │   │   └── utilidades/              # Config, logging, excepciones
 │   ├── datos/                       # Datasets (JSON, GeoJSON, GraphML, CSV)
@@ -175,7 +175,7 @@ Base: `/api/v1` · Documentación interactiva: `http://localhost:8000/docs`
 | `/grafo/graphml` | GET | Exportación GraphML |
 | `/mapa/geojson/*`, `/mapa/graphml`, `/mapa/bbox` | GET | Datos para visualización |
 | `/agente/estado`, `/agente/paso` | GET/POST | Estado y avance del agente |
-| `/busqueda/buscar` | POST | Búsqueda de rutas (Corte 2) |
+| `/busqueda/buscar` | POST | Búsqueda de rutas (voraz/greedy implementado) |
 | `/health` | GET | Health check |
 
 > Los endpoints de exportación generan las respuestas **en memoria** (sin escribir en disco), por lo que son compatibles con el entorno serverless *read-only* de Vercel (ver ADR-012).
@@ -216,5 +216,5 @@ Toda la documentación está en `documentacion/`:
 ## Roadmap
 
 - **Corte 1 (hecho):** modelos de grafo, repositorio, datos OSM reales (888 nodos / 1741 aristas), módulo de agente, frontend con mapa/grafo, deploy en Vercel.
-- **Corte 2 (pendiente):** algoritmos de búsqueda (BFS, DFS, UCS, Voraz, A*) y heurísticas.
+- **Corte 2 (en curso):** búsqueda **voraz (greedy)** implementada y conectada al frontend; pendientes BFS, DFS, UCS, A* y heurísticas (Euclidiana, Manhattan, tiempo) + comparador.
 - **Corte 3 (pendiente):** modelos de ML (predicción de congestión) sobre la red.

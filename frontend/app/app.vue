@@ -19,6 +19,8 @@ const apiBase = runtimeConfig.public.apiBase
 const origenSeleccionado = ref<string>('')
 const destinoSeleccionado = ref<string>('')
 const criterioSeleccionado = ref<string>('menor_tiempo')
+const algoritmoSeleccionado = ref<string>('voraz')
+const resultadoRuta = ref<any>(null)
 const vistaActiva = ref<'grafo' | 'mapa'>('mapa')
 const temaActivo = ref<'oscuro' | 'claro'>('oscuro')
 
@@ -115,16 +117,40 @@ async function buscarRuta() {
   if (!origenSeleccionado.value || !destinoSeleccionado.value) return
   if (origenSeleccionado.value === destinoSeleccionado.value) return
 
-  // Placeholder: en Corte 2 conectar con /api/v1/busqueda/buscar
-  // Por ahora, simular ruta simple
-  rutaResaltada.value = [origenSeleccionado.value, destinoSeleccionado.value]
-  
-  // Buscar arista directa
-  const aristaDirecta = aristas.value.find(a => 
-    a.origen === origenSeleccionado.value && a.destino === destinoSeleccionado.value
-  )
-  if (aristaDirecta) {
-    aristaResaltada.value = [aristaDirecta.id]
+  cargando.value = true
+  error.value = null
+  resultadoRuta.value = null
+
+  try {
+    const response = await fetch(`${apiBase}/busqueda/buscar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        origen: origenSeleccionado.value,
+        destino: destinoSeleccionado.value,
+        algoritmo: algoritmoSeleccionado.value,
+        criterio: criterioSeleccionado.value,
+      }),
+    })
+
+    if (!response.ok) {
+      const detalle = await response.json().catch(() => null)
+      throw new Error(detalle?.detail || `Error ${response.status} en la búsqueda`)
+    }
+
+    const data = await response.json()
+    rutaResaltada.value = data.camino || []
+    aristaResaltada.value = data.aristas_camino || []
+    resultadoRuta.value = data
+
+    if (!data.ruta_encontrada) {
+      error.value = 'No se encontró una ruta entre esos nodos.'
+    }
+  } catch (e: any) {
+    error.value = e.message
+    console.error('Error buscando ruta:', e)
+  } finally {
+    cargando.value = false
   }
 }
 
@@ -217,13 +243,74 @@ onMounted(() => {
               <option value="menor_conexiones">Menor Cantidad Conexiones</option>
             </select>
           </div>
+          <div class="tx-form-group">
+            <label class="tx-label">Algoritmo de Búsqueda</label>
+            <select v-model="algoritmoSeleccionado" class="tx-select">
+              <option value="voraz">Voraz (Greedy)</option>
+              <option value="bfs" disabled>BFS (Corte 2)</option>
+              <option value="dfs" disabled>DFS (Corte 2)</option>
+              <option value="ucs" disabled>UCS (Corte 2)</option>
+              <option value="a_estrella" disabled>A* (Corte 2)</option>
+            </select>
+          </div>
           <button
             @click="buscarRuta"
-            :disabled="!origenSeleccionado || !destinoSeleccionado || origenSeleccionado === destinoSeleccionado"
+            :disabled="!origenSeleccionado || !destinoSeleccionado || origenSeleccionado === destinoSeleccionado || cargando"
             class="tx-button tx-button-action"
           >
-            Ejecutar Motor de Búsqueda
+            {{ cargando ? 'Buscando...' : 'Ejecutar Motor de Búsqueda' }}
           </button>
+        </div>
+
+        <!-- Resultado de Ruta -->
+        <div v-if="resultadoRuta" class="tx-panel" style="margin-top: 1.5rem;">
+          <h3 class="tx-panel-title">Resultado de Ruta</h3>
+          <dl class="tx-data-list">
+            <div class="tx-data-row">
+              <dt class="tx-data-term">Estado</dt>
+              <dd class="tx-data-value">
+                <span
+                  class="tx-badge"
+                  :class="resultadoRuta.ruta_encontrada ? 'tx-badge-ruta-ok' : 'tx-badge-ruta-fallida'"
+                >
+                  {{ resultadoRuta.ruta_encontrada ? 'Ruta encontrada' : 'Sin ruta' }}
+                </span>
+              </dd>
+            </div>
+            <div class="tx-data-row">
+              <dt class="tx-data-term">Algoritmo</dt>
+              <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.algoritmo }} (greedy)</dd>
+            </div>
+            <div class="tx-data-row">
+              <dt class="tx-data-term">Camino</dt>
+              <dd class="tx-data-value tx-font-mono" style="max-width: 220px; overflow-wrap: break-word;">
+                {{ resultadoRuta.camino.join(' → ') || '—' }}
+              </dd>
+            </div>
+            <div class="tx-data-row">
+              <dt class="tx-data-term">Distancia</dt>
+              <dd class="tx-data-value tx-font-mono">{{ (resultadoRuta.distancia_total_m / 1000).toFixed(2) }} km</dd>
+            </div>
+            <div class="tx-data-row">
+              <dt class="tx-data-term">Tiempo Est.</dt>
+              <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.tiempo_total_min.toFixed(1) }} min</dd>
+            </div>
+            <div class="tx-data-row">
+              <dt class="tx-data-term">Conexiones</dt>
+              <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.detalle?.num_aristas || 0 }}</dd>
+            </div>
+            <div class="tx-data-row">
+              <dt class="tx-data-term">Nodos Expl.</dt>
+              <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.nodos_explorados }}</dd>
+            </div>
+            <div class="tx-data-row">
+              <dt class="tx-data-term">Tiempo Ejec.</dt>
+              <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.tiempo_ejecucion_ms.toFixed(2) }} ms</dd>
+            </div>
+          </dl>
+          <p v-if="resultadoRuta.detalle?.mensaje" class="tx-result-nota">
+            {{ resultadoRuta.detalle.mensaje }}
+          </p>
         </div>
 
         <!-- Estadísticas del Grafo -->

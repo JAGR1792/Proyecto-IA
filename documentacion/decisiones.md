@@ -382,3 +382,27 @@ El plan de trabajo del PDF (sección 13, "Cierre del Corte 1") exige "Renombrar 
 - ✅ Tests y lint verificados tras la eliminación.
 - ⚠️ Se pierde la referencia de movilidad basada en GTFS; la calibración de tiempos/congestión queda pendiente de datos reales (Corte 3).
 - Siguiente: generar capturas de pantalla para la sustentación (pendiente del equipo).
+
+---
+
+## ADR-016 — Implementar búsqueda voraz (greedy) y conectar el frontend
+
+**Fecha:** 2026-09
+**Estado:** Aceptado
+
+### Contexto
+El plan de trabajo reservaba los algoritmos de búsqueda para el Corte 2; `busqueda/` solo contenía interfaces y el endpoint `/busqueda/buscar` respondía `501`. El equipo solicitó la primera funcionalidad funcional de ruta: **encontrar un camino entre origen y destino y resaltarlo** en la interfaz, comenzando por un algoritmo sencillo (voraz/greedy).
+
+### Decisión
+- **`busqueda/base.py`:** modelo `ResultadoBusqueda` (Pydantic) con `camino`, `aristas_camino`, criterio, costos, métricas y `tiempo_ejecucion_ms`; clase abstracta `AlgoritmoBusqueda` que mide el tiempo de ejecución.
+- **`busqueda/voraz.py`:** `BusquedaVoraz` = greedy best-first con retroceso (backtracking). En cada nodo expande el vecino disponible más cercano al destino (heurística haversine vía `Coordenadas.distancia_a`); ante callejón sin salida retrocede y evita ciclos con el conjunto de visitados. Criterios soportados: `menor_tiempo`, `menor_distancia`, `menor_conexiones` (PDF 5.2); empate entre aristas paralelas se resuelve por costo del criterio.
+- **`rutas_busqueda.py`:** `POST /busqueda/buscar` ejecuta el algoritmo registrado sobre el grafo activo (`obtener_grafo`); valida nodos (404) y criterio (422); algoritmos no implementados devuelven `501`. `GET /busqueda/algoritmos` reporta el estado de implementación.
+- **Frontend (`app.vue`):** `buscarRuta()` ahora consume la API real, resalta el camino y las aristas en ambas vistas (Leaflet y Cytoscape ya soportaban `rutaResaltada`/`aristaResaltada`) y muestra un panel con resultado (distancia, tiempo, conexiones, nodos explorados, tiempo de ejecución). Selector de algoritmo con solo `voraz` habilitado (resto deshabilitados con nota "Corte 2").
+- **Cobertura:** se agrega `--cov=src/busqueda` en `pyproject.toml`.
+
+### Consecuencias
+- ✅ 70 tests (62 previos + 8 nuevos), cobertura 93.30% (≥80%).
+- ✅ El frontend queda 100% conectado al motor de búsqueda (primera función deliberativa del Corte 2).
+- ⚠️ El greedy no garantiza óptimo global (documentado en docstring); se reemplazará/ampliará con BFS, DFS, UCS y A* en el Corte 2 (mismo contrato `AlgoritmoBusqueda`).
+- ⚠️ El grafo OSM real (888 nodos) queda disponible para probar rutas de inmediato.
+- Siguiente: implementar el resto de algoritmos con el comparador y validar con el dataset sintético de 6 nodos del PDF.
