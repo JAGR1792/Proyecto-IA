@@ -7,27 +7,26 @@ Este módulo actúa como capa de orquestación entre percepción y acción.
 """
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..grafo.modelos import Grafo
-from .peas import (
-    Accion,
-    Ambiente,
-    CriterioOptimizacion,
-    MedidaDesempeno,
-    ModeloPEAS,
-    Percepcion,
-    crear_peas_inicial,
-)
 from .acciones import (
     ContextoAccion,
     TipoAccion,
     decidir_accion,
     obtener_acciones_posibles,
 )
+from .peas import (
+    Accion,
+    CriterioOptimizacion,
+    MedidaDesempeno,
+    ModeloPEAS,
+    Percepcion,
+    crear_peas_inicial,
+)
 from .percepcion import PercepcionCompleta
-from datetime import datetime
 
 
 class EstadoDecision(str, Enum):
@@ -58,7 +57,7 @@ class ResultadoDecision:
     estado: EstadoDecision
     percepcion: Percepcion
     medida: MedidaDesempeno
-    acciones_posibles: List[Dict[str, Any]] = field(default_factory=list)
+    acciones_posibles: list[dict[str, Any]] = field(default_factory=list)
     paso: int = 0
     mensaje: str = ""
 
@@ -98,16 +97,16 @@ class MotorDecision:
         grafo: Grafo,
         origen: str,
         destino: str,
-        criterio: CriterioOptimizacion = CriterioOptimizacion.RUTA_EQUILIBRADA,
+        criterio: CriterioOptimizacion = CriterioOptimizacion.MENOR_TIEMPO,
         hora: str = "08:00",
-        fecha: Optional[datetime] = None,
+        fecha: datetime | None = None,
     ) -> "MotorDecision":
         """Factory: crea el motor desde parámetros básicos.
 
         Args:
             grafo: Grafo de la red de movilidad.
-            origen: ID de la estación de origen.
-            destino: ID de la estación de destino.
+            origen: ID del nodo de origen.
+            destino: ID del nodo de destino.
             criterio: Criterio de optimización.
             hora: Hora de inicio en formato HH:MM.
             fecha: Fecha del viaje (None = ahora).
@@ -137,15 +136,13 @@ class MotorDecision:
         """
         percep = self.modelo.percepcion
         nueva = self.sensores.generar_percepcion(
-            origen=percep.estacion_origen,
-            destino=percep.estacion_destino,
+            origen=percep.nodo_origen,
+            destino=percep.nodo_destino,
             criterio=percep.criterio,
             fecha=percep.fecha,
             hora=percep.hora,
-            estacion_actual=percep.estacion_actual,
-            servicio_actual=percep.servicio_actual,
+            nodo_actual=percep.nodo_actual,
             ruta_construida=list(percep.ruta_construida),
-            transbordos_realizados=percep.transbordos_realizados,
             ambiente=self.modelo.ambiente,
         )
         self.modelo.actualizar_percepcion(nueva)
@@ -166,7 +163,7 @@ class MotorDecision:
 
         # Determinar acciones posibles (para visualización)
         acciones_pos = obtener_acciones_posibles(
-            percepcion.estacion_actual,
+            percepcion.nodo_actual,
             self.modelo.ambiente,
             self.contexto.historial,
         )
@@ -178,10 +175,8 @@ class MotorDecision:
         self.modelo.registrar_accion(accion)
 
         # Avanzar posición si la acción lo requiere
-        if accion.tipo == TipoAccion.AVANZAR.value and accion.estacion_destino:
-            self.modelo.percepcion.estacion_actual = accion.estacion_destino
-            if accion.servicio:
-                self.modelo.percepcion.servicio_actual = accion.servicio
+        if accion.tipo == TipoAccion.AVANZAR.value and accion.nodo_destino:
+            self.modelo.percepcion.nodo_actual = accion.nodo_destino
 
         # Evaluar desempeño
         destino_alcanzado = accion.tipo == TipoAccion.FINALIZAR.value
@@ -190,13 +185,13 @@ class MotorDecision:
         # Determinar estado del proceso
         if destino_alcanzado:
             estado = EstadoDecision.DESTINO_ALCANZADO
-            mensaje = f"✅ Destino '{percepcion.estacion_destino}' alcanzado en {self._paso_actual} pasos."
+            mensaje = f"Destino '{percepcion.nodo_destino}' alcanzado en {self._paso_actual} pasos."
         elif accion.tipo == TipoAccion.ERROR.value:
             estado = EstadoDecision.ERROR
-            mensaje = f"❌ Error: {accion.descripcion}"
+            mensaje = f"Error: {accion.descripcion}"
         elif accion.tipo == TipoAccion.RECALCULAR.value and not acciones_pos:
             estado = EstadoDecision.SIN_RUTA
-            mensaje = "⚠️ No se encontró ruta disponible."
+            mensaje = "No se encontró ruta disponible."
         else:
             estado = EstadoDecision.EN_CURSO
             mensaje = str(accion)
@@ -211,7 +206,7 @@ class MotorDecision:
             mensaje=mensaje,
         )
 
-    def ejecutar_completo(self, max_pasos: int = 50) -> List[ResultadoDecision]:
+    def ejecutar_completo(self, max_pasos: int = 50) -> list[ResultadoDecision]:
         """Ejecuta todos los pasos hasta llegar al destino o agotar pasos.
 
         Args:
@@ -224,7 +219,7 @@ class MotorDecision:
             >>> resultados = motor.ejecutar_completo(max_pasos=20)
             >>> print(resultados[-1].estado)
         """
-        historial: List[ResultadoDecision] = []
+        historial: list[ResultadoDecision] = []
 
         for _ in range(max_pasos):
             resultado = self.ejecutar_paso()
@@ -239,7 +234,7 @@ class MotorDecision:
 
         return historial
 
-    def obtener_resumen(self) -> Dict[str, Any]:
+    def obtener_resumen(self) -> dict[str, Any]:
         """Retorna resumen del estado actual del motor de decisión.
 
         Returns:
@@ -247,18 +242,19 @@ class MotorDecision:
         """
         return {
             "paso_actual": self._paso_actual,
-            "estacion_actual": self.modelo.percepcion.estacion_actual,
-            "estacion_destino": self.modelo.percepcion.estacion_destino,
+            "nodo_actual": self.modelo.percepcion.nodo_actual,
+            "nodo_destino": self.modelo.percepcion.nodo_destino,
             "ruta_construida": self.modelo.percepcion.ruta_construida,
-            "transbordos": self.modelo.percepcion.transbordos_realizados,
+            "distancia_total": self.modelo.medida.distancia_total,
             "historial_acciones": [str(a) for a in self.modelo.historial_acciones],
             "medida_desempeno": {
                 "criterio": self.modelo.medida.criterio.value,
                 "costo": self.modelo.medida.calcular_costo(),
                 "destino_alcanzado": self.modelo.medida.destino_alcanzado,
                 "tiempo_total_min": self.modelo.medida.tiempo_total_min,
-                "num_estaciones": self.modelo.medida.num_estaciones,
-                "num_transbordos": self.modelo.medida.num_transbordos,
+                "distancia_total": self.modelo.medida.distancia_total,
+                "num_conexiones": self.modelo.medida.num_conexiones,
+                "ruta_valida": self.modelo.medida.ruta_valida,
             },
             "objetivo_cumplido": self.modelo.objetivo_cumplido(),
         }

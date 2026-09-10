@@ -18,7 +18,7 @@ const apiBase = runtimeConfig.public.apiBase
 
 const origenSeleccionado = ref<string>('')
 const destinoSeleccionado = ref<string>('')
-const criterioSeleccionado = ref<string>('ruta_equilibrada')
+const criterioSeleccionado = ref<string>('menor_tiempo')
 const vistaActiva = ref<'grafo' | 'mapa'>('mapa')
 const temaActivo = ref<'oscuro' | 'claro'>('oscuro')
 
@@ -212,7 +212,6 @@ onMounted(() => {
           <div class="tx-form-group">
             <label class="tx-label">Función de Optimización</label>
             <select v-model="criterioSeleccionado" class="tx-select">
-              <option value="ruta_equilibrada">Ruta Equilibrada (IA)</option>
               <option value="menor_tiempo">Menor Tiempo Estimado</option>
               <option value="menor_distancia">Menor Distancia</option>
               <option value="menor_conexiones">Menor Cantidad Conexiones</option>

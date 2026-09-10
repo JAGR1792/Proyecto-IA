@@ -66,18 +66,15 @@ El enfoque por capas (grafo / agente / búsqueda / API) permite reemplazar el mo
 
 ## 5. Funciones de Costo (del PDF de referencia)
 
-Para el criterio `ruta_equilibrada`, la función de costo de una ruta `r` es:
+Según el PDF (sección 5.2), el usuario selecciona un criterio de optimización y la suma resultante se usa como costo de la ruta:
 
-```
-C(r) = 0.5 · T(r) + 0.3 · Cg(r) + 0.2 · D(r)
-```
+| Criterio seleccionado | Medida que debe minimizarse |
+|-----------------------|-----------------------------|
+| `menor_distancia` | Suma de las distancias de los segmentos recorridos |
+| `menor_tiempo` | Suma de los tiempos estimados de los segmentos recorridos |
+| `menor_conexiones` | Número de segmentos viales recorridos |
 
-donde:
-- `T(r)` — tiempo total normalizado (min / 60)
-- `Cg(r)` — congestión promedio de los segmentos normalizada (nivel / 5)
-- `D(r)` — distancia total normalizada (km / 10)
-
-Los criterios alternativos usan una única métrica: `menor_tiempo`, `menor_distancia`, `menor_conexiones` (cantidad de segmentos), `ruta_equilibrada` (IA).
+Los tres criterios usan una única métrica; no existe función ponderada en el PDF actual.
 
 ---
 

@@ -1,67 +1,49 @@
 """Modelo PEAS del agente inteligente para planificación de rutas de taxis (Chapinero).
 
-Basado en la Primera Entrega del proyecto (PDF) - Corte 1.
+Basado en la Primera Entrega del proyecto (PDF de taxis) - Corte 1.
 """
 
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..grafo.modelos import Grafo, NivelCongestion, Nodo
 
 
 class CriterioOptimizacion(str, Enum):
-    """Criterios de optimización que el usuario puede seleccionar."""
+    """Criterios de optimización que el usuario puede seleccionar (PDF 5.2)."""
 
-    MENOR_ESTACIONES = "menor_estaciones"
+    MENOR_DISTANCIA = "menor_distancia"
     MENOR_TIEMPO = "menor_tiempo"
-    MENOS_TRANSBORDOS = "menos_transbordos"
-    MENOR_DEMANDA = "menor_demanda"
-    RUTA_EQUILIBRADA = "ruta_equilibrada"
-
-
-class EstadoOperativo(str, Enum):
-    """Estado operativo de una estación según fuentes oficiales."""
-
-    ACTIVA = "activa"
-    TEMPORAL_ACTIVA = "temporal_activa"
-    CERRADA_TEMPORALMENTE = "cerrada_temporalmente"
-    CERRADA_DEFINITIVAMENTE = "cerrada_definitivamente"
+    MENOR_CONEXIONES = "menor_conexiones"
 
 
 @dataclass
 class MedidaDesempeno:
     """Medida de desempeño del agente (componente P del PEAS).
 
-    Evalúa qué tan bien el agente cumple su objetivo según el criterio seleccionado.
+    Evalúa qué tan bien el agente cumple su objetivo según el criterio
+    seleccionado: menor distancia, menor tiempo estimado o menor cantidad
+    de conexiones (PDF 5.2).
     """
 
     criterio: CriterioOptimizacion
     destino_alcanzado: bool = False
+    distancia_total: float = 0.0
     tiempo_total_min: float = 0.0
-    num_estaciones: int = 0
-    num_transbordos: int = 0
-    demanda_promedio: float = 0.0
+    num_conexiones: int = 0
     ruta_valida: bool = False
     costo_total: float = 0.0
 
     def calcular_costo(self) -> float:
-        """Calcula función de costo según criterio (fórmula del PDF)."""
-        if self.criterio == CriterioOptimizacion.RUTA_EQUILIBRADA:
-            # C(r) = 0.5*T(r) + 0.3*Tr(r) + 0.2*D(r) - normalizado
-            t_norm = min(self.tiempo_total_min / 60.0, 1.0)  # normalizar a 1h max
-            tr_norm = min(self.num_transbordos / 5.0, 1.0)    # normalizar a 5 transbordos max
-            d_norm = min(self.demanda_promedio / 10000.0, 1.0)  # normalizar demanda
-            self.costo_total = 0.5 * t_norm + 0.3 * tr_norm + 0.2 * d_norm
+        """Calcula función de costo según criterio (PDF 5.2)."""
+        if self.criterio == CriterioOptimizacion.MENOR_DISTANCIA:
+            self.costo_total = self.distancia_total
         elif self.criterio == CriterioOptimizacion.MENOR_TIEMPO:
             self.costo_total = self.tiempo_total_min
-        elif self.criterio == CriterioOptimizacion.MENOR_ESTACIONES:
-            self.costo_total = self.num_estaciones
-        elif self.criterio == CriterioOptimizacion.MENOS_TRANSBORDOS:
-            self.costo_total = self.num_transbordos
-        elif self.criterio == CriterioOptimizacion.MENOR_DEMANDA:
-            self.costo_total = self.demanda_promedio
+        elif self.criterio == CriterioOptimizacion.MENOR_CONEXIONES:
+            self.costo_total = float(self.num_conexiones)
 
         return self.costo_total
 
@@ -74,109 +56,99 @@ class MedidaDesempeno:
 class Ambiente:
     """Ambiente del agente (componente E del PEAS).
 
-    Representa la red vial de la zona de estudio (Chapinero) operativa.
+    Representa la red vial dirigida de la zona de estudio (Chapinero):
+    intersecciones, calles, sentidos, velocidades, congestión, incidentes,
+    fecha y hora (PDF 5.1).
     """
 
     grafo: Grafo
     fecha: datetime
     hora: str  # Formato HH:MM
-    franja_horaria: str  # ej: "06:00-07:00"
 
     # Estados dinámicos
-    estaciones_cerradas: set[str] = field(default_factory=set)
     conexiones_bloqueadas: set[str] = field(default_factory=set)
-    demanda_actual: Dict[str, NivelCongestion] = field(default_factory=dict)
-    incidentes_activos: List[Dict[str, Any]] = field(default_factory=list)
+    incidentes_activos: list[dict[str, Any]] = field(default_factory=list)
 
-    def obtener_estaciones_disponibles(self) -> List[Nodo]:
-        """Retorna solo estaciones operativas (activas y no cerradas)."""
-        disponibles = []
-        for nodo in self.grafo.nodos.values():
-            if nodo.id not in self.estaciones_cerradas:
-                disponibles.append(nodo)
-        return disponibles
+    def obtener_nodos_disponibles(self) -> list[Nodo]:
+        """Retorna los nodos (intersecciones) disponibles de la red."""
+        return [n for n in self.grafo.nodos.values() if n.atributos.accesible]
 
     def conexion_disponible(self, origen: str, destino: str) -> bool:
-        """Verifica si una conexión está disponible en la fecha/hora actual."""
+        """Verifica si una conexión (segmento vial) está disponible."""
         arista = self.grafo.obtener_arista(origen, destino)
         if not arista or not arista.disponible:
             return False
         if arista.id in self.conexiones_bloqueadas:
             return False
-        if origen in self.estaciones_cerradas or destino in self.estaciones_cerradas:
-            return False
-        # TODO: Verificar calendar.txt y calendar_dates.txt para servicio en esta fecha
         return True
 
     def obtener_congestion(self, arista_id: str) -> NivelCongestion:
-        """Obtiene nivel de congestión actual (histórico + tiempo real)."""
-        return self.demanda_actual.get(arista_id, NivelCongestion.BAJA)
+        """Obtiene nivel de congestión actual de una conexión."""
+        arista = next((a for a in self.grafo.aristas if a.id == arista_id), None)
+        return arista.congestion if arista else NivelCongestion.BAJA
 
 
 @dataclass
 class Percepcion:
     """Lo que el agente percibe del ambiente (componente S del PEAS).
 
-    Sensores: entrada usuario + estado actual del ambiente.
+    Sensores: ubicación actual, origen, destino, hora, conexiones disponibles,
+    distancia, tiempo, congestión e incidentes (PDF 5.1).
     """
 
     # Entrada del usuario
-    estacion_origen: str
-    estacion_destino: str
+    nodo_origen: str
+    nodo_destino: str
     fecha: datetime
     hora: str
     criterio: CriterioOptimizacion
 
     # Estado actual del agente
-    estacion_actual: str
-    servicio_actual: Optional[str] = None
-    ruta_construida: List[str] = field(default_factory=list)
-    transbordos_realizados: int = 0
+    nodo_actual: str
+    ruta_construida: list[str] = field(default_factory=list)
 
     # Información del ambiente (desde sensores/datos)
-    conexiones_disponibles: List[str] = field(default_factory=list)
-    horarios_siguientes: Dict[str, str] = field(default_factory=dict)
-    transbordos_posibles: List[Dict[str, Any]] = field(default_factory=list)
-    nivel_demanda_actual: Dict[str, NivelCongestion] = field(default_factory=dict)
-    incidentes_cercanos: List[Dict[str, Any]] = field(default_factory=list)
+    conexiones_disponibles: list[str] = field(default_factory=list)
+    congestion_conexiones: dict[str, NivelCongestion] = field(default_factory=dict)
+    incidentes_cercanos: list[dict[str, Any]] = field(default_factory=list)
 
-    def obtener_estado_actual(self) -> Dict[str, Any]:
+    def obtener_estado_actual(self) -> dict[str, Any]:
         """Retorna estado completo para toma de decisiones."""
         return {
-            "origen": self.estacion_origen,
-            "destino": self.estacion_destino,
-            "actual": self.estacion_actual,
-            "servicio": self.servicio_actual,
+            "origen": self.nodo_origen,
+            "destino": self.nodo_destino,
+            "actual": self.nodo_actual,
             "ruta": self.ruta_construida,
-            "transbordos": self.transbordos_realizados,
             "criterio": self.criterio.value,
             "conexiones": self.conexiones_disponibles,
-            "horarios": self.horarios_siguientes,
-            "transbordos_posibles": self.transbordos_posibles,
-            "demanda": {k: v.value for k, v in self.nivel_demanda_actual.items()},
+            "congestion": {k: v.value for k, v in self.congestion_conexiones.items()},
             "incidentes": self.incidentes_cercanos,
         }
 
 
 @dataclass
 class Accion:
-    """Acción que el agente puede ejecutar (componente A del PEAS)."""
+    """Acción que el agente puede ejecutar (componente A del PEAS).
 
-    tipo: str  # "avanzar", "transbordar", "esperar", "recalcular", "finalizar"
-    estacion_origen: str
-    estacion_destino: Optional[str] = None
-    servicio: Optional[str] = None
+    Catálogo del PDF: avanzar al siguiente nodo, esperar, recalcular y
+    finalizar el recorrido.
+    """
+
+    tipo: str  # "avanzar", "esperar", "recalcular", "finalizar"
+    nodo_origen: str
+    nodo_destino: str | None = None
     tiempo_estimado: float = 0.0
-    es_transbordo: bool = False
+    distancia: float = 0.0
     descripcion: str = ""
 
     def __str__(self) -> str:
         if self.tipo == "avanzar":
-            return f"Avanzar a {self.estacion_destino} (línea {self.servicio}, ~{self.tiempo_estimado:.0f} min)"
-        elif self.tipo == "transbordar":
-            return f"Transbordar a {self.servicio} en {self.estacion_origen}"
+            return (
+                f"Avanzar a {self.nodo_destino} "
+                f"(~{self.tiempo_estimado:.0f} min, {self.distancia:.0f} m)"
+            )
         elif self.tipo == "finalizar":
-            return f"Llegada a destino: {self.estacion_origen}"
+            return f"Llegada a destino: {self.nodo_origen}"
         return f"{self.tipo}: {self.descripcion}"
 
 
@@ -193,8 +165,8 @@ class ModeloPEAS:
     percepcion: Percepcion
 
     # Historial para aprendizaje futuro
-    historial_acciones: List[Accion] = field(default_factory=list)
-    historial_estados: List[Dict[str, Any]] = field(default_factory=list)
+    historial_acciones: list[Accion] = field(default_factory=list)
+    historial_estados: list[dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self):
         """Inicializa medida con criterio de la percepción."""
@@ -208,35 +180,34 @@ class ModeloPEAS:
     def registrar_accion(self, accion: Accion) -> None:
         """Registra acción ejecutada."""
         self.historial_acciones.append(accion)
-        self.percepcion.ruta_construida.append(accion.estacion_origen)
-        if accion.es_transbordo:
-            self.percepcion.transbordos_realizados += 1
-            self.percepcion.servicio_actual = accion.servicio
+        self.percepcion.ruta_construida.append(accion.nodo_origen)
 
     def evaluar_desempeno(self, destino_alcanzado: bool = False) -> MedidaDesempeno:
         """Evalúa desempeño actual y actualiza métricas."""
         self.medida.destino_alcanzado = destino_alcanzado
-        self.medida.num_estaciones = len(self.percepcion.ruta_construida)
-        self.medida.num_transbordos = self.percepcion.transbordos_realizados
-        self.medida.ruta_valida = destino_alcanzado and len(self.percepcion.ruta_construida) > 1
-
-        # Calcular tiempo y demanda acumulados (simplificado)
-        self.medida.tiempo_total_min = sum(a.tiempo_estimado for a in self.historial_acciones)
-        self.medida.demanda_promedio = 1000  # Placeholder - conectar con datos reales
+        avanzar = [a for a in self.historial_acciones if a.tipo == "avanzar"]
+        self.medida.num_conexiones = len(avanzar)
+        self.medida.distancia_total = sum(a.distancia for a in avanzar)
+        self.medida.tiempo_total_min = sum(
+            a.tiempo_estimado for a in self.historial_acciones
+        )
+        self.medida.ruta_valida = (
+            destino_alcanzado and len(self.percepcion.ruta_construida) > 1
+        )
 
         return self.medida
 
     def objetivo_cumplido(self) -> bool:
         """Verifica si se alcanzó el destino."""
-        return self.percepcion.estacion_actual == self.percepcion.estacion_destino
+        return self.percepcion.nodo_actual == self.percepcion.nodo_destino
 
 
 def crear_peas_inicial(
     grafo: Grafo,
     origen: str,
     destino: str,
-    criterio: CriterioOptimizacion = CriterioOptimizacion.RUTA_EQUILIBRADA,
-    fecha: Optional[datetime] = None,
+    criterio: CriterioOptimizacion = CriterioOptimizacion.MENOR_TIEMPO,
+    fecha: datetime | None = None,
     hora: str = "08:00",
 ) -> ModeloPEAS:
     """Factory para crear modelo PEAS inicial."""
@@ -246,39 +217,17 @@ def crear_peas_inicial(
         grafo=grafo,
         fecha=ahora,
         hora=hora,
-        franja_horaria=_calcular_franja(hora),
     )
 
     percepcion = Percepcion(
-        estacion_origen=origen,
-        estacion_destino=destino,
+        nodo_origen=origen,
+        nodo_destino=destino,
         fecha=ahora,
         hora=hora,
         criterio=criterio,
-        estacion_actual=origen,
+        nodo_actual=origen,
     )
 
     medida = MedidaDesempeno(criterio=criterio)
 
     return ModeloPEAS(medida=medida, ambiente=ambiente, percepcion=percepcion)
-
-
-def _calcular_franja(hora: str) -> str:
-    """Calcula franja horaria de 15 min (formato GTFS validaciones)."""
-    h, m = map(int, hora.split(":"))
-    m_inicio = (m // 15) * 15
-    m_fin = m_inicio + 15
-    if m_fin >= 60:
-        # Ej: 23:45 → 23:45-24:00
-        h_fin = h + 1
-        m_fin = m_fin - 60
-        return f"{h:02d}:{m_inicio:02d}-{h_fin:02d}:{m_fin:02d}"
-    return f"{h:02d}:{m_inicio:02d}-{h:02d}:{m_fin:02d}"
-
-
-# Pesos para función de costo equilibrada (del PDF)
-PESOS_COSTO_EQUILIBRADO = {
-    "tiempo": 0.5,
-    "transbordos": 0.3,
-    "demanda": 0.2,
-}

@@ -1,32 +1,30 @@
 """Endpoints para el agente inteligente (Corte 1)."""
 
+from datetime import datetime
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional, List, Any, Dict
-from datetime import datetime
 
+from src.agente.acciones import obtener_acciones_posibles
+from src.agente.decision import EstadoDecision, MotorDecision
 from src.agente.peas import (
-    ModeloPEAS, CriterioOptimizacion, crear_peas_inicial,
-    Accion, MedidaDesempeno
+    CriterioOptimizacion,
 )
-from src.agente.acciones import (
-    obtener_acciones_posibles, TipoAccion
-)
-from src.agente.decision import MotorDecision, EstadoDecision
 from src.grafo.repositorio import RepositorioGrafo
 
 router = APIRouter()
 
 # Estado del motor en memoria (en producción usar sesión/BD)
-_motor_actual: Optional[MotorDecision] = None
+_motor_actual: MotorDecision | None = None
 
 
 class SolicitudIniciar(BaseModel):
     """Entrada para inicializar el agente."""
     origen: str
     destino: str
-    criterio: str = "ruta_equilibrada"
-    fecha: Optional[str] = None
+    criterio: str = "menor_tiempo"
+    fecha: str | None = None
     hora: str = "08:00"
 
 
@@ -37,21 +35,21 @@ class RespuestaPaso(BaseModel):
     estado: str
     paso: int
     mensaje: str
-    estado_actual: Dict[str, Any]
-    medida_desempeno: Dict[str, Any]
-    acciones_posibles: List[Dict[str, Any]]
+    estado_actual: dict[str, Any]
+    medida_desempeno: dict[str, Any]
+    acciones_posibles: list[dict[str, Any]]
     objetivo_cumplido: bool
 
 
 class RespuestaResumen(BaseModel):
     """Resumen completo del estado del agente."""
     paso_actual: int
-    estacion_actual: str
-    estacion_destino: str
-    ruta_construida: List[str]
-    transbordos: int
-    historial_acciones: List[str]
-    medida_desempeno: Dict[str, Any]
+    nodo_actual: str
+    nodo_destino: str
+    ruta_construida: list[str]
+    distancia_total: float
+    historial_acciones: list[str]
+    medida_desempeno: dict[str, Any]
     objetivo_cumplido: bool
 
 
@@ -75,9 +73,9 @@ async def iniciar_agente(solicitud: SolicitudIniciar):
         raise HTTPException(status_code=500, detail=f"Error cargando grafo: {str(e)}")
 
     if solicitud.origen not in grafo.nodos:
-        raise HTTPException(status_code=404, detail=f"Estación origen '{solicitud.origen}' no existe")
+        raise HTTPException(status_code=404, detail=f"Nodo origen '{solicitud.origen}' no existe")
     if solicitud.destino not in grafo.nodos:
-        raise HTTPException(status_code=404, detail=f"Estación destino '{solicitud.destino}' no existe")
+        raise HTTPException(status_code=404, detail=f"Nodo destino '{solicitud.destino}' no existe")
     if solicitud.origen == solicitud.destino:
         raise HTTPException(status_code=422, detail="Origen y destino deben ser diferentes")
 
@@ -146,16 +144,17 @@ async def ejecutar_paso():
             "criterio": resultado.medida.criterio.value,
             "costo": resultado.medida.calcular_costo(),
             "destino_alcanzado": resultado.medida.destino_alcanzado,
-            "estaciones": resultado.medida.num_estaciones,
-            "transbordos": resultado.medida.num_transbordos,
+            "distancia_total": resultado.medida.distancia_total,
             "tiempo_total_min": resultado.medida.tiempo_total_min,
+            "num_conexiones": resultado.medida.num_conexiones,
+            "ruta_valida": resultado.medida.ruta_valida,
         },
         acciones_posibles=resultado.acciones_posibles,
         objetivo_cumplido=resultado.estado == EstadoDecision.DESTINO_ALCANZADO,
     )
 
 
-@router.post("/ejecutar-completo", response_model=List[RespuestaPaso])
+@router.post("/ejecutar-completo", response_model=list[RespuestaPaso])
 async def ejecutar_completo(max_pasos: int = 30):
     """Ejecuta todos los pasos del agente hasta llegar al destino o agotar pasos.
 
@@ -184,9 +183,10 @@ async def ejecutar_completo(max_pasos: int = 30):
                 "criterio": r.medida.criterio.value,
                 "costo": r.medida.calcular_costo(),
                 "destino_alcanzado": r.medida.destino_alcanzado,
-                "estaciones": r.medida.num_estaciones,
-                "transbordos": r.medida.num_transbordos,
+                "distancia_total": r.medida.distancia_total,
                 "tiempo_total_min": r.medida.tiempo_total_min,
+                "num_conexiones": r.medida.num_conexiones,
+                "ruta_valida": r.medida.ruta_valida,
             },
             acciones_posibles=r.acciones_posibles,
             objetivo_cumplido=r.estado == EstadoDecision.DESTINO_ALCANZADO,
@@ -214,9 +214,9 @@ async def reiniciar_agente():
     return {"mensaje": "Agente reiniciado correctamente"}
 
 
-@router.get("/acciones-posibles/{estacion_id}")
-async def acciones_posibles(estacion_id: str):
-    """Retorna las acciones posibles desde una estación (sin agente activo).
+@router.get("/acciones-posibles/{nodo_id}")
+async def acciones_posibles(nodo_id: str):
+    """Retorna las acciones posibles desde un nodo (sin agente activo).
 
     Útil para exploración del grafo desde el frontend.
     """
@@ -225,17 +225,18 @@ async def acciones_posibles(estacion_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    if estacion_id not in grafo.nodos:
-        raise HTTPException(status_code=404, detail=f"Estación '{estacion_id}' no existe")
+    if nodo_id not in grafo.nodos:
+        raise HTTPException(status_code=404, detail=f"Nodo '{nodo_id}' no existe")
+
+    from datetime import datetime
 
     from src.agente.peas import Ambiente
-    from datetime import datetime
-    ambiente = Ambiente(grafo=grafo, fecha=datetime.now(), hora="08:00", franja_horaria="08:00-08:15")
-    acciones = obtener_acciones_posibles(estacion_id, ambiente, [])
+    ambiente = Ambiente(grafo=grafo, fecha=datetime.now(), hora="08:00")
+    acciones = obtener_acciones_posibles(nodo_id, ambiente, [])
 
     return {
-        "estacion": estacion_id,
-        "nombre": grafo.nodos[estacion_id].nombre,
+        "nodo": nodo_id,
+        "nombre": grafo.nodos[nodo_id].nombre,
         "acciones_posibles": acciones,
         "total": len(acciones),
     }

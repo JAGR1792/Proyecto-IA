@@ -130,7 +130,7 @@ Implementar `MotorDecision` con lógica **greedy local**: en cada paso, seleccio
 ## ADR-007 — Corrección bug `_calcular_franja` (23:45-24:00)
 
 **Fecha:** 2026-09  
-**Estado:** Resuelto
+**Estado:** Obsoleto (función eliminada en ADR-014)
 
 ### Contexto
 La función `_calcular_franja("23:59")` producía `"23:45-23:60"` en vez de `"23:45-24:00"` por overflow de minutos.
@@ -144,6 +144,8 @@ if m_fin >= 60:
 ```
 
 Detectado por test `test_calcular_franja[23:59-23:45-24:00]`.
+
+> **Nota:** la función `_calcular_franja` y sus tests fueron eliminados en ADR-014 al alinear el PEAS con el PDF de taxis (sin franjas GTFS).
 
 ---
 
@@ -330,3 +332,30 @@ El dashboard de Taxi IA tenía un único tema oscuro ("Taxi Bogotá Control Cent
 - ✅ Build Nuxt OK, lint 0 errores (9 warnings pre-existentes de `vue/attributes-order`).
 - ⚠️ Los iconos/nodos del grafo conservan colores semánticos fijos (congestión/tipo) que funcionan en ambos temas.
 - Verificado con Edge headless: `data-theme="oscuro"` (default) y `data-theme="claro"` (preferencia guardada) se aplican al `<html>`.
+
+---
+
+## ADR-014 — Alinear PEAS con el PDF de taxis (eliminar conceptos TransMilenio/GTFS)
+
+**Fecha:** 2026-09
+**Estado:** Aceptado
+
+### Contexto
+El módulo `agente/` (PEAS) conservaba restos del antiguo enfoque TransMilenio/SITP del PDF anterior: transbordos, estaciones, demanda por franja GTFS, horarios de bus y una función de costo ponderada `C(r) = 0.5·T + 0.3·Tr + 0.2·D` (`ruta_equilibrada`). El PDF actual de taxis (Primera Entrega) define 3 criterios y un PEAS exclusivamente vial. Se solicitó alinear todo con el PDF vigente.
+
+### Decisión
+- **Criterios** (`CriterioOptimizacion`): solo `menor_distancia`, `menor_tiempo`, `menor_conexiones` (PDF 5.2). Se eliminan `menor_estaciones`, `menos_transbordos`, `menor_demanda`, `ruta_equilibrada` y `PESOS_COSTO_EQUILIBRADO`.
+- **Medida de desempeño**: reemplazar `num_estaciones`/`num_transbordos`/`demanda_promedio` por `distancia_total`, `tiempo_total_min`, `num_conexiones` y `ruta_valida`.
+- **Ambiente**: se eliminan `estaciones_cerradas`, `franja_horaria` y `demanda_actual`; queda la red vial (grafo), fecha/hora, conexiones bloqueadas e incidentes (PDF 5.1 E).
+- **Acciones**: solo `avanzar`, `esperar`, `recalcular`, `finalizar` (PDF 5.1 A). Se elimina `transbordar`/`es_transbordo`/`servicio`.
+- **Sensores**: `SensorNodos`, `SensorConexiones`, `SensorCongestion`, `SensorIncidentes` (PDF 5.1 S). Se eliminan `SensorEstaciones`, `SensorHorarios`, `SensorDemanda` y `detectar_transbordos`.
+- **Percepción**: campos renombrados de `estacion_*` a `nodo_*`; se eliminan `servicio_actual`, `transbordos_realizados`, `horarios_siguientes`, `transbordos_posibles`, `nivel_demanda_actual`.
+- **API y frontend**: default de criterio `menor_tiempo`, sin opción `ruta_equilibrada`; endpoints usan `nodo_*`.
+- **Docs**: `peas.md`, `formulacion.md` e `informe_corte1.md` actualizados; `_calcular_franja` y su test eliminados (ADR-007 queda obsoleto).
+
+### Consecuencias
+- ✅ El PEAS refleja exactamente las tablas del PDF de taxis (5.1 PEAS, 5.2 medida de desempeño, 5.3 características del ambiente).
+- ✅ El agente ahora mide distancia y conexiones, alineado con la red vial real de Chapinero.
+- ✅ Tests actualizados y 73 tests pasan.
+- ⚠️ El pipeline GTFS legacy (`repositorio.py`) permanece para generar datasets de referencia de movilidad (ADR-012), pero no alimenta el PEAS.
+- Siguiente: Corte 2 — reemplazar el greedy local por BFS/DFS/UCS/voraz/A*.

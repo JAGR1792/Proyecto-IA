@@ -69,10 +69,10 @@ Se construyó la base completa del sistema inteligente: un agente con modelo **P
 
 | Componente | Descripción |
 |------------|-------------|
-| **Performance** | Tiempo de viaje, transbordos, demanda evitada, costo total (función ponderada del PDF) |
-| **Environment** | Red vial/troncales, estaciones con demanda, conexiones con congestión e incidentes, horarios |
-| **Actuators** | `mover(nodo)`, `esperar(tiempo)`, `recalcular(ruta)` |
-| **Sensors** | `estado_actual()`, `sensores_congestion()`, `sensores_incidentes()`, `sensores_demanda()` |
+| **Performance** | Alcanzar el destino con ruta válida; minimizar distancia, tiempo o conexiones (PDF 5.1/5.2) |
+| **Environment** | Red vial dirigida: intersecciones, calles, sentidos, velocidades, congestión, incidentes, fecha y hora |
+| **Actuators** | `avanzar(nodo)`, `esperar(tiempo)`, `recalcular(ruta)`, `finalizar()` |
+| **Sensors** | `nodo_actual`, origen/destino/hora, `conexiones_disponibles`, `congestion_conexiones`, `incidentes_cercanos` |
 
 Detalle completo en `documentacion/peas.md`.
 
