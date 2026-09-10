@@ -1,4 +1,4 @@
-# Taxi IA · Chapinero 🚕
+# Taxi IA · Chapinero 
 
 **Sistema Inteligente para Planificación de Rutas y Análisis de Movilidad.**
 
