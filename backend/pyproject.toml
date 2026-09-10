@@ -3,7 +3,7 @@ name = "proyecto-ia-backend"
 version = "0.1.0"
 description = "Backend para Sistema Inteligente de Planificación de Rutas de Taxis (Chapinero)"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.13"
 dependencies = [
     "fastapi==0.115.0",
     "uvicorn[standard]==0.32.0",
@@ -12,7 +12,7 @@ dependencies = [
     "python-dotenv==1.0.1",
     "networkx==3.3",
     "osmnx==1.9.4",
-    "geopandas==1.0.1",
+    "geopandas==0.14.4",
     "shapely==2.0.6",
     "pyproj==3.7.0",
     "pandas==2.2.2",

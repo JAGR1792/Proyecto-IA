@@ -10,7 +10,8 @@ python-dotenv==1.0.1
 
 # Grafo y geo
 networkx==3.3
-osmnx==1.9.3
+osmnx==1.9.4
+geopandas==0.14.4
 
 # Datos (versiones con wheels en Windows)
 pandas==2.1.4
