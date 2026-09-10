@@ -245,7 +245,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="tm-graph-container mapa-osm-container">
+  <div class="tx-graph-container mapa-osm-container">
     <div v-if="cargando" class="mapa-osm-overlay">Cargando red vial OpenStreetMap...</div>
     <div v-else-if="error" class="mapa-osm-overlay mapa-osm-error">Error: {{ error }}</div>
     <div ref="containerRef" class="mapa-osm-canvas" />
@@ -253,7 +253,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.tm-graph-container {
+.tx-graph-container {
   height: calc(100vh - 12rem);
   min-height: 500px;
   width: 100%;

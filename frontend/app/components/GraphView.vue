@@ -452,7 +452,7 @@ onUnmounted(() => {
 <template>
   <div
     ref="containerRef"
-    class="tm-graph-container cytoscape-element"
+    class="tx-graph-container cytoscape-element"
   />
 </template>
 
