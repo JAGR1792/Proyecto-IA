@@ -27,8 +27,8 @@ def obtener_grafo() -> Grafo:
     global _grafo_cache
     if _grafo_cache is None:
         repo = obtener_repositorio()
-        # Prioridad: dataset OSM real (si existe) → TransMilenio GTFS → sintético PDF
-        for nombre in ["dataset_osm.json", "transmilenio_grafo.json", "dataset_inicial_pdf.json", "grafo.json"]:
+        # Prioridad: dataset OSM real (si existe) → GTFS taxis → sintético PDF
+        for nombre in ["dataset_osm.json", "taxis_grafo.json", "dataset_inicial_pdf.json", "grafo.json"]:
             try:
                 _grafo_cache = repo.cargar_json(nombre)
                 break
@@ -36,7 +36,7 @@ def obtener_grafo() -> Grafo:
                 continue
         if _grafo_cache is None:
             # Generar sintético como fallback
-            _grafo_cache = repo.generar_dataset_inicial_transmilenio(usar_gtfs_real=False)
+            _grafo_cache = repo.generar_dataset_inicial_taxis(usar_gtfs_real=False)
     return _grafo_cache
 
 
@@ -131,9 +131,9 @@ async def recargar_grafo(usar_sintetico: bool = Query(True, description="Usar da
     repo = obtener_repositorio()
     try:
         if usar_sintetico:
-            _grafo_cache = repo.generar_dataset_inicial_transmilenio(usar_gtfs_real=False)
+            _grafo_cache = repo.generar_dataset_inicial_taxis(usar_gtfs_real=False)
         else:
-            _grafo_cache = repo.generar_dataset_inicial_transmilenio(usar_gtfs_real=True)
+            _grafo_cache = repo.generar_dataset_inicial_taxis(usar_gtfs_real=True)
         return {
             "mensaje": "Grafo recargado",
             "nodos": len(_grafo_cache.nodos),

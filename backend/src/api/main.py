@@ -23,14 +23,14 @@ configurar_logging()
 async def lifespan(app: FastAPI):
     """Gestión de ciclo de vida de la aplicación."""
     # Startup
-    print("Iniciando API TransMilenio...")
+    print("Iniciando API Taxi IA Chapinero...")
     yield
     # Shutdown
-    print("Cerrando API TransMilenio...")
+    print("Cerrando API Taxi IA Chapinero...")
 
 
 app = FastAPI(
-    title="Sistema Inteligente Planificación Rutas TransMilenio",
+    title="Taxi IA Chapinero - Planificación de Rutas",
     description="API para agente inteligente, grafo de movilidad y algoritmos de búsqueda",
     version="0.1.0",
     lifespan=lifespan,
@@ -57,13 +57,13 @@ app.include_router(mapa_router, prefix="/api/v1/mapa", tags=["Mapa"])
 # Health check
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "service": "transmilenio-api"}
+    return {"status": "ok", "service": "taxi-api-chapinero"}
 
 # Root
 @app.get("/")
 async def root():
     return {
-        "mensaje": "Sistema Inteligente Planificación Rutas TransMilenio",
+        "mensaje": "Taxi IA Chapinero - Planificación de Rutas",
         "version": "0.1.0",
         "docs": "/docs",
         "health": "/health",

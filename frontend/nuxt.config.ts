@@ -14,9 +14,9 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'TransMilenio IA - Planificación Inteligente de Rutas',
+      title: 'Taxi IA Chapinero - Planificación Inteligente de Rutas',
       meta: [
-        { name: 'description', content: 'Sistema Inteligente para Planificación de Rutas y Análisis de Movilidad en TransMilenio' },
+        { name: 'description', content: 'Sistema Inteligente para Planificación de Rutas de Taxis en la zona de estudio de Chapinero (Bogotá)' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       ],
       link: [

@@ -1,4 +1,4 @@
-# Informe Corte 1 — Sistema Inteligente para Planificación de Rutas TransMilenio
+# Informe Corte 1 — Sistema Inteligente para Planificación de Rutas de Taxis (Chapinero)
 
 **Curso:** Inteligencia Artificial (SIST5036) — Universidad Sergio Arboleda, Semestre VI, 2026
 **Fecha:** Septiembre 2026
@@ -8,7 +8,7 @@
 
 ## 1. Resumen
 
-Se construyó la base completa del sistema inteligente: un agente con modelo **PEAS** que percibe el estado de la red de movilidad, decide una acción y la ejecuta vía API REST. Se implementó el grafo de red (Pydantic + NetworkX), un dataset inicial sintético de 6 nodos (estaciones reales de Bogotá) y un **dataset real descargado de OpenStreetMap con OSMnx** (888 nodos, 1741 aristas) que alimenta el frontend con una vista de mapa geográfico (Leaflet).
+Se construyó la base completa del sistema inteligente: un agente con modelo **PEAS** que percibe el estado de la red de movilidad, decide una acción y la ejecuta vía API REST. Se implementó el grafo de red vehicular (Pydantic + NetworkX), un dataset inicial sintético de 6 nodos y un **dataset real de la red vial descargado de OpenStreetMap con OSMnx** (888 nodos, 1741 aristas) en la zona de estudio de Chapinero (alrededor de la Universidad Sergio Arboleda), que alimenta el frontend con una vista de mapa geográfico (Leaflet).
 
 ---
 
@@ -82,7 +82,7 @@ Detalle completo en `documentacion/peas.md`.
 
 - **Fuente:** OSMnx 2.1.1, red vial `drive` alrededor de la Universidad Sergio Arboleda (radio 1200 m).
 - **Resultado:** 888 nodos, 1741 aristas dirigidas; 1127 aristas con geometría real (trazado de calles), nombres de vía y velocidades derivadas de `maxspeed`/tipo de `highway`.
-- **Comando:** `python generar_dataset_transmilenio.py --osm --radio 1200`
+- **Comando:** `python generar_dataset.py --osm --radio 1200`
 - **Persistencia:** `grafo_osm.json`, `grafo_osm.graphml`, geojson nodos/aristas, CSVs y `dataset_osm.json` (dataset principal de la API).
 - **Endpoints:** `GET /api/v1/mapa/geojson/nodos|aristas`, `GET /api/v1/mapa/bbox`, `GET /api/v1/mapa/graphml`.
 - **Decisiones:** ADR-009 (dataset OSMnx) y ADR-010 (mapa Leaflet) en `documentacion/decisiones.md`.
@@ -147,7 +147,7 @@ npm run dev
 ### Reproducir dataset OSM
 ```bash
 cd backend
-.venv\Scripts\python.exe generar_dataset_transmilenio.py --osm --radio 1200
+.venv\Scripts\python.exe generar_dataset.py --osm --radio 1200
 ```
 
 ---
@@ -156,7 +156,7 @@ cd backend
 
 ### Limitaciones (Corte 1)
 - Motor de decisión es **greedy local** (no óptimo global); se reemplaza por búsqueda en Corte 2.
-- Dataset OSM corresponde a red vial genérica (`drive`), no a las troncales exclusivas de TransMilenio (pendiente GTFS oficial).
+- Dataset OSM corresponde a la **red vial real (`drive`)** donde operan los taxis en Chapinero; el GTFS del SITP se usará como referencia de movilidad (pendiente datos reales).
 - Leaflet requiere acceso a `tile.openstreetmap.org` (internet).
 - `ruff` reporta errores de estilo pre-existentes en el repositorio.
 
@@ -164,11 +164,22 @@ cd backend
 - Implementar `busqueda/`: BFS, DFS, UCS, Voraz, A* + heurísticas (euclidiana, manhattan, tiempo).
 - Endpoints `/busqueda/buscar` y `/busqueda/comparar`.
 - Reemplazar el greedy de `MotorDecision` por algoritmos de búsqueda.
-- Integrar GTFS oficial de TransMilenio (datos reales de troncales).
+- Integrar GTFS del SITP (referencia de movilidad) para afinar tiempos y congestión sobre la red vial.
 
 ---
 
-## 11. Entregables del Corte 1
+## 11. Capturas de pantalla (Cierre del Corte 1)
+
+| Captura | Descripción | Archivo |
+|---------|-------------|---------|
+| Frontend principal | Dashboard "Taxi IA · Chapinero" con controles de ruta, telemetría y vista de grafo/mapa | `documentacion/capturas/frontend_principal.png` |
+| API Swagger | Documentación interactiva de la API en `http://localhost:8000/docs` | `documentacion/capturas/api_swagger.png` |
+
+> Capturas generadas con el frontend y backend ejecutándose (ambos reflejan el rebranding a taxis de Chapinero).
+
+---
+
+## 12. Entregables del Corte 1
 
 | Entregable | Ubicación |
 |------------|-----------|
@@ -179,5 +190,6 @@ cd backend
 | Agente funcional | `src/agente/*`, `POST /api/v1/agente/paso` |
 | API REST | `src/api/*` |
 | Frontend (grafo + mapa) | `frontend/app/*` |
-| Decisiones técnicas | `documentacion/decisiones.md` (ADR-001 a 010) |
+| Decisiones técnicas | `documentacion/decisiones.md` (ADR-001 a 011) |
+| Capturas del Cierre | `documentacion/capturas/*.png` |
 | Tests | 73 tests, cobertura 89.02% |

@@ -1,4 +1,4 @@
-# Decisiones Técnicas — Proyecto IA TransMilenio
+# Decisiones Técnicas — Proyecto IA Taxis (Chapinero)
 
 Registro cronológico de decisiones de arquitectura y diseño (ADR — Architecture Decision Records).
 
@@ -29,7 +29,7 @@ Usar **Pydantic v2** (`pydantic>=2.9`) con `BaseModel` para todos los modelos de
 **Estado:** Aceptado
 
 ### Contexto
-Los algoritmos de búsqueda (Corte 2) necesitan un grafo eficiente. Python puro sería lento para grafos grandes de TransMilenio.
+Los algoritmos de búsqueda (Corte 2) necesitan un grafo eficiente. Python puro sería lento para grafos grandes de una red vial urbana.
 
 ### Decisión
 Usar **NetworkX 3.3** como motor de grafos subyacente. Los modelos Pydantic se convierten a NetworkX vía `Grafo.a_networkx()`.
@@ -70,14 +70,13 @@ Arquitectura en 4 capas:
 **Estado:** Aceptado
 
 ### Contexto
-El PDF del Corte 1 especifica un grafo de ejemplo con 6 nodos de TransMilenio.
+El PDF del Corte 1 especifica un grafo de ejemplo con 6 nodos de la red vial/universidad.
 
 ### Decisión
-Generar `datos/dataset_inicial_pdf.json` con 6 estaciones reales:
-- Portal Norte (PN), Calle 76 (C76), Calle 72 (C72)
-- Héroes (HER), Av. Jiménez (AVJ), Portal Sur (PS)
+Generar `datos/dataset_inicial_pdf.json` con 6 nodos reales:
+- Entrada Principal, Biblioteca, Plazoleta, Estación, Intersección, Zona
 
-Generado con `generar_dataset_transmilenio.py`.
+Generado con `generar_dataset.py --sintetico`.
 
 ### Consecuencias
 - ✅ Datos coherentes con el enunciado del PDF
@@ -194,7 +193,7 @@ Resultado persistido en `datos/` como `grafo_osm.json`, `grafo_osm.graphml`, geo
 - ✅ 888 nodos, 1741 aristas reales alrededor de la universidad.
 - ✅ Velocidad promedio ~34 km/h (antes: 50 km/h hardcodeada).
 - ✅ 1127 aristas con geometría real (polilíneas que siguen las calles).
-- ✅ La API prioriza `dataset_osm.json` → `transmilenio_grafo.json` → `dataset_inicial_pdf.json` → `grafo.json`.
+- ✅ La API prioriza `dataset_osm.json` → `taxis_grafo.json` → `dataset_inicial_pdf.json` → `grafo.json`.
 - ⚠️ Dataset depende de OSM (puede variar al regenerarse).
 - ⚠️ La descarga requiere internet y ~30-60 s.
 
@@ -261,3 +260,25 @@ En `app.vue` se agrega alternador **Mapa OSM / Vista Grafo**.
 - Reemplazar greedy de `MotorDecision` por algoritmos de búsqueda
 - Endpoint `/busqueda/buscar` y `/busqueda/comparar`
 - Tests para algoritmos de búsqueda
+
+---
+
+## ADR-011 — Rebrand del proyecto a "Rutas de Taxi en Chapinero"
+
+**Fecha:** 2026-09  
+**Estado:** Aceptado
+
+### Contexto
+El PDF de referencia de la Primera Entrega define el proyecto como **"Sistema inteligente para planificación de rutas de taxis en una zona de estudio de Chapinero"**, no sobre TransMilenio. El Cierre del Corte 1 exige renombrar textos residuales, correr pruebas y agregar capturas.
+
+### Decisión
+- Renombrar backend a **Taxi IA - Chapinero**: `config.py` (`app_name`), títulos de API, datasets (`taxis_grafo.json`, `taxis_nodos.geojson`, `taxis_aristas.geojson`), pipeline GTFS (`descargar_gtfs_taxis`, `_guardar_dataset_taxis`, `generar_dataset_inicial_taxis`) y script `generar_dataset.py`.
+- Renombrar frontend: prefijo CSS `tm-` → `tx-`, textos UI, meta-título, y rediseño visual con tema **"Taxi Bogotá"** (amarillo taxi + negro, tipografías Archivo/IBM Plex/Fraunces) aplicando la skill `frontend-design`.
+- Las URLs de `datosabiertos-transmilenio.hub.arcgis.com` se **mantienen** como fuentes externas legítimas del portal de datos abiertos de Bogotá (referencia de movilidad).
+- El GTFS del SITP se redefine como **referencia de movilidad** para calibrar tiempos/congestión sobre la red vial `drive` (donde operan los taxis).
+
+### Consecuencias
+- ✅ Uso del actual red vial real de OSM (888 nodos / 1741 aristas) plenamente coherente con taxis.
+- ✅ 73 tests pasan (cobertura 89%), build frontend y lint OK.
+- ⚠️ El pipeline GTFS real requiere internet y no es el foco del Corte 1 (stub funcional).
+- ⚠️ Las capturas de pantalla para la sustentación quedan pendientes de generar.

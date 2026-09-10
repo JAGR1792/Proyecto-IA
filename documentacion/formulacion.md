@@ -6,15 +6,15 @@
 
 ## 1. Problema
 
-La movilidad urbana en Bogotá depende en gran medida de TransMilenio, un sistema BRT (Bus Rapid Transit) con más de 140 estaciones troncales y altísima demanda diaria. Los usuarios enfrentan tres dificultades principales:
+El servicio de taxi es una de las opciones de movilidad más utilizadas en Bogotá, y en la zona de estudio de Chapinero —que concentra universidades, oficinas y comercio— el tráfico es variable a lo largo del día. Los usuarios enfrentan tres dificultades principales:
 
-1. **Falta de contexto dinámico:** los planificadores de ruta tradicionales no consideran congestión actual ni cierres de estaciones.
-2. **Criterios de usuario diversos:** no todos los usuarios optimizan el mismo objetivo (menor tiempo, menos transbordos, menor demanda, menor número de estaciones).
-3. **Análisis de movilidad limitado:** no se evalúan formalmente las métricas de desempeño de las rutas generadas (tiempo, transbordos, demanda).
+1. **Falta de contexto dinámico:** los planificadores de ruta tradicionales no consideran congestión actual ni los tiempos reales de la red vial.
+2. **Criterios de usuario diversos:** no todos los usuarios optimizan el mismo objetivo (menor tiempo, menor distancia, menor costo).
+3. **Análisis de movilidad limitado:** no se evalúan formalmente las métricas de desempeño de las rutas generadas (tiempo, distancia, congestión).
 
 ### Preguntas de investigación
-- ¿Cómo representar la red troncal de TransMilenio como un grafo dirigido con atributos (distancia, tiempo, congestión, demanda)?
-- ¿Cómo modelar un agente inteligente que decida la mejor ruta según un criterio de optimización seleccionado por el usuario?
+- ¿Cómo representar la red vial de la zona de estudio (Chapinero) como un grafo dirigido con atributos (distancia, tiempo, congestión)?
+- ¿Cómo modelar un agente inteligente que decida la mejor ruta de taxi según un criterio de optimización seleccionado por el usuario?
 - ¿Qué métricas permiten comparar formalmente rutas alternativas?
 
 ---
@@ -22,7 +22,7 @@ La movilidad urbana en Bogotá depende en gran medida de TransMilenio, un sistem
 ## 2. Objetivos
 
 ### General
-Diseñar e implementar un sistema inteligente para la planificación de rutas y el análisis de movilidad en la red troncal de TransMilenio, basado en un agente con modelo PEAS.
+Diseñar e implementar un sistema inteligente para la planificación de rutas de taxi y el análisis de movilidad en la zona de estudio de Chapinero (Bogotá), basado en un agente con modelo PEAS.
 
 ### Específicos por corte
 
@@ -55,7 +55,7 @@ Diseñar e implementar un sistema inteligente para la planificación de rutas y 
 
 Desde el punto de vista de la IA, el problema es un caso clásico de **agente deliberativo en ambiente determinista y observable**:
 
-- **Observable:** el agente conoce el estado completo de la red (sensores de estaciones, conexiones, horarios, demanda e incidentes).
+- **Observable:** el agente conoce el estado completo de la red (sensores de nodos, segmentos viales, tiempos, congestión e incidentes).
 - **Determinista:** para una decisión dada existe un único resultado esperado (la arista seleccionada lleva a un nodo conocido).
 - **Dinámico parcial:** relevante porque la congestión y los incidentes pueden cambiar entre pasos del agente.
 - **Episódico y secuencial:** cada ruta es un episodio; dentro de un episodio las decisiones son secuenciales.
@@ -69,15 +69,15 @@ El enfoque por capas (grafo / agente / búsqueda / API) permite reemplazar el mo
 Para el criterio `ruta_equilibrada`, la función de costo de una ruta `r` es:
 
 ```
-C(r) = 0.5 · T(r) + 0.3 · Tr(r) + 0.2 · D(r)
+C(r) = 0.5 · T(r) + 0.3 · Cg(r) + 0.2 · D(r)
 ```
 
 donde:
 - `T(r)` — tiempo total normalizado (min / 60)
-- `Tr(r)` — número de transbordos normalizado (transbordos / 5)
-- `D(r)` — demanda promedio normalizada (demanda / 10000)
+- `Cg(r)` — congestión promedio de los segmentos normalizada (nivel / 5)
+- `D(r)` — distancia total normalizada (km / 10)
 
-Los criterios alternativos usan una única métrica: `menor_tiempo`, `menor_estaciones`, `menos_transbordos`, `menor_demanda`.
+Los criterios alternativos usan una única métrica: `menor_tiempo`, `menor_distancia`, `menor_conexiones` (cantidad de segmentos), `ruta_equilibrada` (IA).
 
 ---
 

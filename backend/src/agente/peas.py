@@ -1,4 +1,4 @@
-"""Modelo PEAS del agente inteligente para planificación de rutas TransMilenio.
+"""Modelo PEAS del agente inteligente para planificación de rutas de taxis (Chapinero).
 
 Basado en la Primera Entrega del proyecto (PDF) - Corte 1.
 """
@@ -74,7 +74,7 @@ class MedidaDesempeno:
 class Ambiente:
     """Ambiente del agente (componente E del PEAS).
 
-    Representa la red troncal de TransMilenio operativa.
+    Representa la red vial de la zona de estudio (Chapinero) operativa.
     """
 
     grafo: Grafo

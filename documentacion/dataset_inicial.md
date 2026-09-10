@@ -14,7 +14,7 @@ Dataset sintético de referencia para el Corte 1 (6 nodos, 7 aristas). Fuente: e
 | `backend/datos/dataset_inicial_pdf_nodos.geojson` | GeoJSON | FeatureCollection de nodos |
 | `backend/datos/dataset_inicial_pdf_aristas.geojson` | GeoJSON | FeatureCollection de aristas |
 
-Generación: `python generar_dataset_transmilenio.py --sintetico` (o `--real` para GTFS).
+Generación: `python generar_dataset.py --sintetico` (o `--real` para GTFS SITP).
 
 ---
 
@@ -109,14 +109,16 @@ Generación: `python generar_dataset_transmilenio.py --sintetico` (o `--real` pa
 
 ---
 
-## 6. Dataset Real (GTFS TransMilenio) — Pipeline Futuro
+## 6. Dataset Real (GTFS SITP Bogotá) — Referencia de movilidad
 
 `repositorio.py` incluye un procesador GTFS que, en modo `--real`:
 
-1. Descarga GTFS oficial de TransMilenio (datos abiertos Bogotá).
-2. Filtra rutas troncales (`routes.txt`).
+1. Descarga GTFS oficial del SITP (transporte público de Bogotá, datos abiertos).
+2. Filtra rutas (`routes.txt`).
 3. Procesa `trips.txt` + `stop_times.txt` para construir conexiones ordenadas por secuencia.
 4. Cruza con estaciones geo-referenciadas para estado operativo.
-5. Genera 3 CSV: `estaciones_troncales_activas`, `conexiones_troncales`, `demanda_por_franja`.
+5. Genera 3 CSV: `puntos_taxis_activos`, `conexiones_taxis`, `demanda_por_franja`.
 
 > ⚠️ Requiere geopandas/shapely/pyproj (instalación conda) — comentados en `requirements.txt`.
+
+> **Nota:** el GTFS del SITP se usa como referencia de movilidad para calibrar la red vial real (`drive`) sobre la que operan los taxis en Chapinero.
