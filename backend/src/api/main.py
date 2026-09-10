@@ -1,12 +1,9 @@
 """FastAPI application - Punto de entrada principal."""
 
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 
 from src.api.rutas_grafo import router as grafo_router
 from src.api.rutas_agente import router as agente_router

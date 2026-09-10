@@ -90,6 +90,37 @@ class RepositorioGrafo:
         ruta_nodos = self.directorio / nombre_nodos
         ruta_aristas = self.directorio / nombre_aristas
 
+        features_nodos, features_aristas = self._construir_features_geojson(grafo)
+
+        with open(ruta_nodos, "w", encoding="utf-8") as f:
+            json.dump({"type": "FeatureCollection", "features": features_nodos}, f, ensure_ascii=False, indent=2)
+
+        with open(ruta_aristas, "w", encoding="utf-8") as f:
+            json.dump({"type": "FeatureCollection", "features": features_aristas}, f, ensure_ascii=False, indent=2)
+
+        return ruta_nodos, ruta_aristas
+
+    def generar_geojson(
+        self, grafo: Grafo
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Genera FeatureCollections GeoJSON de nodos y aristas en memoria (sin disco)."""
+        features_nodos, features_aristas = self._construir_features_geojson(grafo)
+        return (
+            {"type": "FeatureCollection", "features": features_nodos},
+            {"type": "FeatureCollection", "features": features_aristas},
+        )
+
+    def generar_graphml(self, grafo: Grafo) -> str:
+        """Genera el grafo en formato GraphML como string (sin tocar disco)."""
+        import io
+
+        buffer = io.BytesIO()
+        G = grafo.a_networkx()
+        nx.write_graphml(G, buffer)
+        return buffer.getvalue().decode("utf-8")
+
+    def _construir_features_geojson(self, grafo: Grafo) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Construye las features GeoJSON de nodos y aristas sin persistir."""
         # Nodos
         features_nodos = []
         for nodo in grafo.nodos.values():
@@ -108,9 +139,6 @@ class RepositorioGrafo:
                     },
                 }
             )
-
-        with open(ruta_nodos, "w", encoding="utf-8") as f:
-            json.dump({"type": "FeatureCollection", "features": features_nodos}, f, ensure_ascii=False, indent=2)
 
         # Aristas (LineString)
         features_aristas = []
@@ -148,10 +176,7 @@ class RepositorioGrafo:
                 }
             )
 
-        with open(ruta_aristas, "w", encoding="utf-8") as f:
-            json.dump({"type": "FeatureCollection", "features": features_aristas}, f, ensure_ascii=False, indent=2)
-
-        return ruta_nodos, ruta_aristas
+        return features_nodos, features_aristas
 
     def cargar_geojson(
         self, archivo_nodos: str = "nodos.geojson", archivo_aristas: str = "aristas.geojson"

@@ -1,10 +1,10 @@
 """Endpoints para gestión del grafo de movilidad."""
 
-from pathlib import Path
+import json
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 
 from src.grafo.modelos import Grafo, Nodo, Arista
 from src.grafo.repositorio import RepositorioGrafo, ExcepcionRepositorio
@@ -102,8 +102,8 @@ async def geojson_nodos():
     """Descarga nodos como GeoJSON."""
     repo = obtener_repositorio()
     grafo = obtener_grafo()
-    ruta_nodos, _ = repo.guardar_geojson(grafo, "temp_nodos.geojson", "temp_aristas.geojson")
-    return FileResponse(ruta_nodos, media_type="application/geo+json", filename="nodos.geojson")
+    geojson_nodos_data, _ = repo.generar_geojson(grafo)
+    return Response(content=json.dumps(geojson_nodos_data, ensure_ascii=False), media_type="application/geo+json")
 
 
 @router.get("/geojson/aristas")
@@ -111,8 +111,8 @@ async def geojson_aristas():
     """Descarga aristas como GeoJSON."""
     repo = obtener_repositorio()
     grafo = obtener_grafo()
-    _, ruta_aristas = repo.guardar_geojson(grafo, "temp_nodos.geojson", "temp_aristas.geojson")
-    return FileResponse(ruta_aristas, media_type="application/geo+json", filename="aristas.geojson")
+    _, geojson_aristas_data = repo.generar_geojson(grafo)
+    return Response(content=json.dumps(geojson_aristas_data, ensure_ascii=False), media_type="application/geo+json")
 
 
 @router.get("/graphml")
@@ -120,8 +120,7 @@ async def descargar_graphml():
     """Descarga grafo como GraphML."""
     repo = obtener_repositorio()
     grafo = obtener_grafo()
-    ruta = repo.guardar_graphml(grafo, "temp_grafo.graphml")
-    return FileResponse(ruta, media_type="application/xml", filename="grafo.graphml")
+    return Response(content=repo.generar_graphml(grafo), media_type="application/xml")
 
 
 @router.post("/recargar")
