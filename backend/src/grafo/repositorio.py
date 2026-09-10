@@ -1,14 +1,23 @@
 """Repositorio para persistencia del grafo (JSON, GraphML, GeoJSON)."""
 
 import json
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Union
 
 import networkx as nx
 import pandas as pd
 
-from .modelos import Arista, Grafo, Nodo, Coordenadas, TipoNodo, NivelCongestion, TipoVia, AtributosArista, AtributosNodo
+from .modelos import (
+    Arista,
+    AtributosArista,
+    AtributosNodo,
+    Coordenadas,
+    Grafo,
+    NivelCongestion,
+    Nodo,
+    TipoNodo,
+    TipoVia,
+)
 
 
 class ExcepcionRepositorio(Exception):
@@ -49,7 +58,7 @@ class RepositorioGrafo:
         if not ruta.exists():
             raise ExcepcionRepositorio(f"Archivo no encontrado: {ruta}")
 
-        with open(ruta, "r", encoding="utf-8") as f:
+        with open(ruta, encoding="utf-8") as f:
             datos = json.load(f)
 
         grafo = Grafo(dirigido=datos.get("dirigido", True), metadata=datos.get("metadata", {}))
@@ -187,7 +196,7 @@ class RepositorioGrafo:
         # Cargar nodos
         ruta_nodos = self.directorio / archivo_nodos
         if ruta_nodos.exists():
-            with open(ruta_nodos, "r", encoding="utf-8") as f:
+            with open(ruta_nodos, encoding="utf-8") as f:
                 datos_nodos = json.load(f)
 
             for feature in datos_nodos.get("features", []):
@@ -206,7 +215,7 @@ class RepositorioGrafo:
         # Cargar aristas
         ruta_aristas = self.directorio / archivo_aristas
         if ruta_aristas.exists():
-            with open(ruta_aristas, "r", encoding="utf-8") as f:
+            with open(ruta_aristas, encoding="utf-8") as f:
                 datos_aristas = json.load(f)
 
             for feature in datos_aristas.get("features", []):
@@ -236,7 +245,6 @@ class RepositorioGrafo:
 
     def guardar_csv(self, grafo: Grafo, prefijo: str = "grafo") -> tuple[Path, Path]:
         """Exporta nodos y aristas a CSV."""
-        import pandas as pd
 
         ruta_nodos = self.directorio / f"{prefijo}_nodos.csv"
         ruta_aristas = self.directorio / f"{prefijo}_aristas.csv"
@@ -282,7 +290,6 @@ class RepositorioGrafo:
 
     def cargar_csv(self, archivo_nodos: str, archivo_aristas: str) -> Grafo:
         """Carga grafo desde archivos CSV."""
-        import pandas as pd
 
         grafo = Grafo()
 
@@ -455,356 +462,6 @@ class RepositorioGrafo:
             highway = highway[0]
         return mapeo.get(str(highway).lower(), TipoVia.OTRO)
 
-# ==================== GTFS Movilidad (SITP Bogotá) ====================
-
-    GTFS_URLS = {
-        "gtfs_sitp": "https://datosabiertos.bogota.gov.co/dataset/56b6a5b4-82d2-4d8b-9a3b-7c6d5e4f3a2b/resource/gtfs_sitp.zip",
-        "estaciones_troncales": "https://datosabiertos-transmilenio.hub.arcgis.com/datasets/estaciones-troncales-de-transmilenio.geojson",
-        "trazados_troncales": "https://datosabiertos-transmilenio.hub.arcgis.com/datasets/trazados-troncales-de-transmilenio.geojson",
-        "validaciones": "https://datosabiertos.bogota.gov.co/dataset/validaciones-mensuales-sitp-franja-horaria",
-    }
-
-    def descargar_gtfs_taxis(
-        self,
-        directorio_gtfs: str = "gtfs_taxis",
-        solo_troncales: bool = True,
-    ) -> Dict[str, Path]:
-        """Descarga y extrae GTFS oficial del SITP (transporte público de Bogotá).
-
-        El GTFS del SITP se usa como referencia de movilidad para calibrar la
-        red vial real (velocidades y congestión por franja) sobre la que operan
-        los taxis en la zona de estudio de Chapinero.
-
-        Returns:
-            Dict con rutas a archivos extraídos: stops.txt, routes.txt, trips.txt, stop_times.txt, calendar.txt
-        """
-        import zipfile
-        import requests
-        from io import BytesIO
-
-        dir_gtfs = self.directorio / directorio_gtfs
-        dir_gtfs.mkdir(parents=True, exist_ok=True)
-
-        # URL del GTFS (puede cambiar, verificar en datosabiertos.bogota.gov.co)
-        url_gtfs = "https://datosabiertos.bogota.gov.co/dataset/56b6a5b4-82d2-4d8b-9a3b-7c6d5e4f3a2b/resource/gtfs_sitp.zip"
-
-        print(f"Descargando GTFS desde {url_gtfs}...")
-        try:
-            response = requests.get(url_gtfs, timeout=120, stream=True)
-            response.raise_for_status()
-
-            with zipfile.ZipFile(BytesIO(response.content)) as z:
-                z.extractall(dir_gtfs)
-
-        except Exception as e:
-            raise ExcepcionRepositorio(f"Error descargando GTFS: {e}")
-
-        archivos_esperados = ["stops.txt", "routes.txt", "trips.txt", "stop_times.txt", "calendar.txt", "calendar_dates.txt", "shapes.txt"]
-        archivos_encontrados = {}
-
-        for arch in archivos_esperados:
-            ruta = dir_gtfs / arch
-            if ruta.exists():
-                archivos_encontrados[arch] = ruta
-                print(f"  âœ“ {arch}")
-            else:
-                print(f"  âœ— {arch} (no encontrado)")
-
-        return archivos_encontrados
-
-    def procesar_gtfs_a_grafo(
-        self,
-        archivos_gtfs: Dict[str, Path],
-        archivo_estaciones_geo: Optional[Path] = None,
-        estado_operativo_path: Optional[Path] = None,
-    ) -> Grafo:
-        """Procesa archivos GTFS y genera grafo de movilidad para la red vial de taxis.
-
-        Pipeline según PDF:
-        1. Filtrar routes.txt -> solo componente troncal
-        2. trips.txt -> viajes de esas rutas
-        3. stop_times.txt -> conexiones ordenadas entre estaciones
-        4. stops.txt -> coordenadas y nombres de estaciones
-        5. calendar.txt -> disponibilidad por día
-        6. Cruce con estaciones_geo -> verificar estado operativo (activa/cerrada)
-        """
-        import pandas as pd
-
-        grafo = Grafo(dirigido=True)
-        grafo.metadata = {"fuente": "GTFS SITP Bogotá (movilidad taxis)", "procesado": True}
-
-        # 1. CARGAR ARCHIVOS
-        routes = pd.read_csv(archivos_gtfs["routes.txt"])
-        trips = pd.read_csv(archivos_gtfs["trips.txt"])
-        stop_times = pd.read_csv(archivos_gtfs["stop_times.txt"])
-        stops = pd.read_csv(archivos_gtfs["stops.txt"])
-
-        calendar = pd.read_csv(archivos_gtfs["calendar.txt"]) if "calendar.txt" in archivos_gtfs else pd.DataFrame()
-        calendar_dates = pd.read_csv(archivos_gtfs["calendar_dates.txt"]) if "calendar_dates.txt" in archivos_gtfs else pd.DataFrame()
-
-        # 2. FILTRAR SOLO RUTAS TRONCALES
-        # En GTFS SITP, route_type=3 = bus, pero necesitamos identificar troncales
-        # Generalmente route_id empieza con 'T' o route_short_name tiene formato troncal
-        if solo_troncales:
-            # HeurÃ­stica: rutas troncales suelen tener route_short_name como 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'K', 'L' o contener 'Portal'
-            mask_troncales = (
-                routes["route_short_name"].str.match(r"^[A-HKL]$", na=False) |
-                routes["route_long_name"].str.contains("Portal|Troncal", case=False, na=False) |
-                routes["route_id"].str.startswith("T", na=False)
-            )
-            routes_troncal = routes[mask_troncales].copy()
-            print(f"Rutas troncales identificadas: {len(routes_troncal)}")
-        else:
-            routes_troncal = routes
-
-        route_ids_troncal = set(routes_troncal["route_id"].unique())
-
-        # 3. VIAJES DE RUTAS TRONCALES
-        trips_troncal = trips[trips["route_id"].isin(route_ids_troncal)].copy()
-        trip_ids_troncal = set(trips_troncal["trip_id"].unique())
-        print(f"Viajes troncales: {len(trips_troncal)}")
-
-        # 4. PARADAS DE ESOS VIAJES (stop_times)
-        st_troncal = stop_times[stop_times["trip_id"].isin(trip_ids_troncal)].copy()
-
-        # 5. ESTACIONES REALES (stops.txt filtrado)
-        stop_ids_usados = set(st_troncal["stop_id"].unique())
-        stops_troncal = stops[stops["stop_id"].isin(stop_ids_usados)].copy()
-        print(f"Estaciones en viajes troncales: {len(stops_troncal)}")
-
-        # 6. CRUCE CON ESTACIONES GEOGRÃFICAS OFICIALES (para estado operativo)
-        estaciones_activas = set()
-        if archivo_estaciones_geo and archivo_estaciones_geo.exists():
-            import geopandas as gpd
-            gdf = gpd.read_file(archivo_estaciones_geo)
-            # Filtrar solo activas y temporal_activa
-            if "estado_operativo" in gdf.columns:
-                gdf_activas = gdf[gdf["estado_operativo"].isin(["activa", "temporal_activa"])]
-                estaciones_activas = set(gdf_activas["id_estacion"].astype(str).tolist())
-                print(f"Estaciones activas segÃºn geo: {len(estaciones_activas)}")
-            else:
-                # Si no hay campo estado, asumir todas
-                estaciones_activas = set(gdf["id_estacion"].astype(str).tolist()) if "id_estacion" in gdf.columns else stop_ids_usados
-        else:
-            estaciones_activas = stop_ids_usados
-
-        # 7. CREAR NODOS (solo estaciones activas)
-        for _, row in stops_troncal.iterrows():
-            stop_id = str(row["stop_id"])
-            if stop_id not in estaciones_activas:
-                continue
-
-            grafo.agregar_nodo(
-                Nodo(
-                    id=stop_id,
-                    nombre=row.get("stop_name", f"EstaciÃ³n {stop_id}"),
-                    coordenadas=Coordenadas(
-                        latitud=float(row["stop_lat"]),
-                        longitud=float(row["stop_lon"]),
-                    ),
-                    tipo=TipoNodo.ESTACION,
-                    atributos=AtributosNodo(
-                        descripcion=row.get("stop_desc", ""),
-                        zona=row.get("zone_id", ""),
-                    ),
-                )
-            )
-
-        print(f"Nodos creados (estaciones activas): {len(grafo.nodos)}")
-
-        # 8. CREAR ARISTAS (conexiones consecutivas en stop_times)
-        # Agrupar por trip_id y ordenar por stop_sequence
-        st_ordenado = st_troncal.sort_values(["trip_id", "stop_sequence"])
-
-        aristas_creadas = set()
-
-        for trip_id, grupo in st_ordenado.groupby("trip_id"):
-            paradas = grupo["stop_id"].astype(str).tolist()
-            secuencias = grupo["stop_sequence"].tolist()
-            horas_salida = grupo["departure_time"].tolist()
-            horas_llegada = grupo["arrival_time"].tolist()
-
-            # Obtener info de la ruta para este trip
-            trip_info = trips_troncal[trips_troncal["trip_id"] == trip_id].iloc[0]
-            route_id = trip_info["route_id"]
-            route_info = routes_troncal[routes_troncal["route_id"] == route_id].iloc[0]
-            nombre_ruta = route_info.get("route_short_name", route_id)
-
-            for i in range(len(paradas) - 1):
-                origen = paradas[i]
-                destino = paradas[i + 1]
-
-                # Solo si ambas estaciones estÃ¡n activas
-                if origen not in grafo.nodos or destino not in grafo.nodos:
-                    continue
-
-                # Calcular tiempo programado
-                try:
-                    t_salida = self._parsear_hora_gtfs(horas_salida[i])
-                    t_llegada = self._parsear_hora_gtfs(horas_llegada[i + 1])
-                    tiempo_min = max(1, (t_llegada - t_salida).total_seconds() / 60)
-                except:
-                    tiempo_min = 2.0  # default
-
-                # Distancia aproximada (haversine entre coordenadas)
-                nodo_o = grafo.nodos[origen]
-                nodo_d = grafo.nodos[destino]
-                distancia_m = nodo_o.coordenadas.distancia_a(nodo_d.coordenadas)
-
-                # ID Ãºnico para la arista
-                arista_id = f"{origen}-{destino}-{nombre_ruta}"
-                if arista_id in aristas_creadas:
-                    continue
-                aristas_creadas.add(arista_id)
-
-                grafo.agregar_arista(
-                    Arista(
-                        id=arista_id,
-                        origen=origen,
-                        destino=destino,
-                        distancia=distancia_m,
-                        tiempo_estimado=tiempo_min,
-                        costo=0.0,
-                        velocidad_promedio=distancia_m / 1000 / (tiempo_min / 60) if tiempo_min > 0 else 30,
-                        congestion=NivelCongestion.BAJA,
-                        disponible=True,
-                        incidentes=0,
-                        atributos=AtributosArista(
-                            tipo_via=TipoVia.TRONCAL,
-                            nombre_via=nombre_ruta,
-                            sentido_unico=True,
-                        ),
-                    )
-                )
-
-        print(f"Aristas creadas: {len(grafo.aristas)}")
-
-        # 9. GUARDAR CSVs LIMPIOS (formato PDF)
-        self._guardar_dataset_taxis(grafo, routes_troncal, stops_troncal, st_ordenado)
-
-        return grafo
-
-    def _parsear_hora_gtfs(self, hora_str: str) -> "datetime":
-        """Parsea hora GTFS (HH:MM:SS, puede ser >24h)."""
-        from datetime import datetime, timedelta
-        h, m, s = map(int, str(hora_str).split(":"))
-        return datetime(1900, 1, 1) + timedelta(hours=h, minutes=m, seconds=s)
-
-    def _guardar_dataset_taxis(
-        self,
-        grafo: Grafo,
-        routes_troncal: "pd.DataFrame",
-        stops_troncal: "pd.DataFrame",
-        stop_times_ordenado: "pd.DataFrame",
-    ) -> None:
-        """Guarda los 3 CSVs del dataset inicial según especificación del PDF."""
-        import pandas as pd
-
-        # 1. puntos_taxis_activos.csv
-        filas_estaciones = []
-        for nid, nodo in grafo.nodos.items():
-            filas_estaciones.append({
-                "id_estacion": nid,
-                "nombre_estacion": nodo.nombre,
-                "latitud": nodo.coordenadas.latitud,
-                "longitud": nodo.coordenadas.longitud,
-                "troncal": self._obtener_troncal_estacion(nid, routes_troncal, stop_times_ordenado),
-                "tipo_estacion": self._clasificar_tipo_estacion(nid, grafo),
-                "estado_operativo": "activa",
-                "es_temporal": "No",
-                "fecha_verificacion": "2026-09-07",
-                "incluir_en_grafo": "Sí",
-            })
-        pd.DataFrame(filas_estaciones).to_csv(self.directorio / "puntos_taxis_activos.csv", index=False, encoding="utf-8")
-
-        # 2. conexiones_taxis.csv
-        filas_conexiones = []
-        for arista in grafo.aristas:
-            filas_conexiones.append({
-                "origen": arista.origen,
-                "destino": arista.destino,
-                "ruta": arista.atributos.nombre_via,
-                "secuencia_origen": 0,  # Se llenarÃ­a con datos reales
-                "secuencia_destino": 0,
-                "hora_salida": "",
-                "hora_llegada": "",
-                "tiempo_min": round(arista.tiempo_estimado, 1),
-                "distancia_km": round(arista.distancia / 1000, 3),
-                "transbordo": "No",  # Se detectarÃ­a si ruta cambia
-                "disponible": "SÃ­" if arista.disponible else "No",
-            })
-        pd.DataFrame(filas_conexiones).to_csv(self.directorio / "conexiones_taxis.csv", index=False, encoding="utf-8")
-
-        # 3. demanda_por_franja.csv (placeholder - requiere archivo validaciones)
-        pd.DataFrame(columns=[
-            "fecha", "franja_horaria", "componente", "validaciones", "nivel_demanda", "id_estacion"
-        ]).to_csv(self.directorio / "demanda_por_franja.csv", index=False, encoding="utf-8")
-
-        print(f"Datasets guardados en {self.directorio}/")
-
-    def _obtener_troncal_estacion(self, estacion_id: str, routes: "pd.DataFrame", stop_times: "pd.DataFrame") -> str:
-        """Determina a quÃ© ruta/corredor pertenece una estaciÃ³n de referencia."""
-        # Buscar rutas que pasan por esta estaciÃ³n
-        trips_en_estacion = stop_times[stop_times["stop_id"].astype(str) == estacion_id]["trip_id"].unique()
-        if len(trips_en_estacion) == 0:
-            return "desconocida"
-
-        # Obtener route_ids
-        import pandas as pd
-        trips_df = pd.DataFrame({"trip_id": trips_en_estacion})
-        # NecesitarÃ­amos trips dataframe completo... simplificar
-        return "principal"
-
-    def _clasificar_tipo_estacion(self, estacion_id: str, grafo: Grafo) -> str:
-        """Clasifica: portal, intercambio, intermedia, sencilla."""
-        grado = len([a for a in grafo.aristas if a.origen == estacion_id or a.destino == estacion_id])
-        nodo = grafo.nodos[estacion_id]
-        nombre = nodo.nombre.lower()
-
-        if "portal" in nombre:
-            return "portal"
-        elif grado >= 3:
-            return "intercambio"
-        elif grado == 1:
-            return "sencilla"
-        else:
-            return "intermedia"
-
-    def generar_dataset_inicial_taxis(
-        self,
-        usar_gtfs_real: bool = True,
-        descargar_geo: bool = True,
-    ) -> Grafo:
-        """Método principal: genera dataset inicial de red vial para taxis (Corte 1).
-
-        Si usar_gtfs_real=True: descarga GTFS oficial + geo estaciones
-        Si False: crea dataset sintético de ejemplo (6 nodos PDF)
-        """
-        if usar_gtfs_real:
-            print("=== GENERANDO DATASET TAXIS REAL (GTFS SITP) ===")
-
-            # 1. Descargar GTFS
-            archivos_gtfs = self.descargar_gtfs_taxis()
-
-            # 2. Descargar estaciones geográficas (para estado operativo)
-            archivo_geo = None
-            if descargar_geo:
-                archivo_geo = self._descargar_estaciones_geo()
-
-            # 3. Procesar a grafo
-            grafo = self.procesar_gtfs_a_grafo(archivos_gtfs, archivo_geo)
-
-            # 4. Guardar en múltiples formatos
-            self.guardar_json(grafo, "taxis_grafo.json")
-            self.guardar_graphml(grafo, "taxis_grafo.graphml")
-            self.guardar_geojson(grafo, "taxis_nodos.geojson", "taxis_aristas.geojson")
-            self.guardar_csv(grafo, "taxis")
-
-            return grafo
-        else:
-            print("=== GENERANDO DATASET SINTÃ‰TICO (EJEMPLO PDF - 6 NODOS) ===")
-            return self._crear_dataset_sintetico_pdf()
-
     def generar_dataset_osm(
         self,
         lugar: str = "Universidad Sergio Arboleda, BogotÃ¡, Colombia",
@@ -821,7 +478,7 @@ class RepositorioGrafo:
         Returns:
             Grafo real de OpenStreetMap guardado en datos/.
         """
-        print(f"=== GENERANDO DATASET OPENSTREETMAP (OSMnx) ===")
+        print("=== GENERANDO DATASET OPENSTREETMAP (OSMnx) ===")
         print(f"  Lugar: {lugar}")
         print(f"  Radio: {radio_metros} m | Red: {tipo_red}")
 
@@ -844,36 +501,10 @@ class RepositorioGrafo:
         # Guardar tambiÃ©n como dataset principal para la API
         self.guardar_json(grafo, "dataset_osm.json")
 
-        print(f"  âœ“ Guardado: grafo_osm.json, graphml, geojson, csv")
+        print("  âœ“ Guardado: grafo_osm.json, graphml, geojson, csv")
         return grafo
 
-    def _descargar_estaciones_geo(self) -> Optional[Path]:
-        """Descarga capa geoJSON de estaciones troncales oficiales."""
-        import requests
-        import geopandas as gpd
-
-        url = "https://datosabiertos-transmilenio.hub.arcgis.com/datasets/estaciones-troncales-de-transmilenio.geojson"
-        ruta = self.directorio / "estaciones_troncales_oficiales.geojson"
-
-        try:
-            print(f"Descargando estaciones geogrÃ¡ficas desde {url}...")
-            response = requests.get(url, timeout=60)
-            response.raise_for_status()
-
-            with open(ruta, "wb") as f:
-                f.write(response.content)
-
-            # Verificar que se puede leer
-            gdf = gpd.read_file(ruta)
-            print(f"  âœ“ Estaciones geo descargadas: {len(gdf)} features")
-            print(f"  Columnas: {list(gdf.columns)}")
-
-            return ruta
-        except Exception as e:
-            print(f"  âœ— Error descargando geo: {e}")
-            return None
-
-    def _crear_dataset_sintetico_pdf(self) -> Grafo:
+    def generar_dataset_sintetico_pdf(self) -> Grafo:
         """Crea el dataset de 6 nodos del ejemplo del PDF (universidad)."""
         grafo = Grafo(dirigido=True, metadata={"fuente": "Ejemplo PDF Corte 1", "sintetico": True})
 

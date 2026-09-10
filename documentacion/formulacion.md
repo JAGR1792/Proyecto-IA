@@ -37,16 +37,16 @@ Diseñar e implementar un sistema inteligente para la planificación de rutas de
 ## 3. Alcance
 
 ### Incluido (Corte 1)
-- Modelo de grafo dirigido con nodos (estaciones) y aristas (conexiones) con atributos.
+- Modelo de grafo dirigido con nodos (intersecciones) y aristas (segmentos viales) con atributos.
 - Modelo PEAS completo: desempeño, ambiente, actuadores y sensores.
 - Ciclo percepción → decisión → acción con motor greedy local (stub que se reemplaza en Corte 2).
-- Dataset inicial sintético de 6 nodos y 7 conexiones (estaciones reales de Bogotá).
+- Dataset inicial sintético de 6 nodos y 7 aristas (ejemplo del PDF de la universidad).
 - API REST con FastAPI y visualización interactiva con Cytoscape.js.
 
 ### Excluido (diferido)
 - Algoritmos de búsqueda óptimos (Corte 2).
 - Predicción de demanda con ML (Corte 3).
-- Integración con datos GTFS en tiempo real (solo pipeline de descarga implementado).
+- Seguimiento de taxis e información de tráfico en tiempo real (congestión e incidentes simulados, PDF 4).
 - Modelos de entrenamiento de red neuronal.
 
 ---

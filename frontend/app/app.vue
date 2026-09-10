@@ -375,9 +375,6 @@ onMounted(() => {
             <div class="tx-legend-item">
               <span class="tx-legend-node" style="color: #10b981;"></span> Zona
             </div>
-            <div class="tx-legend-item">
-              <span class="tx-legend-node" style="color: #a855f7;"></span> Estación
-            </div>
             <div class="tx-legend-item" style="margin-left: 1rem;">
               <div class="tx-legend-edge" style="background-color: #3f3f46;"></div> Congestión Baja
             </div>

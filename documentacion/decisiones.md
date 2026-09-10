@@ -195,7 +195,7 @@ Resultado persistido en `datos/` como `grafo_osm.json`, `grafo_osm.graphml`, geo
 - ✅ 888 nodos, 1741 aristas reales alrededor de la universidad.
 - ✅ Velocidad promedio ~34 km/h (antes: 50 km/h hardcodeada).
 - ✅ 1127 aristas con geometría real (polilíneas que siguen las calles).
-- ✅ La API prioriza `dataset_osm.json` → `taxis_grafo.json` → `dataset_inicial_pdf.json` → `grafo.json`.
+- ✅ La API prioriza `dataset_osm.json` → `dataset_inicial_pdf.json` → `grafo.json` (se elimina `taxis_grafo.json` en ADR-015).
 - ⚠️ Dataset depende de OSM (puede variar al regenerarse).
 - ⚠️ La descarga requiere internet y ~30-60 s.
 
@@ -282,7 +282,7 @@ El PDF de referencia de la Primera Entrega define el proyecto como **"Sistema in
 ### Consecuencias
 - ✅ Uso del actual red vial real de OSM (888 nodos / 1741 aristas) plenamente coherente con taxis.
 - ✅ 73 tests pasan (cobertura 89%), build frontend y lint OK.
-- ⚠️ El pipeline GTFS real requiere internet y no es el foco del Corte 1 (stub funcional).
+- ⚠️ El pipeline GTFS real requiere internet y no es el foco del Corte 1 (stub funcional). **Obsoleto:** eliminado en ADR-015.
 - ⚠️ Las capturas de pantalla para la sustentación quedan pendientes de generar.
 
 ---
@@ -357,5 +357,28 @@ El módulo `agente/` (PEAS) conservaba restos del antiguo enfoque TransMilenio/S
 - ✅ El PEAS refleja exactamente las tablas del PDF de taxis (5.1 PEAS, 5.2 medida de desempeño, 5.3 características del ambiente).
 - ✅ El agente ahora mide distancia y conexiones, alineado con la red vial real de Chapinero.
 - ✅ Tests actualizados y 73 tests pasan.
-- ⚠️ El pipeline GTFS legacy (`repositorio.py`) permanece para generar datasets de referencia de movilidad (ADR-012), pero no alimenta el PEAS.
+- ⚠️ El pipeline GTFS legacy (`repositorio.py`) fue **eliminado en ADR-015**; ya no queda ningún concepto TransMilenio/SITP en código o interfaz (Cierre del Corte 1, PDF §13).
 - Siguiente: Corte 2 — reemplazar el greedy local por BFS/DFS/UCS/voraz/A*.
+
+---
+
+## ADR-015 — Eliminar restos de TransMilenio/GTFS (Cierre del Corte 1, PDF §13)
+
+**Fecha:** 2026-09
+**Estado:** Aceptado
+
+### Contexto
+El plan de trabajo del PDF (sección 13, "Cierre del Corte 1") exige "Renombrar textos residuales de TransMilenio en código e interfaz". Tras ADR-014 el módulo agente quedó alineado, pero permanecían el pipeline GTFS SITP/TransMilenio completo en `repositorio.py` (descarga GTFS, estaciones troncales, demanda por franja, transbordos) y estilos de "Estación"/"portal"/"intercambio" en el frontend.
+
+### Decisión
+- **Backend:** eliminar de `RepositorioGrafo` todo el bloque GTFS (`GTFS_URLS`, `descargar_gtfs_taxis`, `procesar_gtfs_a_grafo`, `_parsear_hora_gtfs`, `_guardar_dataset_taxis`, `_obtener_troncal_estacion`, `_clasificar_tipo_estacion`, `generar_dataset_inicial_taxis`, `_descargar_estaciones_geo`). Renombrar `_crear_dataset_sintetico_pdf` a `generar_dataset_sintetico_pdf` (público).
+- **Backend:** `rutas_grafo.py` y `rutas_mapa.py` priorizan `dataset_osm.json` → `dataset_inicial_pdf.json` → `grafo.json`; fallback sintético; `POST /grafo/recargar?usar_sintetico=false` ahora descarga la red OSM con OSMnx en vez de GTFS.
+- **Script:** `generar_dataset.py` ya no ofrece `--real`; solo `--osm` y `--sintetico`.
+- **Frontend:** se elimina la leyenda "Estación" (`app.vue`) y los estilos Cytoscape/Leaflet de `estacion`, `portal` e `intercambio` (`GraphView.vue`, `MapaOSM.vue`).
+- **Docs:** `dataset_inicial.md` §6 describe el dataset OSM (888 nodos / 1.741 aristas, PDF 7.1); `informe_corte1.md` y `formulacion.md` sin referencias GTFS. Se conservan los enums `TipoVia.TRONCAL` y `TipoNodo.ESTACION` (tipos genéricos válidos de la red vial, sin uso en el dataset actual).
+
+### Consecuencias
+- ✅ El repositorio queda 100% alineado al PDF de taxis y al cierre del Corte 1 del plan de trabajo.
+- ✅ Tests y lint verificados tras la eliminación.
+- ⚠️ Se pierde la referencia de movilidad basada en GTFS; la calibración de tiempos/congestión queda pendiente de datos reales (Corte 3).
+- Siguiente: generar capturas de pantalla para la sustentación (pendiente del equipo).

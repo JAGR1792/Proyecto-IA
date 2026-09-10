@@ -1,7 +1,7 @@
 """Configuración de la aplicación usando Pydantic Settings."""
 
+
 from pydantic_settings import BaseSettings
-from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -20,7 +20,6 @@ class Settings(BaseSettings):
 
     # Datos
     datos_dir: str = "datos"
-    gtfs_dir: str = "gtfs_taxis"
 
     # OSMnx
     osm_cache_dir: str = "cache_osm"

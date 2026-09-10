@@ -165,27 +165,6 @@ function obtenerEstilos() {
         'z-index': 10,
       },
     },
-    // Nodo portal
-    {
-      selector: 'node[tipo = "portal"]',
-      style: {
-        'background-color': '#e11d48',
-        'width': 32,
-        'height': 32,
-        'border-color': '#f43f5e',
-        'font-size': '11px',
-      },
-    },
-    // Nodo intercambio
-    {
-      selector: 'node[tipo = "intercambio"]',
-      style: {
-        'background-color': '#f59e0b',
-        'width': 28,
-        'height': 28,
-        'border-color': '#fbbf24',
-      },
-    },
     // Nodo edificio
     {
       selector: 'node[tipo = "edificio"]',
@@ -198,13 +177,6 @@ function obtenerEstilos() {
       selector: 'node[tipo = "zona"]',
       style: {
         'background-color': '#10b981',
-      },
-    },
-    // Nodo estación
-    {
-      selector: 'node[tipo = "estacion"]',
-      style: {
-        'background-color': '#a855f7',
       },
     },
     // Nodo seleccionado

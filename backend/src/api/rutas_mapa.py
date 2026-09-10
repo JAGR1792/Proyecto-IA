@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 router = APIRouter()
 
-_NOMBRES = ["dataset_osm.json", "taxis_grafo.json", "dataset_inicial_pdf.json", "grafo.json"]
+_NOMBRES = ["dataset_osm.json", "dataset_inicial_pdf.json", "grafo.json"]
 
 
 def _cargar_grafo() -> "Grafo":
@@ -24,7 +24,7 @@ def _cargar_grafo() -> "Grafo":
             return repo.cargar_json(nombre)
         except ExcepcionRepositorio:
             continue
-    return repo.generar_dataset_inicial_taxis(usar_gtfs_real=False)
+    return repo.generar_dataset_sintetico_pdf()
 
 
 def _response_geojson(datos: dict) -> Response:

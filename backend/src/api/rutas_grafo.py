@@ -1,19 +1,18 @@
 """Endpoints para gestión del grafo de movilidad."""
 
 import json
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import Response
 
-from src.grafo.modelos import Grafo, Nodo, Arista
-from src.grafo.repositorio import RepositorioGrafo, ExcepcionRepositorio
+from src.grafo.modelos import Grafo
+from src.grafo.repositorio import ExcepcionRepositorio, RepositorioGrafo
 
 router = APIRouter()
 
 # Repositorio global (en producción usar dependency injection)
-_repositorio: Optional[RepositorioGrafo] = None
-_grafo_cache: Optional[Grafo] = None
+_repositorio: RepositorioGrafo | None = None
+_grafo_cache: Grafo | None = None
 
 
 def obtener_repositorio() -> RepositorioGrafo:
@@ -27,8 +26,8 @@ def obtener_grafo() -> Grafo:
     global _grafo_cache
     if _grafo_cache is None:
         repo = obtener_repositorio()
-        # Prioridad: dataset OSM real (si existe) → GTFS taxis → sintético PDF
-        for nombre in ["dataset_osm.json", "taxis_grafo.json", "dataset_inicial_pdf.json", "grafo.json"]:
+        # Prioridad: dataset OSM real (si existe) → sintético PDF
+        for nombre in ["dataset_osm.json", "dataset_inicial_pdf.json", "grafo.json"]:
             try:
                 _grafo_cache = repo.cargar_json(nombre)
                 break
@@ -36,7 +35,7 @@ def obtener_grafo() -> Grafo:
                 continue
         if _grafo_cache is None:
             # Generar sintético como fallback
-            _grafo_cache = repo.generar_dataset_inicial_taxis(usar_gtfs_real=False)
+            _grafo_cache = repo.generar_dataset_sintetico_pdf()
     return _grafo_cache
 
 
@@ -124,15 +123,15 @@ async def descargar_graphml():
 
 
 @router.post("/recargar")
-async def recargar_grafo(usar_sintetico: bool = Query(True, description="Usar dataset sintético (False = intentar GTFS real)")):
+async def recargar_grafo(usar_sintetico: bool = Query(True, description="Usar dataset sintético (False = descargar red OSM con OSMnx)")):
     """Recarga el grafo desde archivo o regenera."""
     global _grafo_cache
     repo = obtener_repositorio()
     try:
         if usar_sintetico:
-            _grafo_cache = repo.generar_dataset_inicial_taxis(usar_gtfs_real=False)
+            _grafo_cache = repo.generar_dataset_sintetico_pdf()
         else:
-            _grafo_cache = repo.generar_dataset_inicial_taxis(usar_gtfs_real=True)
+            _grafo_cache = repo.generar_dataset_osm()
         return {
             "mensaje": "Grafo recargado",
             "nodos": len(_grafo_cache.nodos),

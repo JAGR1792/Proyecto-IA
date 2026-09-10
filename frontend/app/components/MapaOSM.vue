@@ -71,11 +71,8 @@ const COLORES_CONGESTION: Record<string, string> = {
 }
 
 const COLORES_TIPO: Record<string, string> = {
-  portal: '#e11d48',
-  intercambio: '#f59e0b',
   edificio: '#3b82f6',
   zona: '#10b981',
-  estacion: '#a855f7',
   interseccion: '#3f3f46',
 }
 

@@ -156,7 +156,7 @@ cd backend
 
 ### Limitaciones (Corte 1)
 - Motor de decisión es **greedy local** (no óptimo global); se reemplaza por búsqueda en Corte 2.
-- Dataset OSM corresponde a la **red vial real (`drive`)** donde operan los taxis en Chapinero; el GTFS del SITP se usará como referencia de movilidad (pendiente datos reales).
+- Dataset OSM corresponde a la **red vial real (`drive`)** donde operan los taxis en Chapinero (888 nodos, 1.741 aristas); congestión e incidentes son valores simulados.
 - Leaflet requiere acceso a `tile.openstreetmap.org` (internet).
 - `ruff` reporta errores de estilo pre-existentes en el repositorio.
 
@@ -164,7 +164,6 @@ cd backend
 - Implementar `busqueda/`: BFS, DFS, UCS, Voraz, A* + heurísticas (euclidiana, manhattan, tiempo).
 - Endpoints `/busqueda/buscar` y `/busqueda/comparar`.
 - Reemplazar el greedy de `MotorDecision` por algoritmos de búsqueda.
-- Integrar GTFS del SITP (referencia de movilidad) para afinar tiempos y congestión sobre la red vial.
 
 ---
 

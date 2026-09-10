@@ -16,7 +16,7 @@ El sistema modela la **red vial real de taxis** en la zona de estudio de **Chapi
 |------|-------------|
 | **Backend** | Python 3.11+, FastAPI, Pydantic v2, NetworkX, OSMnx, GeoPandas, scikit-learn |
 | **Frontend** | Nuxt 3 (Vue 3, TypeScript), D3.js / Cytoscape.js, Leaflet, TailwindCSS |
-| **Datos** | OpenStreetMap (OSM), GeoJSON, GraphML, CSV, GTFS (SITP) |
+| **Datos** | OpenStreetMap (OSM), GeoJSON, GraphML, CSV |
 | **Calidad** | pytest + coverage, ruff, mypy |
 | **Deploy** | Vercel (servicios frontend + backend ASGI) |
 
@@ -48,7 +48,7 @@ El sistema modela la **red vial real de taxis** en la zona de estudio de **Chapi
 │   │   └── utilidades/              # Config, logging, excepciones
 │   ├── datos/                       # Datasets (JSON, GeoJSON, GraphML, CSV)
 │   ├── tests/                       # Tests unitarios (pytest)
-│   ├── generar_dataset.py           # Script para generar datos OSM/GTFS
+│   ├── generar_dataset.py           # Script para generar datos OSM (OSMnx)
 │   ├── requirements.txt
 │   └── pyproject.toml
 │

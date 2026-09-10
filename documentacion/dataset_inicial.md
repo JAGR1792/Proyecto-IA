@@ -14,7 +14,7 @@ Dataset sintético de referencia para el Corte 1 (6 nodos, 7 aristas). Fuente: e
 | `backend/datos/dataset_inicial_pdf_nodos.geojson` | GeoJSON | FeatureCollection de nodos |
 | `backend/datos/dataset_inicial_pdf_aristas.geojson` | GeoJSON | FeatureCollection de aristas |
 
-Generación: `python generar_dataset.py --sintetico` (o `--real` para GTFS SITP).
+Generación: `python generar_dataset.py --sintetico` (o `--osm` para la red vial real descargada con OSMnx).
 
 ---
 
@@ -109,16 +109,14 @@ Generación: `python generar_dataset.py --sintetico` (o `--real` para GTFS SITP)
 
 ---
 
-## 6. Dataset Real (GTFS SITP Bogotá) — Referencia de movilidad
+## 6. Dataset Real (OpenStreetMap) — Red vial de Chapinero
 
-`repositorio.py` incluye un procesador GTFS que, en modo `--real`:
+`repositorio.py` permite descargar la red vial con OSMnx (`--osm`):
 
-1. Descarga GTFS oficial del SITP (transporte público de Bogotá, datos abiertos).
-2. Filtra rutas (`routes.txt`).
-3. Procesa `trips.txt` + `stop_times.txt` para construir conexiones ordenadas por secuencia.
-4. Cruza con estaciones geo-referenciadas para estado operativo.
-5. Genera 3 CSV: `puntos_taxis_activos`, `conexiones_taxis`, `demanda_por_franja`.
+1. Descarga la red `drive` con OSMnx 2.1.1 en un radio de ~1.200 m alrededor de la Universidad Sergio Arboleda (PDF 5.3 y 7.1).
+2. Transforma los datos al modelo interno de nodos y aristas.
+3. Exporta a JSON, GraphML, CSV y GeoJSON (`backend/datos/grafo_osm.*` y `dataset_osm.json`).
 
-> ⚠️ Requiere geopandas/shapely/pyproj (instalación conda) — comentados en `requirements.txt`.
+Métricas observadas (PDF 7.1): 888 nodos, 1.741 aristas dirigidas, distancia promedio 82.39 m, tiempo estimado promedio 0.099 min, velocidad promedio 33.74 km/h, congestión inicial baja (simulada).
 
-> **Nota:** el GTFS del SITP se usa como referencia de movilidad para calibrar la red vial real (`drive`) sobre la que operan los taxis en Chapinero.
+> ⚠️ La descarga requiere internet y OSMnx instalado (`pip install osmnx` con wheels o conda-forge).
