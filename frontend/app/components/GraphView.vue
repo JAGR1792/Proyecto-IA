@@ -32,6 +32,7 @@ interface Props {
   aristas: AristaGrafo[]
   rutaResaltada?: string[]  // IDs de nodos en la ruta
   aristaResaltada?: string[]  // IDs de aristas en la ruta
+  tema?: 'oscuro' | 'claro'  // Cambia estilos internos (Cytoscape no lee CSS vars)
 }
 
 interface Emits {
@@ -39,11 +40,21 @@ interface Emits {
   (e: 'arista-click', arista: AristaGrafo): void
 }
 
+const props = withDefaults(defineProps<Props>(), {
+  tema: 'oscuro',
+  rutaResaltada: () => [],
+  aristaResaltada: () => [],
+})
+const emit = defineEmits<Emits>()
+
 const containerRef = ref<HTMLElement | null>(null)
 let cy: ReturnType<typeof cytoscape> | null = null
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+function leerCssVariable(nombre: string, porDefecto: string): string {
+  if (typeof document === 'undefined') return porDefecto
+  const valor = getComputedStyle(document.documentElement).getPropertyValue(nombre).trim()
+  return valor || porDefecto
+}
 
 function inicializarCytoscape() {
   if (!containerRef.value || cy) return
@@ -124,6 +135,13 @@ function construirElementos() {
 }
 
 function obtenerEstilos() {
+  const textoNodo = leerCssVariable('--text-primary', '#fafafa')
+  const outlineNodo = leerCssVariable('--bg-base', '#09090b')
+  const colorNodoBase = leerCssVariable('--text-secondary', '#a1a1aa')
+  const fondoEtiqueta = leerCssVariable('--bg-surface', '#18181b')
+  const colorAristaBase = leerCssVariable('--text-tertiary', '#71717a')
+  const bordeSeleccion = leerCssVariable('--accent-brand', '#fbbf24')
+
   return [
     // Nodos base
     {
@@ -135,14 +153,14 @@ function obtenerEstilos() {
         'font-size': '10px',
         'font-family': '"JetBrains Mono", monospace',
         'font-weight': 'bold',
-        'color': '#fafafa',
+        'color': textoNodo,
         'text-outline-width': 2,
-        'text-outline-color': '#09090b',
+        'text-outline-color': outlineNodo,
         'background-color': '#3f3f46',
         'width': 24,
         'height': 24,
         'border-width': 2,
-        'border-color': '#71717a',
+        'border-color': colorAristaBase,
         'overlay-padding': '6px',
         'z-index': 10,
       },
@@ -194,9 +212,9 @@ function obtenerEstilos() {
       selector: 'node:selected',
       style: {
         'border-width': 4,
-        'border-color': '#fafafa',
+        'border-color': bordeSeleccion,
         'background-color': '#f59e0b',
-        'color': '#ffffff',
+        'color': textoNodo,
       },
     },
     // Nodo en ruta resaltada
@@ -206,8 +224,8 @@ function obtenerEstilos() {
         'border-width': 4,
         'border-color': '#a3e635',
         'background-color': '#a3e635',
-        'color': '#fafafa',
-        'text-outline-color': '#1a2e05',
+        'color': textoNodo,
+        'text-outline-color': outlineNodo,
       },
     },
     // Nodo destino
@@ -234,15 +252,15 @@ function obtenerEstilos() {
       selector: 'edge',
       style: {
         'width': 2,
-        'line-color': '#3f3f46',
+        'line-color': colorAristaBase,
         'target-arrow-shape': 'triangle',
-        'target-arrow-color': '#3f3f46',
+        'target-arrow-color': colorAristaBase,
         'curve-style': 'bezier',
         'label': 'data(label)',
         'font-family': '"JetBrains Mono", monospace',
         'font-size': '8px',
-        'color': '#a1a1aa',
-        'text-background-color': '#18181b',
+        'color': colorNodoBase,
+        'text-background-color': fondoEtiqueta,
         'text-background-opacity': 0.9,
         'text-background-padding': '2px',
         'text-background-shape': 'roundrect',
@@ -253,8 +271,8 @@ function obtenerEstilos() {
     {
       selector: 'edge[congestion = "baja"]',
       style: {
-        'line-color': '#3f3f46',
-        'target-arrow-color': '#3f3f46',
+        'line-color': colorAristaBase,
+        'target-arrow-color': colorAristaBase,
         'width': 2,
       },
     },
@@ -280,8 +298,8 @@ function obtenerEstilos() {
     {
       selector: 'edge[congestion = "bloqueada"]',
       style: {
-        'line-color': '#27272a',
-        'target-arrow-color': '#27272a',
+        'line-color': colorAristaBase,
+        'target-arrow-color': colorAristaBase,
         'line-style': 'dashed',
         'opacity': 0.5,
       },
@@ -301,8 +319,8 @@ function obtenerEstilos() {
     {
       selector: 'edge:selected',
       style: {
-        'line-color': '#fafafa',
-        'target-arrow-color': '#fafafa',
+        'line-color': bordeSeleccion,
+        'target-arrow-color': bordeSeleccion,
         'width': 4,
       },
     },
@@ -395,6 +413,12 @@ function centrarEnNodo(nodoId: string) {
 }
 
 // Watchers para props reactivas
+watch(() => props.tema, () => {
+  if (cy) {
+    cy.style(obtenerEstilos())
+    cy.style().update()
+  }
+})
 watch(() => props.rutaResaltada, actualizarResaltados, { deep: true })
 watch(() => props.aristaResaltada, actualizarResaltados, { deep: true })
 watch(() => props.nodos, () => {

@@ -280,13 +280,13 @@ onUnmounted(() => {
   left: 50%;
   transform: translateX(-50%);
   z-index: 500;
-  background: rgba(24, 24, 27, 0.85);
-  border: 1px solid var(--border-color, #27272a);
+  background: var(--bg-surface-glass, rgba(255, 253, 246, 0.85));
+  border: 1px solid var(--border-color, #d9cfae);
   border-radius: var(--radius-sm, 6px);
   padding: 0.5rem 1rem;
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
   font-size: 0.875rem;
-  color: var(--text-secondary, #a1a1aa);
+  color: var(--text-secondary, #5c5645);
 }
 
 .mapa-osm-error {

@@ -20,6 +20,27 @@ const origenSeleccionado = ref<string>('')
 const destinoSeleccionado = ref<string>('')
 const criterioSeleccionado = ref<string>('ruta_equilibrada')
 const vistaActiva = ref<'grafo' | 'mapa'>('mapa')
+const temaActivo = ref<'oscuro' | 'claro'>('oscuro')
+
+function inicializarTema() {
+  if (typeof window === 'undefined') return
+  const guardado = localStorage.getItem('tx-tema')
+  if (guardado === 'claro' || guardado === 'oscuro') {
+    temaActivo.value = guardado
+  } else {
+    const prefSistema = window.matchMedia('(prefers-color-scheme: light)').matches
+    temaActivo.value = prefSistema ? 'claro' : 'oscuro'
+  }
+  document.documentElement.setAttribute('data-theme', temaActivo.value)
+}
+
+function alternarTema() {
+  temaActivo.value = temaActivo.value === 'oscuro' ? 'claro' : 'oscuro'
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('tx-tema', temaActivo.value)
+  }
+  document.documentElement.setAttribute('data-theme', temaActivo.value)
+}
 
 async function cargarGrafo() {
   cargando.value = true
@@ -107,6 +128,7 @@ function claseCongestion(nivel: string) {
 }
 
 onMounted(() => {
+  inicializarTema()
   cargarGrafo()
 })
 </script>
@@ -121,6 +143,16 @@ onMounted(() => {
       </div>
       <div class="tx-header-actions">
         <span class="tx-header-chip">Zona de estudio · Bogotá</span>
+        <button
+          class="tx-theme-toggle"
+          :class="{ 'tx-theme-toggle--activo': temaActivo === 'claro' }"
+          :aria-label="temaActivo === 'oscuro' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+          :title="temaActivo === 'oscuro' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+          @click="alternarTema"
+        >
+          <svg v-if="temaActivo === 'oscuro'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="5" y1="12" x2="2" y2="12"></line><line x1="22" y1="12" x2="19" y2="12"></line><line x1="5.6" y1="5.6" x2="7.3" y2="7.3"></line><line x1="16.7" y1="16.7" x2="18.4" y2="18.4"></line><line x1="5.6" y1="18.4" x2="7.3" y2="16.7"></line><line x1="16.7" y1="7.3" x2="18.4" y2="5.6"></line></svg>
+          <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
         <button
           @click="cargarGrafo"
           :disabled="cargando"
@@ -303,6 +335,7 @@ onMounted(() => {
             :aristas="aristas"
             :ruta-resaltada="rutaResaltada"
             :arista-resaltada="aristaResaltada"
+            :tema="temaActivo"
             @nodo-click="manejarClickNodo"
             @arista-click="manejarClickArista"
           />
@@ -357,5 +390,29 @@ onMounted(() => {
   background-color: var(--bg-surface-active);
   color: var(--text-primary, #fafafa);
   border-color: var(--border-focus);
+}
+
+.tx-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface-hover);
+  color: var(--accent-brand);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tx-theme-toggle:hover {
+  background-color: var(--bg-surface-active);
+  border-color: var(--border-focus);
+}
+
+.tx-theme-toggle--activo {
+  color: var(--accent-brand-hover);
+  background-color: var(--bg-surface-active);
 }
 </style>

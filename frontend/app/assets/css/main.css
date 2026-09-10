@@ -42,6 +42,7 @@
   --font-display: 'Fraunces', serif;
 
   /* Elevación y Efectos */
+  --grid-line: rgba(58, 58, 42, 0.35);
   --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.85);
   --shadow-glow: 0 0 22px var(--accent-route-glow);
   --radius-sm: 8px;
@@ -51,6 +52,44 @@
   /* Transiciones */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-smooth: 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Tema Claro — "Taxi Bogotá Daylight" */
+html[data-theme="claro"] {
+  --bg-base: #f4f0e5; /* Crema piel de taxi iluminado */
+  --bg-surface: #fffdf6;
+  --bg-surface-glass: rgba(255, 253, 246, 0.72);
+  --bg-surface-hover: #e9e2cf;
+  --bg-surface-active: #dcd2b6;
+
+  --border-color: #d9cfae;
+  --border-focus: #d97706;
+
+  --text-primary: #1f1c14;
+  --text-secondary: #5c5645;
+  --text-tertiary: #847b60;
+
+  --accent-brand: #f59e0b; /* Amarillo taxi más profundo para contraste claro */
+  --accent-brand-hover: #d97706;
+
+  --accent-route: #059669; /* Esmeralda profundo */
+  --accent-route-glow: rgba(5, 150, 105, 0.22);
+
+  --status-warning: #b45309;
+  --status-warning-bg: rgba(180, 83, 9, 0.12);
+  --status-error: #dc2626;
+  --status-error-bg: rgba(220, 38, 38, 0.1);
+  --status-success: #059669;
+  --status-success-bg: rgba(5, 150, 105, 0.12);
+  --status-neutral: #6b6b55;
+  --status-neutral-bg: rgba(107, 107, 85, 0.15);
+
+  /* Rejilla suave para fondo claro */
+  --grid-line: rgba(60, 50, 25, 0.12);
+
+  /* Elevación suavizada para fondo claro */
+  --shadow-panel: 0 12px 32px -12px rgba(60, 50, 25, 0.25);
+  --shadow-glow: 0 0 18px var(--accent-route-glow);
 }
 
 /* Reset y Base */
@@ -67,6 +106,7 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-smooth), color var(--transition-smooth);
 }
 
 /* Scrollbar Personalizada */
@@ -78,11 +118,11 @@ body {
   background: var(--bg-base);
 }
 ::-webkit-scrollbar-thumb {
-  background: #3a3a2a;
+  background: var(--bg-surface-active);
   border-radius: var(--radius-sm);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4f4f3a;
+  background: var(--accent-brand-hover);
 }
 
 /* Tipografía */
@@ -201,6 +241,17 @@ h1, h2, h3, h4, h5, h6 {
   padding: 1.5rem;
   box-shadow: var(--shadow-panel);
   position: relative;
+  transition: background-color var(--transition-smooth), border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+}
+
+.tx-header {
+  transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+}
+
+.tx-alert,
+.tx-data-row,
+.tx-badge {
+  transition: background-color var(--transition-smooth), color var(--transition-smooth), border-color var(--transition-smooth);
 }
 
 .tx-panel::before {
@@ -260,12 +311,16 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.875rem;
   transition: all var(--transition-fast);
   cursor: pointer;
-  /* Icono flecha nativo pero oscuro */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23b8b08f'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  /* Icono flecha nativo pero según tema */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%237d765c'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 1rem;
   padding-right: 2.5rem;
+}
+
+html[data-theme="claro"] .tx-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235c5645'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
 }
 
 .tx-select:hover {
@@ -325,7 +380,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .tx-button-secondary:hover:not(:disabled) {
-  background-color: #4a4a36;
+  background-color: var(--bg-surface-hover);
 }
 
 .tx-button:disabled {
@@ -405,7 +460,7 @@ h1, h2, h3, h4, h5, h6 {
 .tx-badge-bloqueada {
   background-color: var(--status-neutral-bg);
   color: var(--text-secondary);
-  border: 1px solid rgba(107, 107, 85, 0.35);
+  border: 1px solid var(--border-color);
 }
 
 /* Contenedor del Grafo (Cytoscape) */
@@ -427,11 +482,15 @@ h1, h2, h3, h4, h5, h6 {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   background-image: 
-    linear-gradient(rgba(58, 58, 42, 0.35) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(58, 58, 42, 0.35) 1px, transparent 1px);
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 40px 40px;
   pointer-events: none;
   z-index: 0;
+}
+
+html[data-theme="claro"] .tx-graph-container {
+  box-shadow: inset 0 0 50px rgba(60, 50, 25, 0.08);
 }
 
 .cytoscape-element {
@@ -474,7 +533,7 @@ h1, h2, h3, h4, h5, h6 {
 .tx-alert {
   background-color: var(--status-error-bg);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
+  color: var(--status-error);
   padding: 1rem;
   border-radius: var(--radius-sm);
   font-size: 0.875rem;

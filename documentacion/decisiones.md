@@ -304,3 +304,29 @@ En el deploy serverless de Vercel el filesystem es de solo lectura (excepto /tmp
 - ✅ 73 tests pasan (coverage 89%); los artefactos `mapa_*.geojson`/`temp_*.geojson` ya no se generan en runtime.
 - ⚠️ `guardar_geojson()`/`guardar_graphml()` persisten para generación de datasets offline (scripts).
 - Siguiente: redeploy en Vercel y verificar 200 en las 6 rutas en producción y preview.
+
+---
+
+## ADR-013 — Toggle de tema claro/oscuro en el frontend
+
+**Fecha:** 2026-09
+**Estado:** Aceptado
+
+### Contexto
+El dashboard de Taxi IA tenía un único tema oscuro ("Taxi Bogotá Control Center") definido con variables CSS en `:root`. Se solicitó un toggle para alternar entre claro y oscuro sin romper el sistema de diseño ni los componentes de visualización (Cytoscape y Leaflet).
+
+### Decisión
+- Añadir la paleta **"Taxi Bogotá Daylight"** bajo `html[data-theme="claro"]`, reutilizando las mismas variables CSS (`--bg-*`, `--text-*`, `--accent-*`, `--status-*`, `--shadow-*`, nueva `--grid-line`).
+- Botón toggle en el header (`app.vue`) con iconos sol/luna, que:
+  - persiste la elección en `localStorage["tx-tema"]`,
+  - arranca desde la preferencia del sistema (`prefers-color-scheme`) en primer uso,
+  - aplica `data-theme` sobre `<html>` para que todo el árbol de componentes lo herede.
+- **Cytoscape** no puede leer CSS variables en su stylesheet: `GraphView.vue` ahora recibe prop `tema`, une las variables del documento (`leerCssVariable`) al construir estilos y re-aplica `cy.style()` en un watcher al alternar tema.
+- Reemplazar hex hardcodeados que solo valían en oscuro: flecha del `<select>`, hover de botón secundario, badge bloqueada, alerta, overlay de MapaOSM, scrollbar, rejilla del contenedor de grafo.
+
+### Consecuencias
+- ✅ El toggle persiste entre sesiones y respeta la preferencia del sistema al primer acceso.
+- ✅ Tema claro legible con los mismos acentos de marca (amarillo taxi, esmeralda de ruta).
+- ✅ Build Nuxt OK, lint 0 errores (9 warnings pre-existentes de `vue/attributes-order`).
+- ⚠️ Los iconos/nodos del grafo conservan colores semánticos fijos (congestión/tipo) que funcionan en ambos temas.
+- Verificado con Edge headless: `data-theme="oscuro"` (default) y `data-theme="claro"` (preferencia guardada) se aplican al `<html>`.
