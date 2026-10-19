@@ -470,3 +470,27 @@ La ruta se calculaba en el backend y el frontend resaltaba nodos y aristas, pero
 - ✅ Verificado con Edge headless vía CDP: 2.633 paths SVG, ruta de 44 segmentos con `stroke #a3e635`, panel con "A*" y 0 errores de consola. Captura en `documentacion/capturas/ruta_a_estrella.png`.
 - ⚠️ Las aristas sin geometría se siguen dibujando como recta (limitación del dato OSM, no del render).
 
+---
+
+## ADR-019 — Capas conmutables (Vías / Nodos) en mapa y vista de grafo
+
+**Fecha:** 2026-09
+**Estado:** Aceptado
+
+### Contexto
+La red de Chapinero tiene 888 nodos y 1.741 aristas. Con todo visible, el mapa queda saturado y la ruta se pierde entre el fondo. Se pidió un control tipo checkbox para ocultar "todos los grafos y nodos de la ciudad" y poder mirar solo lo relevante.
+
+### Decisión
+- **`app.vue`:** estado `mostrarRedVial` y `mostrarNodos` (ambos activos por defecto) y control "Capas" con dos checkboxes junto al selector Mapa/Grafo. El estado se pasa como props a ambos componentes y sobrevive al cambio de vista.
+- **`MapaOSM.vue`:** `aplicarVisibilidadCapas()` agrega o quita `layerAristas` / `layerNodos` del mapa sin tocar la ruta: la polilínea y los marcadores de origen/destino se dibujan siempre. Se aplica al terminar `cargarDatos()` y con watchers sobre las dos props.
+- **`GraphView.vue`:** `aplicarVisibilidadCapas()` oculta por elemento con `visibility` (no `display`, para que las aristas de contexto se sigan dibujando aunque sus nodos estén ocultos) los nodos y aristas que no pertenecen a `.en-ruta`, de modo que el camino activo nunca desaparece. `ajustarVista()` ahora encuadra solo lo visible; el layout ya no fuerza `fit` (se usa `fit: false` + `layoutstop`) para que al ocultar capas el encuadre siga a lo que queda. La visibilidad y los resaltados se reaplican al reconstruir elementos (antes se perdían al recargar el grafo).
+- **Checkbox accesible:** `<input type="checkbox">` real con `v-model`, `focus-visible` y estilos del sistema (`--accent-brand`), sin depender del render nativo del navegador.
+
+### Consecuencias
+- ✅ Con "Vías" y "Nodos" desactivados el mapa muestra solo la ruta (4 paths SVG: contorno, línea y los dos marcadores); al reactivarlos vuelven los 2.633 paths. Verificado por CDP, sin errores de consola.
+- ✅ En la vista de grafo la ruta queda encuadrada y visible; al reactivar las capas se restaura la red completa.
+- ✅ Lint (0 errores) y `vue-tsc --noEmit` sin errores; build de producción correcto.
+- ⚠️ Las preferencias de capas no se guardan al recargar (solo viven en la sesión).
+- Siguiente: si el equipo lo pide, persistir capas y añadir filtros por tipo de vía o congestión.
+
+

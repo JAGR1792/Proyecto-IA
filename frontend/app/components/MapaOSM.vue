@@ -17,6 +17,8 @@ interface Props {
   }[]
   rutaResaltada?: string[]
   aristaResaltada?: string[]
+  mostrarRedVial?: boolean
+  mostrarNodos?: boolean
   apiBase?: string
 }
 
@@ -44,6 +46,8 @@ interface AristaGeografica {
 const props = withDefaults(defineProps<Props>(), {
   rutaResaltada: () => [],
   aristaResaltada: () => [],
+  mostrarRedVial: true,
+  mostrarNodos: true,
   apiBase: 'http://localhost:8000/api/v1',
 })
 
@@ -189,6 +193,7 @@ async function cargarDatos() {
     // La ruta puede haberse calculado antes de que el mapa terminara de cargar
     await aplicarRuta()
     resaltarAristas()
+    aplicarVisibilidadCapas()
   } catch (e: any) {
     error.value = e.message
     console.error('Error cargando mapa:', e)
@@ -319,6 +324,23 @@ function resaltarAristas() {
   })
 }
 
+/** Muestra u oculta las capas de contexto sin tocar la ruta activa. */
+function aplicarVisibilidadCapas() {
+  if (!mapa) return
+  const capas: [any, boolean][] = [
+    [layerAristas, props.mostrarRedVial],
+    [layerNodos, props.mostrarNodos],
+  ]
+  for (const [capa, visible] of capas) {
+    if (!capa) continue
+    if (visible && !mapa.hasLayer(capa)) {
+      capa.addTo(mapa)
+    } else if (!visible && mapa.hasLayer(capa)) {
+      mapa.removeLayer(capa)
+    }
+  }
+}
+
 watch(() => props.rutaResaltada, () => { void aplicarRuta() }, { deep: true })
 watch(() => props.aristaResaltada, () => {
   resaltarAristas()
@@ -326,6 +348,8 @@ watch(() => props.aristaResaltada, () => {
 }, { deep: true })
 watch(() => props.nodos, () => { void aplicarRuta() }, { deep: true })
 watch(() => props.aristas, () => { void aplicarRuta() }, { deep: true })
+watch(() => props.mostrarRedVial, aplicarVisibilidadCapas)
+watch(() => props.mostrarNodos, aplicarVisibilidadCapas)
 
 onMounted(() => {
   nextTick(() => inicializarMapa())

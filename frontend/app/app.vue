@@ -23,6 +23,9 @@ const algoritmoSeleccionado = ref<string>('voraz')
 const resultadoRuta = ref<any>(null)
 const vistaActiva = ref<'grafo' | 'mapa'>('mapa')
 const temaActivo = ref<'oscuro' | 'claro'>('oscuro')
+// Capas de contexto: la ruta activa se dibuja siempre, aunque se oculten
+const mostrarRedVial = ref(true)
+const mostrarNodos = ref(true)
 
 // Nombres legibles de los algoritmos devueltos por la API
 const ETIQUETAS_ALGORITMO: Record<string, string> = {
@@ -431,20 +434,33 @@ onMounted(() => {
       <!-- Panel Central: Grafo -->
       <section class="tx-graph-section">
         <div class="tx-view-toggle">
-          <button
-            class="tx-button tx-button-secondary"
-            :class="{ 'tx-view-btn-activo': vistaActiva === 'mapa' }"
-            @click="vistaActiva = 'mapa'"
-          >
-            Mapa OSM
-          </button>
-          <button
-            class="tx-button tx-button-secondary"
-            :class="{ 'tx-view-btn-activo': vistaActiva === 'grafo' }"
-            @click="vistaActiva = 'grafo'"
-          >
-            Vista Grafo
-          </button>
+          <div class="tx-view-toggle-grupo">
+            <button
+              class="tx-button tx-button-secondary"
+              :class="{ 'tx-view-btn-activo': vistaActiva === 'mapa' }"
+              @click="vistaActiva = 'mapa'"
+            >
+              Mapa OSM
+            </button>
+            <button
+              class="tx-button tx-button-secondary"
+              :class="{ 'tx-view-btn-activo': vistaActiva === 'grafo' }"
+              @click="vistaActiva = 'grafo'"
+            >
+              Vista Grafo
+            </button>
+          </div>
+          <div class="tx-layers" role="group" aria-label="Capas visibles en el mapa">
+            <span class="tx-layers-label">Capas</span>
+            <label class="tx-check" title="Mostrar u ocultar la red vial de fondo">
+              <input v-model="mostrarRedVial" type="checkbox" />
+              Vías
+            </label>
+            <label class="tx-check" title="Mostrar u ocultar los nodos de la red">
+              <input v-model="mostrarNodos" type="checkbox" />
+              Nodos
+            </label>
+          </div>
         </div>
         <div class="tx-panel tx-panel--flat">
           <MapaOSM
@@ -453,6 +469,8 @@ onMounted(() => {
             :aristas="aristas"
             :ruta-resaltada="rutaResaltada"
             :arista-resaltada="aristaResaltada"
+            :mostrar-red-vial="mostrarRedVial"
+            :mostrar-nodos="mostrarNodos"
             :api-base="apiBase"
             @nodo-click="manejarClickNodo"
             @arista-click="manejarClickArista"
@@ -463,6 +481,8 @@ onMounted(() => {
             :aristas="aristas"
             :ruta-resaltada="rutaResaltada"
             :arista-resaltada="aristaResaltada"
+            :mostrar-red-vial="mostrarRedVial"
+            :mostrar-nodos="mostrarNodos"
             :tema="temaActivo"
             @nodo-click="manejarClickNodo"
             @arista-click="manejarClickArista"
@@ -507,8 +527,94 @@ onMounted(() => {
 <style scoped>
 .tx-view-toggle {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   margin-bottom: 0.75rem;
+}
+
+.tx-view-toggle-grupo {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tx-layers {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.35rem 0.8rem;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+}
+
+.tx-layers-label {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.tx-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--transition-fast);
+}
+
+.tx-check:hover {
+  color: var(--text-primary);
+}
+
+.tx-check input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  place-content: center;
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-base);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.tx-check input[type='checkbox']::before {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  transform: scale(0);
+  background-color: #1a1700;
+  clip-path: polygon(14% 44%, 0 65%, 40% 100%, 100% 16%, 84% 0, 38% 68%);
+  transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tx-check:hover input[type='checkbox'] {
+  border-color: var(--text-tertiary);
+}
+
+.tx-check input[type='checkbox']:checked {
+  background-color: var(--accent-brand);
+  border-color: var(--accent-brand);
+}
+
+.tx-check input[type='checkbox']:checked::before {
+  transform: scale(1);
+}
+
+.tx-check input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
 }
 
 .tx-view-btn-activo {

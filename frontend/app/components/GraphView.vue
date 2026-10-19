@@ -34,6 +34,8 @@ interface Props {
   rutaResaltada?: string[]  // IDs de nodos en la ruta
   aristaResaltada?: string[]  // IDs de aristas en la ruta
   tema?: 'oscuro' | 'claro'  // Cambia estilos internos (Cytoscape no lee CSS vars)
+  mostrarRedVial?: boolean  // Oculta las aristas de contexto
+  mostrarNodos?: boolean  // Oculta los nodos de contexto
 }
 
 interface Emits {
@@ -45,6 +47,8 @@ const props = withDefaults(defineProps<Props>(), {
   tema: 'oscuro',
   rutaResaltada: () => [],
   aristaResaltada: () => [],
+  mostrarRedVial: true,
+  mostrarNodos: true,
 })
 const emit = defineEmits<Emits>()
 
@@ -68,7 +72,7 @@ function inicializarCytoscape() {
       name: 'cose-bilkent',
       animate: true,
       animationDuration: 500,
-      fit: true,
+      fit: false,
       padding: 50,
       randomize: false,
       nodeDimensionsIncludeLabels: true,
@@ -92,7 +96,9 @@ function inicializarCytoscape() {
     selectionType: 'single',
   })
 
+  cy.one('layoutstop', ajustarVista)
   configurarEventos()
+  actualizarResaltados()
   ajustarVista()
 }
 
@@ -339,7 +345,12 @@ function configurarEventos() {
 
 function ajustarVista() {
   if (!cy) return
-  cy.fit(undefined, 50)
+  // Ajusta solo a lo visible: si se ocultan las capas de contexto, la ruta
+  // queda encuadrada en lugar de perderse en el lienzo completo.
+  const visibles = cy.elements().filter((elemento) => elemento.visible())
+  if (visibles.length > 0) {
+    cy.fit(visibles, 50)
+  }
 }
 
 function actualizarResaltados() {
@@ -370,6 +381,26 @@ function actualizarResaltados() {
       }
     }
   }
+
+  aplicarVisibilidadCapas()
+}
+
+/**
+ * Aplica las capas de contexto: oculta nodos y aristas fuera de la ruta
+ * cuando el usuario desactiva "Nodos" o "Vías", sin perder el camino activo.
+ */
+function aplicarVisibilidadCapas() {
+  if (!cy) return
+  cy.nodes().forEach((nodo) => {
+    const enRuta = nodo.hasClass('en-ruta')
+    // `visibility` (no `display`) permite que las aristas de contexto sigan
+    // dibujándose aunque sus nodos estén ocultos.
+    nodo.style('visibility', props.mostrarNodos || enRuta ? 'visible' : 'hidden')
+  })
+  cy.edges().forEach((arista) => {
+    const enRuta = arista.hasClass('en-ruta')
+    arista.style('visibility', props.mostrarRedVial || enRuta ? 'visible' : 'hidden')
+  })
 }
 
 function centrarEnNodo(nodoId: string) {
@@ -390,15 +421,25 @@ watch(() => props.tema, () => {
   if (cy) {
     cy.style(obtenerEstilos())
     cy.style().update()
+    aplicarVisibilidadCapas()
   }
 })
 watch(() => props.rutaResaltada, actualizarResaltados, { deep: true })
 watch(() => props.aristaResaltada, actualizarResaltados, { deep: true })
+watch(() => props.mostrarNodos, () => {
+  aplicarVisibilidadCapas()
+  ajustarVista()
+})
+watch(() => props.mostrarRedVial, () => {
+  aplicarVisibilidadCapas()
+  ajustarVista()
+})
 watch(() => props.nodos, () => {
   if (cy) {
     cy.elements().remove()
     cy.add(construirElementos())
     configurarEventos()
+    actualizarResaltados()
     ajustarVista()
   }
 }, { deep: true })
@@ -422,6 +463,7 @@ watch(() => props.aristas, () => {
         })
       }
     }
+    actualizarResaltados()
   }
 }, { deep: true })
 
