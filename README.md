@@ -135,6 +135,8 @@ npm run preview
 ```
 
 > En desarrollo el frontend llama a `/api/v1` y `nuxt dev` lo redirige al backend en `http://localhost:8000/api/v1` mediante `nitro.devProxy` (definido en `nuxt.config.ts`). En producción Vercel reescribe `/api/v1` al servicio backend. La URL se puede sobreescribir con `NUXT_PUBLIC_API_BASE`.
+>
+> ⚠️ No ejecutes `npm run build` con `npm run dev` activo: comparten el directorio de caché (`.nuxt`) y el dev server puede quedarse sin el proxy (la API respondería HTML). Si pasa, reinicia `npm run dev`.
 
 ---
 

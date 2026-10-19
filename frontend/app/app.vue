@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import GraphView from '@/components/GraphView.vue'
 import MapaOSM from '@/components/MapaOSM.vue'
 import type { NodoGrafo, AristaGrafo } from '@/components/GraphView.vue'
+import { esJson } from '@/utils/api'
 
 const nodos = ref<NodoGrafo[]>([])
 const aristas = ref<AristaGrafo[]>([])
@@ -76,7 +77,13 @@ async function cargarGrafo() {
   try {
     // Cargar grafo completo
     const response = await fetch(`${apiBase}/grafo/`)
-    if (!response.ok) throw new Error('Error cargando grafo')
+    const tipo = response.headers.get('content-type') || ''
+    if (!response.ok || !esJson(tipo)) {
+      throw new Error(
+        `La API respondió ${tipo || 'un formato desconocido'} (status ${response.status}) en lugar de JSON. ` +
+          'Verifica que el backend esté activo; si cambiaste la configuración, reinicia el servidor de desarrollo.',
+      )
+    }
     const data = await response.json()
 
     // Transformar nodos
@@ -101,9 +108,10 @@ async function cargarGrafo() {
       geometria: a.atributos?.geometria ?? null,
     }))
 
-    // Cargar estadísticas
+    // Cargar estadísticas: si falla, no debe tumbar la carga del grafo
     const statsResp = await fetch(`${apiBase}/grafo/estadisticas`)
-    if (statsResp.ok) {
+    const tipoStats = statsResp.headers.get('content-type') || ''
+    if (statsResp.ok && esJson(tipoStats)) {
       stats.value = await statsResp.json()
     }
   } catch (e: any) {

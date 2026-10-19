@@ -44,6 +44,13 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    server: {
+      watch: {
+        // Evita que los guardados atómicos de algunos editores (archivos
+        // temporales .tmpdir/.tmp) reinicien o tumben el dev server en Windows.
+        ignored: ['**/*.tmpdir/**', '**/*.tmp'],
+      },
+    },
     optimizeDeps: {
       include: ['cytoscape', 'cytoscape-cose-bilkent', 'cytoscape-dagre', 'leaflet'],
     },
