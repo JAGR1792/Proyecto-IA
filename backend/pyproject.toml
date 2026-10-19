@@ -72,5 +72,6 @@ addopts = """-v \
   --cov=src/grafo/validadores \
   --cov=src/agente \
   --cov=src/busqueda \
+  --cov=src/heuristicas \
   --cov-report=term-missing \
   --cov-fail-under=80"""
