@@ -27,7 +27,19 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || (import.meta.dev ? 'http://localhost:8000/api/v1' : '/api/v1'),
+      // URL relativa: en desarrollo Nitro la redirige al backend local (devProxy)
+      // y en producción Vercel la reescribe al servicio backend (ver vercel.json).
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || '/api/v1',
+    },
+  },
+
+  // Proxy solo para `nuxt dev`: evita CORS y que /api/v1 caiga en el router SPA.
+  nitro: {
+    devProxy: {
+      '/api/v1': {
+        target: 'http://localhost:8000/api/v1',
+        changeOrigin: true,
+      },
     },
   },
 

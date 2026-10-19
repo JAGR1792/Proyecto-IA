@@ -8,9 +8,17 @@ import type { Map as LeafletMap } from 'leaflet'
 
 interface Props {
   nodos: { id: string; nombre: string; lat: number; lon: number; tipo: string }[]
-  aristas: { id: string; origen: string; destino: string; congestion: string }[]
+  aristas: {
+    id: string
+    origen: string
+    destino: string
+    congestion: string
+    geometria?: number[][] | null
+  }[]
   rutaResaltada?: string[]
   aristaResaltada?: string[]
+  mostrarRedVial?: boolean
+  mostrarNodos?: boolean
   apiBase?: string
 }
 
@@ -38,6 +46,8 @@ interface AristaGeografica {
 const props = withDefaults(defineProps<Props>(), {
   rutaResaltada: () => [],
   aristaResaltada: () => [],
+  mostrarRedVial: true,
+  mostrarNodos: true,
   apiBase: 'http://localhost:8000/api/v1',
 })
 
@@ -52,6 +62,7 @@ let layerAristas: any = null
 let layerNodos: any = null
 let capaOrigen: any = null
 let capaDestino: any = null
+let capaRutaBase: any = null
 let capaRuta: any = null
 
 let L: typeof import('leaflet') | null = null
@@ -178,6 +189,11 @@ async function cargarDatos() {
       [bbox.min_lat, bbox.min_lon],
       [bbox.max_lat, bbox.max_lon],
     ])
+
+    // La ruta puede haberse calculado antes de que el mapa terminara de cargar
+    await aplicarRuta()
+    resaltarAristas()
+    aplicarVisibilidadCapas()
   } catch (e: any) {
     error.value = e.message
     console.error('Error cargando mapa:', e)
@@ -186,37 +202,116 @@ async function cargarDatos() {
   }
 }
 
+/**
+ * Convierte la ruta devuelta por el backend en un trazado continuo.
+ * Usa la geometría real de cada arista (`atributos.geometria` de OSM) y solo
+ * cae a la recta entre nodos cuando la vía no trae geometría.
+ */
+function construirTrazadoRuta(): [number, number][] {
+  const nodoPorId = new Map(props.nodos.map((n) => [n.id, n]))
+  const aristaPorId = new Map(props.aristas.map((a) => [a.id, a]))
+  const puntos: [number, number][] = []
+
+  const agregar = (punto: [number, number]) => {
+    const ultimo = puntos[puntos.length - 1]
+    if (
+      !ultimo ||
+      Math.abs(ultimo[0] - punto[0]) > 1e-9 ||
+      Math.abs(ultimo[1] - punto[1]) > 1e-9
+    ) {
+      puntos.push(punto)
+    }
+  }
+
+  props.rutaResaltada.forEach((nodoId, indice) => {
+    const nodoAnterior = props.rutaResaltada[indice - 1]
+    const arista =
+      indice > 0 ? aristaPorId.get(props.aristaResaltada[indice - 1]) : undefined
+    if (arista?.geometria?.length) {
+      // OSM entrega [[lon, lat], ...] en el sentido origen → destino de la arista
+      const geometria =
+        arista.origen === nodoAnterior
+          ? arista.geometria
+          : [...arista.geometria].reverse()
+      for (const [lon, lat] of geometria) agregar([lat, lon])
+    }
+    const nodo = nodoPorId.get(nodoId)
+    if (nodo) agregar([nodo.lat, nodo.lon])
+  })
+
+  return puntos
+}
+
+function limpiarCapasRuta() {
+  for (const capa of [capaRutaBase, capaRuta, capaOrigen, capaDestino]) {
+    capa?.remove()
+  }
+  capaRutaBase = null
+  capaRuta = null
+  capaOrigen = null
+  capaDestino = null
+}
+
 async function aplicarRuta() {
   if (!mapa || !L) return
-  if (capaOrigen) { capaOrigen.remove(); capaOrigen = null }
-  if (capaDestino) { capaDestino.remove(); capaDestino = null }
-  if (capaRuta) { capaRuta.remove(); capaRuta = null }
+  limpiarCapasRuta()
 
-  if (props.rutaResaltada.length < 2) return
-  const nodoPorId = new Map(props.nodos.map((n) => [n.id, n]))
-  const pts: [number, number][] = []
-  for (const id of props.rutaResaltada) {
-    const n = nodoPorId.get(id)
-    if (n) pts.push([n.lat, n.lon])
-  }
-  if (pts.length === 0) return
+  const ruta = props.rutaResaltada
+  if (ruta.length < 2) return
 
-  capaRuta = L.polyline(pts, {
-    color: '#a3e635',
-    weight: 5,
-    opacity: 0.9,
+  const puntos = construirTrazadoRuta()
+  if (puntos.length < 2) return
+
+  // Contorno oscuro: mantiene la ruta legible sobre cualquier tile
+  capaRutaBase = L.polyline(puntos, {
+    color: '#09090b',
+    weight: 9,
+    opacity: 0.55,
+    lineCap: 'round',
+    lineJoin: 'round',
+    smoothFactor: 0,
   }).addTo(mapa)
 
-  const origen = props.nodos.find((n) => n.id === props.rutaResaltada[0])
-  const destino = props.nodos.find((n) => n.id === props.rutaResaltada[props.rutaResaltada.length - 1])
-  if (origen) capaOrigen = L.circleMarker([origen.lat, origen.lon], { radius: 10, color: '#a3e635', fillColor: '#86efac', fillOpacity: 0.8 }).addTo(mapa)
-  if (destino) capaDestino = L.circleMarker([destino.lat, destino.lon], { radius: 10, color: '#f87171', fillColor: '#ef4444', fillOpacity: 0.9 }).addTo(mapa)
+  capaRuta = L.polyline(puntos, {
+    color: '#a3e635',
+    weight: 5,
+    opacity: 0.95,
+    lineCap: 'round',
+    lineJoin: 'round',
+    smoothFactor: 0,
+  }).addTo(mapa)
+
+  const nodoPorId = new Map(props.nodos.map((n) => [n.id, n]))
+  const origen = nodoPorId.get(ruta[0])
+  const destino = nodoPorId.get(ruta[ruta.length - 1])
+  if (origen) {
+    capaOrigen = L.circleMarker([origen.lat, origen.lon], {
+      radius: 9,
+      color: '#09090b',
+      weight: 2,
+      fillColor: '#a3e635',
+      fillOpacity: 1,
+    })
+      .addTo(mapa)
+      .bindTooltip('Origen')
+  }
+  if (destino) {
+    capaDestino = L.circleMarker([destino.lat, destino.lon], {
+      radius: 9,
+      color: '#09090b',
+      weight: 2,
+      fillColor: '#ef4444',
+      fillOpacity: 1,
+    })
+      .addTo(mapa)
+      .bindTooltip('Destino')
+  }
 
   mapa.flyToBounds(capaRuta.getBounds(), { padding: [30, 30], duration: 0.6 })
 }
 
-watch(() => props.rutaResaltada, () => { void aplicarRuta() }, { deep: true })
-watch(() => props.aristaResaltada, () => {
+/** Resalta sobre el GeoJSON base las aristas que pertenecen a la ruta. */
+function resaltarAristas() {
   if (!layerAristas) return
   layerAristas.resetStyle()
   if (props.aristaResaltada.length === 0) return
@@ -227,7 +322,34 @@ watch(() => props.aristaResaltada, () => {
       layer.setStyle({ color: '#a3e635', weight: 6, opacity: 0.95 })
     }
   })
+}
+
+/** Muestra u oculta las capas de contexto sin tocar la ruta activa. */
+function aplicarVisibilidadCapas() {
+  if (!mapa) return
+  const capas: [any, boolean][] = [
+    [layerAristas, props.mostrarRedVial],
+    [layerNodos, props.mostrarNodos],
+  ]
+  for (const [capa, visible] of capas) {
+    if (!capa) continue
+    if (visible && !mapa.hasLayer(capa)) {
+      capa.addTo(mapa)
+    } else if (!visible && mapa.hasLayer(capa)) {
+      mapa.removeLayer(capa)
+    }
+  }
+}
+
+watch(() => props.rutaResaltada, () => { void aplicarRuta() }, { deep: true })
+watch(() => props.aristaResaltada, () => {
+  resaltarAristas()
+  void aplicarRuta()
 }, { deep: true })
+watch(() => props.nodos, () => { void aplicarRuta() }, { deep: true })
+watch(() => props.aristas, () => { void aplicarRuta() }, { deep: true })
+watch(() => props.mostrarRedVial, aplicarVisibilidadCapas)
+watch(() => props.mostrarNodos, aplicarVisibilidadCapas)
 
 onMounted(() => {
   nextTick(() => inicializarMapa())

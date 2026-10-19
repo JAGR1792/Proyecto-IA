@@ -6,7 +6,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.api.rutas_grafo import obtener_grafo
+from src.busqueda.a_estrella import BusquedaAEstrella
 from src.busqueda.base import AlgoritmoBusqueda, ResultadoBusqueda
+from src.busqueda.ucs import BusquedaCostoUniforme
 from src.busqueda.voraz import BusquedaVoraz
 
 router = APIRouter()
@@ -27,6 +29,8 @@ class SolicitudBusqueda(BaseModel):
 # Registro de algoritmos implementados (Corte 2, incremental)
 _ALGORITMOS: dict[str, AlgoritmoBusqueda] = {
     "voraz": BusquedaVoraz(),
+    "ucs": BusquedaCostoUniforme(),
+    "a_estrella": BusquedaAEstrella(),
 }
 
 
@@ -72,11 +76,36 @@ async def listar_algoritmos():
     """Lista algoritmos disponibles y su estado de implementación."""
     return {
         "algoritmos": [
-            {"id": "voraz", "nombre": "Voraz (Greedy)", "descripcion": "Best-first con heurística euclidiana", "implementado": True},
-            {"id": "bfs", "nombre": "BFS", "descripcion": "Búsqueda en amplitud", "implementado": False},
-            {"id": "dfs", "nombre": "DFS", "descripcion": "Búsqueda en profundidad", "implementado": False},
-            {"id": "ucs", "nombre": "UCS", "descripcion": "Búsqueda de costo uniforme", "implementado": False},
-            {"id": "a_estrella", "nombre": "A*", "descripcion": "A estrella con heurística", "implementado": False},
+            {
+                "id": "voraz",
+                "nombre": "Voraz (Greedy)",
+                "descripcion": "Best-first con heurística euclidiana (no óptimo)",
+                "implementado": True,
+            },
+            {
+                "id": "ucs",
+                "nombre": "UCS",
+                "descripcion": "Búsqueda de costo uniforme (óptima, sin heurística)",
+                "implementado": True,
+            },
+            {
+                "id": "a_estrella",
+                "nombre": "A*",
+                "descripcion": "A estrella con heurística geográfica admisible (óptima)",
+                "implementado": True,
+            },
+            {
+                "id": "bfs",
+                "nombre": "BFS",
+                "descripcion": "Búsqueda en amplitud",
+                "implementado": False,
+            },
+            {
+                "id": "dfs",
+                "nombre": "DFS",
+                "descripcion": "Búsqueda en profundidad",
+                "implementado": False,
+            },
         ],
         "nota": "Implementación incremental en Corte 2",
     }

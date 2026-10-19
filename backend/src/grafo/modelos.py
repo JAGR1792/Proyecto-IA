@@ -43,6 +43,16 @@ class TipoVia(str, Enum):
     OTRO = "otro"
 
 
+# Criterios de optimización de ruta definidos en el PDF (sección 5.2).
+# Se declaran junto a los modelos para que búsqueda y heurísticas compartan
+# el mismo vocabulario sin dependencias cruzadas entre paquetes.
+CRITERIOS_OPTIMIZACION: tuple[str, ...] = (
+    "menor_tiempo",
+    "menor_distancia",
+    "menor_conexiones",
+)
+
+
 class Coordenadas(BaseModel):
     """Coordenadas geográficas en grados decimales (WGS84)."""
 

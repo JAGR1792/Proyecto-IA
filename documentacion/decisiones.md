@@ -406,3 +406,91 @@ El plan de trabajo reservaba los algoritmos de búsqueda para el Corte 2; `busqu
 - ⚠️ El greedy no garantiza óptimo global (documentado en docstring); se reemplazará/ampliará con BFS, DFS, UCS y A* en el Corte 2 (mismo contrato `AlgoritmoBusqueda`).
 - ⚠️ El grafo OSM real (888 nodos) queda disponible para probar rutas de inmediato.
 - Siguiente: implementar el resto de algoritmos con el comparador y validar con el dataset sintético de 6 nodos del PDF.
+
+---
+
+## ADR-017 — Implementar UCS y A* con heurística geográfica admisible
+
+**Fecha:** 2026-09
+**Estado:** Aceptado
+
+### Contexto
+ADR-016 dejó como único motor el voraz (greedy), que **no garantiza ruta óptima**: en la red OSM real devolvía un camino de 2,48 min entre `253761879` y `253761882` cuando existía uno de 1,52 min. El plan del Corte 2 exige UCS y A* con heurísticas. A* necesita una heurística que nunca sobreestime el costo real para conservar la garantía de optimalidad, y los tres criterios del PDF (5.2) se miden en unidades distintas (minutos, metros y conexiones).
+
+### Decisión
+- **`grafo/modelos.py`:** constante `CRITERIOS_OPTIMIZACION` (`menor_tiempo`, `menor_distancia`, `menor_conexiones`) como fuente única de verdad, importable por búsqueda y heurísticas sin dependencias cruzadas entre paquetes.
+- **`busqueda/base.py`:** utilidades compartidas `validar_criterio()`, `costo_arista()` (costo por criterio), `construir_resultado()` (métricas homogéneas: costo, distancia, tiempo, `num_aristas`) y `reconstruir_camino()`; `AlgoritmoBusqueda.buscar()` ahora valida que origen y destino existan. `voraz.py` se migró a estos helpers sin cambiar su comportamiento (sus 8 tests siguen pasando).
+- **`heuristicas/admisible.py`:** `ContextoHeuristico` (destino, criterio y velocidad máxima efectiva) precalculado una vez por búsqueda y `estimar_costo_restante()`:
+  - `menor_distancia`: distancia haversine en línea recta (≤ distancia vial).
+  - `menor_tiempo`: distancia recta / velocidad máxima efectiva; la cota se deriva de los costos reales (`max(velocidad declarada, distancia/tiempo)`) para no sobreestimar aunque los datos sean incoherentes.
+  - `menor_conexiones`: 1 si el nodo no es el destino, 0 en el destino.
+  
+  Las tres son **admisibles y consistentes** (verificado con tests de admisibilidad y monotonía).
+- **`busqueda/ucs.py`:** `BusquedaCostoUniforme` (Dijkstra) con cola de prioridad `(costo, contador, nodo)`, cierre de nodos expandidos y reconstrucción del camino.
+- **`busqueda/a_estrella.py`:** `BusquedaAEstrella` con `f = g + h`, cierre de nodos y heurística inyectable; `h ≡ 0` equivale a UCS (usado en tests para comparar).
+- **API (`rutas_busqueda.py`):** se registran `ucs` y `a_estrella`; `GET /busqueda/algoritmos` los marca como implementados (BFS/DFS siguen pendientes).
+- **Frontend (`app.vue`):** UCS y A* habilitados en el selector, etiqueta legible del algoritmo en el panel (`A*`, `UCS (Costo Uniforme)`) y fila "Costo (criterio)" para comparar motores.
+- **Tests:** 41 nuevos (`test_ucs.py`, `test_a_estrella.py`, `test_heuristicas/test_admisibles.py`) y fixtures compartidas en `tests/conftest.py`; se agrega `--cov=src/heuristicas` en `pyproject.toml`.
+
+### Consecuencias
+- ✅ UCS y A* devuelven la ruta óptima para los tres criterios; A* coincide exactamente con UCS en costo y camino.
+- ✅ En la ruta de prueba (red OSM de Chapinero): A* = 1,52 min expandiendo 51 nodos; UCS = 1,52 min expandiendo 124; voraz = 2,48 min expandiendo 28. La heurística reduce la exploración ~59 % frente a UCS.
+- ✅ A* es más rápido en la práctica (11,7 ms vs 22,5 ms en la misma ruta) y el voraz queda como baseline no óptimo.
+- ✅ 111 tests pasan, cobertura 94,49 % (≥ 80 %).
+- ⚠️ `menor_conexiones` usa una heurística débil (h = 1 por nodo), por lo que A* se comporta casi como UCS en ese criterio; es admisible y correcto, solo menos informativo.
+- Siguiente: BFS/DFS y el comparador de algoritmos (`/busqueda/comparar`).
+
+---
+
+## ADR-018 — Dibujar la ruta sobre la geometría real y corregir `apiBase` en desarrollo
+
+**Fecha:** 2026-09
+**Estado:** Aceptado
+
+### Contexto
+La ruta se calculaba en el backend y el frontend resaltaba nodos y aristas, pero en la práctica **el trazado no aparecía**. El diagnóstico con Edge headless (CDP) mostró dos causas:
+
+1. En `nuxt dev`, `import.meta.dev` no existe dentro de `nuxt.config.ts`; la expresión caía siempre en la rama de producción y `apiBase` quedaba como `/api/v1` relativo. Las peticiones las respondía el propio servidor Nuxt con el HTML del SPA: el grafo nunca cargaba (selectores vacíos) y no había nada que dibujar. El mensaje "La API no respondió JSON" (commit `708c648`) era el síntoma.
+2. `MapaOSM.vue` dibujaba una **recta nodo→nodo**, ignorando `atributos.geometria` (el trazado real de la vía en OSM, presente en 1.127 de 1.741 aristas), y solo redibujaba al cambiar `rutaResaltada`: ni al terminar de cargar el mapa ni al remontar la vista.
+
+### Decisión
+- **`nuxt.config.ts`:** `apiBase = '/api/v1'` (relativo, válido en desarrollo y producción) y `nitro.devProxy['/api/v1']` → `http://localhost:8000/api/v1`, solo para `nuxt dev`. En producción el rewrite de `vercel.json` sigue enrutando `/api/v1` al servicio backend.
+- **`app.vue`:** se conserva `atributos.geometria` al transformar las aristas y se pasa a `MapaOSM`.
+- **`MapaOSM.vue`:**
+  - `construirTrazadoRuta()` arma un trazado continuo usando la geometría de cada arista (orientada según su sentido origen→destino) y cae a la recta entre nodos solo si la vía no trae geometría.
+  - `smoothFactor: 0` para que Leaflet no simplifique los puntos (antes, en una ruta de 19 nodos, el SVG quedaba con 9 segmentos; ahora dibuja 44).
+  - Se dibuja un contorno oscuro + línea verde, con marcadores de origen/destino y tooltips.
+  - `aplicarRuta()` se ejecuta al terminar `cargarDatos()`, al cambiar nodos/aristas y al remontar la vista; `resaltarAristas()` quedó como función reutilizable.
+- **`GraphView.vue`:** `AristaGrafo` declara `geometria` opcional para mantener el tipado del dashboard.
+
+### Consecuencias
+- ✅ La ruta se dibuja siguiendo las calles reales; el tramo recto solo aparece en las 7 aristas de la ruta de prueba que no tienen geometría en OSM (conectores de 17–86 m).
+- ✅ Funciona al alternar "Mapa OSM" ⇄ "Vista Grafo" (la ruta se redibuja al remontar el mapa) y al recargar el grafo.
+- ✅ En desarrollo ya no hay que configurar CORS ni una URL absoluta; producción no cambia.
+- ✅ Verificado con Edge headless vía CDP: 2.633 paths SVG, ruta de 44 segmentos con `stroke #a3e635`, panel con "A*" y 0 errores de consola. Captura en `documentacion/capturas/ruta_a_estrella.png`.
+- ⚠️ Las aristas sin geometría se siguen dibujando como recta (limitación del dato OSM, no del render).
+
+---
+
+## ADR-019 — Capas conmutables (Vías / Nodos) en mapa y vista de grafo
+
+**Fecha:** 2026-09
+**Estado:** Aceptado
+
+### Contexto
+La red de Chapinero tiene 888 nodos y 1.741 aristas. Con todo visible, el mapa queda saturado y la ruta se pierde entre el fondo. Se pidió un control tipo checkbox para ocultar "todos los grafos y nodos de la ciudad" y poder mirar solo lo relevante.
+
+### Decisión
+- **`app.vue`:** estado `mostrarRedVial` y `mostrarNodos` (ambos activos por defecto) y control "Capas" con dos checkboxes junto al selector Mapa/Grafo. El estado se pasa como props a ambos componentes y sobrevive al cambio de vista.
+- **`MapaOSM.vue`:** `aplicarVisibilidadCapas()` agrega o quita `layerAristas` / `layerNodos` del mapa sin tocar la ruta: la polilínea y los marcadores de origen/destino se dibujan siempre. Se aplica al terminar `cargarDatos()` y con watchers sobre las dos props.
+- **`GraphView.vue`:** `aplicarVisibilidadCapas()` oculta por elemento con `visibility` (no `display`, para que las aristas de contexto se sigan dibujando aunque sus nodos estén ocultos) los nodos y aristas que no pertenecen a `.en-ruta`, de modo que el camino activo nunca desaparece. `ajustarVista()` ahora encuadra solo lo visible; el layout ya no fuerza `fit` (se usa `fit: false` + `layoutstop`) para que al ocultar capas el encuadre siga a lo que queda. La visibilidad y los resaltados se reaplican al reconstruir elementos (antes se perdían al recargar el grafo).
+- **Checkbox accesible:** `<input type="checkbox">` real con `v-model`, `focus-visible` y estilos del sistema (`--accent-brand`), sin depender del render nativo del navegador.
+
+### Consecuencias
+- ✅ Con "Vías" y "Nodos" desactivados el mapa muestra solo la ruta (4 paths SVG: contorno, línea y los dos marcadores); al reactivarlos vuelven los 2.633 paths. Verificado por CDP, sin errores de consola.
+- ✅ En la vista de grafo la ruta queda encuadrada y visible; al reactivar las capas se restaura la red completa.
+- ✅ Lint (0 errores) y `vue-tsc --noEmit` sin errores; build de producción correcto.
+- ⚠️ Las preferencias de capas no se guardan al recargar (solo viven en la sesión).
+- Siguiente: si el equipo lo pide, persistir capas y añadir filtros por tipo de vía o congestión.
+
+
