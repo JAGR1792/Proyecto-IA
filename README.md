@@ -43,8 +43,8 @@ El sistema modela la **red vial real de taxis** en la zona de estudio de **Chapi
 │   │   │   ├── percepcion.py        # Sensores / estado actual
 │   │   │   ├── acciones.py          # Acciones posibles (mover, esperar…)
 │   │   │   └── decision.py          # Selección de acción (MotorDecision)
-│   │   ├── busqueda/                # Algoritmos de búsqueda (voraz implementado, resto Corte 2)
-│   │   ├── heuristicas/             # Heurísticas (Corte 2)
+│   │   ├── busqueda/                # Algoritmos de búsqueda (Voraz, UCS y A*)
+│   │   ├── heuristicas/             # Heurísticas admisibles para A*
 │   │   └── utilidades/              # Config, logging, excepciones
 │   ├── datos/                       # Datasets (JSON, GeoJSON, GraphML, CSV)
 │   ├── tests/                       # Tests unitarios (pytest)
@@ -66,7 +66,7 @@ El sistema modela la **red vial real de taxis** en la zona de estudio de **Chapi
 ├── documentacion/                   # Toda la documentación del proyecto
 │   ├── formulacion.md               # Problema, alcance, objetivos
 │   ├── peas.md                      # Modelo PEAS del agente
-│   ├── decisiones.md                # Log de decisiones (ADR-001 a ADR-013)
+│   ├── decisiones.md                # Log de decisiones (ADR-001 a ADR-018)
 │   ├── informe_corte1.md            # Informe de la Primera Entrega
 │   ├── diagrama_red.md              # Descripción del grafo ejemplo (6 nodos)
 │   ├── dataset_inicial.md           # Estructura de los datasets
@@ -134,7 +134,7 @@ npm run build
 npm run preview
 ```
 
-> El frontend en desarrollo apunta por defecto a `http://localhost:8000/api/v1` (configurable en `nuxt.config.ts` vía `NUXT_PUBLIC_API_BASE`).
+> En desarrollo el frontend llama a `/api/v1` y `nuxt dev` lo redirige al backend en `http://localhost:8000/api/v1` mediante `nitro.devProxy` (definido en `nuxt.config.ts`). En producción Vercel reescribe `/api/v1` al servicio backend. La URL se puede sobreescribir con `NUXT_PUBLIC_API_BASE`.
 
 ---
 
@@ -175,7 +175,8 @@ Base: `/api/v1` · Documentación interactiva: `http://localhost:8000/docs`
 | `/grafo/graphml` | GET | Exportación GraphML |
 | `/mapa/geojson/*`, `/mapa/graphml`, `/mapa/bbox` | GET | Datos para visualización |
 | `/agente/estado`, `/agente/paso` | GET/POST | Estado y avance del agente |
-| `/busqueda/buscar` | POST | Búsqueda de rutas (voraz/greedy implementado) |
+| `/busqueda/buscar` | POST | Búsqueda de rutas (Voraz, UCS y A*) con criterio de optimización |
+| `/busqueda/algoritmos` | GET | Algoritmos disponibles y estado de implementación |
 | `/health` | GET | Health check |
 
 > Los endpoints de exportación generan las respuestas **en memoria** (sin escribir en disco), por lo que son compatibles con el entorno serverless *read-only* de Vercel (ver ADR-012).
@@ -216,5 +217,5 @@ Toda la documentación está en `documentacion/`:
 ## Roadmap
 
 - **Corte 1 (hecho):** modelos de grafo, repositorio, datos OSM reales (888 nodos / 1741 aristas), módulo de agente, frontend con mapa/grafo, deploy en Vercel.
-- **Corte 2 (en curso):** búsqueda **voraz (greedy)** implementada y conectada al frontend; pendientes BFS, DFS, UCS, A* y heurísticas (Euclidiana, Manhattan, tiempo) + comparador.
+- **Corte 2 (en curso):** motores **Voraz (greedy)**, **UCS** y **A\*** implementados y conectados al frontend (rutas óptimas con UCS/A*); pendientes BFS, DFS y el comparador de algoritmos.
 - **Corte 3 (pendiente):** modelos de ML (predicción de congestión) sobre la red.
