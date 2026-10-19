@@ -4,12 +4,16 @@ Define Nodo, Arista, Grafo y tipos de apoyo usando Pydantic para validación.
 Compatible con NetworkX para algoritmos de búsqueda.
 """
 
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import TYPE_CHECKING, Any
+
 from pydantic import BaseModel, Field, field_validator
 
+if TYPE_CHECKING:
+    import networkx
 
-class TipoNodo(str, Enum):
+
+class TipoNodo(StrEnum):
     """Tipos de nodos en la red de movilidad."""
 
     EDIFICIO = "edificio"
@@ -19,7 +23,7 @@ class TipoNodo(str, Enum):
     OTRO = "otro"
 
 
-class NivelCongestion(str, Enum):
+class NivelCongestion(StrEnum):
     """Niveles de congestión en las aristas."""
 
     BAJA = "baja"
@@ -28,7 +32,7 @@ class NivelCongestion(str, Enum):
     BLOQUEADA = "bloqueada"
 
 
-class TipoVia(str, Enum):
+class TipoVia(StrEnum):
     """Tipos de vía según clasificación OSM."""
 
     AUTOPATIA = "autopista"
@@ -79,25 +83,27 @@ class Coordenadas(BaseModel):
 class AtributosNodo(BaseModel):
     """Atributos opcionales de un nodo."""
 
-    capacidad: Optional[int] = Field(None, ge=0, description="Capacidad máxima (personas/vehículos)")
-    horario_apertura: Optional[str] = Field(None, description="Horario formato HH:MM")
-    horario_cierre: Optional[str] = Field(None, description="Horario formato HH:MM")
+    capacidad: int | None = Field(None, ge=0, description="Capacidad máxima (personas/vehículos)")
+    horario_apertura: str | None = Field(None, description="Horario formato HH:MM")
+    horario_cierre: str | None = Field(None, description="Horario formato HH:MM")
     accesible: bool = Field(True, description="Accesible para movilidad reducida")
-    descripcion: Optional[str] = None
+    descripcion: str | None = None
 
 
 class AtributosArista(BaseModel):
     """Atributos opcionales extendidos de una arista."""
 
     tipo_via: TipoVia = Field(TipoVia.OTRO, description="Clasificación de la vía")
-    nombre_via: Optional[str] = Field(None, description="Nombre de la calle/vía")
-    superficie: Optional[str] = Field(None, description="Tipo de pavimento")
-    carriles: Optional[int] = Field(None, ge=1, description="Número de carriles")
+    nombre_via: str | None = Field(None, description="Nombre de la calle/vía")
+    superficie: str | None = Field(None, description="Tipo de pavimento")
+    carriles: int | None = Field(None, ge=1, description="Número de carriles")
     sentido_unico: bool = Field(False, description="Vía de un solo sentido")
     peaje: bool = Field(False, description="Tiene peaje")
-    costo_peaje: Optional[float] = Field(None, ge=0, description="Costo del peaje")
-    restricciones: List[str] = Field(default_factory=list, description="Restricciones (ej: solo_bus, peso_max)")
-    geometria: Optional[List[List[float]]] = Field(
+    costo_peaje: float | None = Field(None, ge=0, description="Costo del peaje")
+    restricciones: list[str] = Field(
+        default_factory=list, description="Restricciones (ej: solo_bus, peso_max)"
+    )
+    geometria: list[list[float]] | None = Field(
         None, description="Trazado real de la vía en OSM [[lon, lat], ...]"
     )
 
@@ -181,10 +187,10 @@ class Grafo(BaseModel):
         metadata: Información adicional (fuente, fecha, versión).
     """
 
-    nodos: Dict[str, Nodo] = Field(default_factory=dict)
-    aristas: List[Arista] = Field(default_factory=list)
+    nodos: dict[str, Nodo] = Field(default_factory=dict)
+    aristas: list[Arista] = Field(default_factory=list)
     dirigido: bool = Field(True, description="Grafo dirigido")
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     def agregar_nodo(self, nodo: Nodo) -> None:
         """Agrega un nodo al grafo."""
@@ -198,11 +204,11 @@ class Grafo(BaseModel):
             raise ValueError(f"Nodo destino '{arista.destino}' no existe")
         self.aristas.append(arista)
 
-    def obtener_vecinos(self, nodo_id: str) -> List[Arista]:
+    def obtener_vecinos(self, nodo_id: str) -> list[Arista]:
         """Retorna aristas salientes desde un nodo."""
         return [a for a in self.aristas if a.origen == nodo_id and a.disponible]
 
-    def obtener_arista(self, origen: str, destino: str) -> Optional[Arista]:
+    def obtener_arista(self, origen: str, destino: str) -> Arista | None:
         """Busca arista directa entre dos nodos."""
         for arista in self.aristas:
             if arista.origen == origen and arista.destino == destino:
@@ -289,7 +295,7 @@ class Grafo(BaseModel):
 
         return grafo
 
-    def validar_conectividad(self) -> List[str]:
+    def validar_conectividad(self) -> list[str]:
         """Valida que todos los nodos referenciados existan."""
         errores = []
         ids_nodos = set(self.nodos.keys())

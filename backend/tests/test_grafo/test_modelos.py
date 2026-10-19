@@ -1,14 +1,18 @@
 """Tests unitarios para src/grafo/modelos.py"""
 
 import pytest
+
 from src.grafo.modelos import (
-    Nodo, Arista, Grafo, Coordenadas,
-    TipoNodo, NivelCongestion, TipoVia,
-    AtributosNodo, AtributosArista,
+    Arista,
+    Coordenadas,
+    Grafo,
+    NivelCongestion,
+    Nodo,
+    TipoNodo,
 )
 
-
 # ─── Fixtures ────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def coord_bogota():
@@ -63,6 +67,7 @@ def grafo_simple(nodo_portal_norte, nodo_calle_72, arista_pn_c72):
 
 # ─── Tests Coordenadas ────────────────────────────────────────────────────────
 
+
 class TestCoordenadas:
     def test_crear_coordenadas_validas(self):
         c = Coordenadas(latitud=4.6097, longitud=-74.0817)
@@ -92,6 +97,7 @@ class TestCoordenadas:
 
 # ─── Tests Nodo ───────────────────────────────────────────────────────────────
 
+
 class TestNodo:
     def test_crear_nodo_valido(self, coord_bogota):
         nodo = Nodo(id="N1", nombre="Test", coordenadas=coord_bogota)
@@ -117,6 +123,7 @@ class TestNodo:
 
 # ─── Tests Arista ─────────────────────────────────────────────────────────────
 
+
 class TestArista:
     def test_crear_arista_valida(self):
         a = Arista(id="A1", origen="N1", destino="N2", distancia=1000.0, tiempo_estimado=5.0)
@@ -134,19 +141,31 @@ class TestArista:
 
     def test_velocidad_fuera_rango_falla(self):
         with pytest.raises(Exception):
-            Arista(id="A1", origen="N1", destino="N2", distancia=100.0, tiempo_estimado=1.0, velocidad_promedio=250.0)
+            Arista(
+                id="A1",
+                origen="N1",
+                destino="N2",
+                distancia=100.0,
+                tiempo_estimado=1.0,
+                velocidad_promedio=250.0,
+            )
 
     def test_nivel_congestion_bloqueada(self):
         a = Arista(
-            id="A1", origen="N1", destino="N2",
-            distancia=100.0, tiempo_estimado=1.0,
-            congestion=NivelCongestion.BLOQUEADA, disponible=False
+            id="A1",
+            origen="N1",
+            destino="N2",
+            distancia=100.0,
+            tiempo_estimado=1.0,
+            congestion=NivelCongestion.BLOQUEADA,
+            disponible=False,
         )
         assert a.congestion == NivelCongestion.BLOQUEADA
         assert a.disponible is False
 
 
 # ─── Tests Grafo ──────────────────────────────────────────────────────────────
+
 
 class TestGrafo:
     def test_grafo_vacio(self):
@@ -200,8 +219,7 @@ class TestGrafo:
     def test_validar_conectividad_con_arista_huerfana(self):
         g = Grafo()
         g.nodos["N1"] = Nodo(
-            id="N1", nombre="Uno",
-            coordenadas=Coordenadas(latitud=4.6, longitud=-74.0)
+            id="N1", nombre="Uno", coordenadas=Coordenadas(latitud=4.6, longitud=-74.0)
         )
         # Agregar arista directamente sin validación (para test)
         a = Arista(id="A1", origen="N1", destino="NOEXISTE", distancia=100.0, tiempo_estimado=1.0)
@@ -211,6 +229,7 @@ class TestGrafo:
 
     def test_conversion_networkx_dirigido(self, grafo_simple):
         import networkx as nx
+
         G = grafo_simple.a_networkx()
         assert isinstance(G, nx.DiGraph)
         assert "PN" in G.nodes
@@ -219,6 +238,7 @@ class TestGrafo:
 
     def test_conversion_networkx_no_dirigido(self, nodo_portal_norte, nodo_calle_72, arista_pn_c72):
         import networkx as nx
+
         g = Grafo(dirigido=False)
         g.agregar_nodo(nodo_portal_norte)
         g.agregar_nodo(nodo_calle_72)

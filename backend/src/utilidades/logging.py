@@ -2,7 +2,7 @@
 
 import logging
 import sys
-from typing import Any, Dict
+from typing import Any
 
 from src.utilidades.config import settings
 
@@ -21,7 +21,8 @@ def configurar_logging() -> None:
         class JsonFormatter(logging.Formatter):
             def format(self, record: logging.LogRecord) -> str:
                 import json
-                log_data: Dict[str, Any] = {
+
+                log_data: dict[str, Any] = {
                     "timestamp": self.formatTime(record),
                     "level": record.levelname,
                     "logger": record.name,
@@ -35,8 +36,7 @@ def configurar_logging() -> None:
     else:
         # Formato texto legible
         formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-            datefmt="%H:%M:%S"
+            "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s", datefmt="%H:%M:%S"
         )
         handler.setFormatter(formatter)
 
@@ -49,7 +49,9 @@ def configurar_logging() -> None:
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    logging.info("Logging configurado", extra={"level": settings.log_level, "format": settings.log_format})
+    logging.info(
+        "Logging configurado", extra={"level": settings.log_level, "format": settings.log_format}
+    )
 
 
 def obtener_logger(nombre: str) -> logging.Logger:

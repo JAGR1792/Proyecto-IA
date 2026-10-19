@@ -5,13 +5,13 @@ Basado en la Primera Entrega del proyecto (PDF de taxis) - Corte 1.
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from ..grafo.modelos import Grafo, NivelCongestion, Nodo
 
 
-class CriterioOptimizacion(str, Enum):
+class CriterioOptimizacion(StrEnum):
     """Criterios de optimización que el usuario puede seleccionar (PDF 5.2)."""
 
     MENOR_DISTANCIA = "menor_distancia"
@@ -188,12 +188,8 @@ class ModeloPEAS:
         avanzar = [a for a in self.historial_acciones if a.tipo == "avanzar"]
         self.medida.num_conexiones = len(avanzar)
         self.medida.distancia_total = sum(a.distancia for a in avanzar)
-        self.medida.tiempo_total_min = sum(
-            a.tiempo_estimado for a in self.historial_acciones
-        )
-        self.medida.ruta_valida = (
-            destino_alcanzado and len(self.percepcion.ruta_construida) > 1
-        )
+        self.medida.tiempo_total_min = sum(a.tiempo_estimado for a in self.historial_acciones)
+        self.medida.ruta_valida = destino_alcanzado and len(self.percepcion.ruta_construida) > 1
 
         return self.medida
 

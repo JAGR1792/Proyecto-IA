@@ -18,10 +18,18 @@ from grafo.repositorio import ExcepcionRepositorio, RepositorioGrafo
 
 def main():
     parser = argparse.ArgumentParser(description="Generar dataset de taxis (Chapinero)")
-    parser.add_argument("--osm", action="store_true", help="Descargar red vial desde OpenStreetMap (OSMnx)")
-    parser.add_argument("--lugar", default="Universidad Sergio Arboleda, Bogotá, Colombia", help="Lugar para OSM (geocodificación)")
+    parser.add_argument(
+        "--osm", action="store_true", help="Descargar red vial desde OpenStreetMap (OSMnx)"
+    )
+    parser.add_argument(
+        "--lugar",
+        default="Universidad Sergio Arboleda, Bogotá, Colombia",
+        help="Lugar para OSM (geocodificación)",
+    )
     parser.add_argument("--radio", type=int, default=1500, help="Radio en metros para descarga OSM")
-    parser.add_argument("--tipo-red", default="drive", help="Tipo de red OSM: drive, walk, bike, all")
+    parser.add_argument(
+        "--tipo-red", default="drive", help="Tipo de red OSM: drive, walk, bike, all"
+    )
     parser.add_argument("--sintetico", action="store_true", help="Dataset 6 nodos ejemplo PDF")
     parser.add_argument("--datos", default="datos", help="Directorio de datos")
     args = parser.parse_args()
@@ -53,6 +61,7 @@ def main():
 
         # Validar
         from grafo.validadores import calcular_estadisticas, validar_grafo_completo
+
         valido, errores = validar_grafo_completo(grafo)
         stats = calcular_estadisticas(grafo)
 
@@ -73,6 +82,7 @@ def main():
     except Exception as e:
         print(f"Error inesperado: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

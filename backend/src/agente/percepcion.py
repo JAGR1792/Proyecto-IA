@@ -33,9 +33,7 @@ class SensorConexiones:
     def __init__(self, grafo: Grafo):
         self.grafo = grafo
 
-    def obtener_conexiones_salientes(
-        self, nodo_id: str, ambiente: Ambiente
-    ) -> list[Arista]:
+    def obtener_conexiones_salientes(self, nodo_id: str, ambiente: Ambiente) -> list[Arista]:
         """Retorna aristas disponibles desde el nodo (respeta bloqueos)."""
         vecinas = self.grafo.obtener_vecinos(nodo_id)
         disponibles = []
@@ -57,14 +55,9 @@ class SensorConexiones:
 class SensorCongestion:
     """Sensor: nivel de congestión por conexión (segmento vial)."""
 
-    def obtener_congestion_conexiones(
-        self, conexiones: list[Arista]
-    ) -> dict[str, NivelCongestion]:
+    def obtener_congestion_conexiones(self, conexiones: list[Arista]) -> dict[str, NivelCongestion]:
         """Retorna congestión actual de cada conexión."""
-        return {
-            f"{c.origen}-{c.destino}": c.congestion
-            for c in conexiones
-        }
+        return {f"{c.origen}-{c.destino}": c.congestion for c in conexiones}
 
 
 class SensorIncidentes:
@@ -114,9 +107,15 @@ class PercepcionCompleta:
         """Genera percepción completa del estado actual."""
 
         # Conexiones disponibles desde nodo actual
-        conexiones = self.sensor_conexiones.obtener_conexiones_salientes(nodo_actual, ambiente) if ambiente else []
+        conexiones = (
+            self.sensor_conexiones.obtener_conexiones_salientes(nodo_actual, ambiente)
+            if ambiente
+            else []
+        )
         ids_conexiones = [f"{c.origen}-{c.destino}" for c in conexiones]
-        congestion = self.sensor_congestion.obtener_congestion_conexiones(conexiones) if ambiente else {}
+        congestion = (
+            self.sensor_congestion.obtener_congestion_conexiones(conexiones) if ambiente else {}
+        )
 
         # Incidentes cercanos
         incidentes = self.sensor_incidentes.obtener_incidentes_afectando(nodo_id=nodo_actual)

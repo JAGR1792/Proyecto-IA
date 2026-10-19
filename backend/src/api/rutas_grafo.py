@@ -102,7 +102,10 @@ async def geojson_nodos():
     repo = obtener_repositorio()
     grafo = obtener_grafo()
     geojson_nodos_data, _ = repo.generar_geojson(grafo)
-    return Response(content=json.dumps(geojson_nodos_data, ensure_ascii=False), media_type="application/geo+json")
+    return Response(
+        content=json.dumps(geojson_nodos_data, ensure_ascii=False),
+        media_type="application/geo+json",
+    )
 
 
 @router.get("/geojson/aristas")
@@ -111,7 +114,10 @@ async def geojson_aristas():
     repo = obtener_repositorio()
     grafo = obtener_grafo()
     _, geojson_aristas_data = repo.generar_geojson(grafo)
-    return Response(content=json.dumps(geojson_aristas_data, ensure_ascii=False), media_type="application/geo+json")
+    return Response(
+        content=json.dumps(geojson_aristas_data, ensure_ascii=False),
+        media_type="application/geo+json",
+    )
 
 
 @router.get("/graphml")
@@ -123,7 +129,11 @@ async def descargar_graphml():
 
 
 @router.post("/recargar")
-async def recargar_grafo(usar_sintetico: bool = Query(True, description="Usar dataset sintético (False = descargar red OSM con OSMnx)")):
+async def recargar_grafo(
+    usar_sintetico: bool = Query(
+        True, description="Usar dataset sintético (False = descargar red OSM con OSMnx)"
+    ),
+):
     """Recarga el grafo desde archivo o regenera."""
     global _grafo_cache
     repo = obtener_repositorio()
@@ -145,6 +155,7 @@ async def recargar_grafo(usar_sintetico: bool = Query(True, description="Usar da
 async def estadisticas_grafo():
     """Estadísticas descriptivas del grafo."""
     from src.grafo.validadores import calcular_estadisticas, validar_grafo_completo
+
     grafo = obtener_grafo()
     stats = calcular_estadisticas(grafo)
     valido, errores = validar_grafo_completo(grafo)

@@ -28,19 +28,32 @@ from src.grafo.modelos import (
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _nodo(nid: str, lat: float = 4.6) -> Nodo:
     return Nodo(
-        id=nid, nombre=f"Int. {nid}",
+        id=nid,
+        nombre=f"Int. {nid}",
         coordenadas=Coordenadas(latitud=lat, longitud=-74.0),
     )
 
 
-def _arista(oid: str, did: str, tiempo: float = 5.0, dist: float = 1000.0, congestion=NivelCongestion.BAJA, via: str = "Calle 1") -> Arista:
+def _arista(
+    oid: str,
+    did: str,
+    tiempo: float = 5.0,
+    dist: float = 1000.0,
+    congestion=NivelCongestion.BAJA,
+    via: str = "Calle 1",
+) -> Arista:
     atrib = AtributosArista(nombre_via=via)
     return Arista(
-        id=f"{oid}-{did}", origen=oid, destino=did,
-        distancia=dist, tiempo_estimado=tiempo,
-        congestion=congestion, atributos=atrib,
+        id=f"{oid}-{did}",
+        origen=oid,
+        destino=did,
+        distancia=dist,
+        tiempo_estimado=tiempo,
+        congestion=congestion,
+        atributos=atrib,
     )
 
 
@@ -80,6 +93,7 @@ def contexto_basico(percepcion_basica, ambiente_basico):
 
 # ─── Tests constructores de acciones ─────────────────────────────────────────
 
+
 class TestConstructoresAccion:
     def test_construir_avanzar(self, grafo_basico):
         arista = grafo_basico.obtener_arista("N1", "N2")
@@ -106,6 +120,7 @@ class TestConstructoresAccion:
 
 
 # ─── Tests seleccionar_arista_criterio ───────────────────────────────────────
+
 
 class TestSeleccionarArista:
     def test_menor_tiempo_selecciona_rapida(self, grafo_basico):
@@ -146,6 +161,7 @@ class TestSeleccionarArista:
 
 # ─── Tests decidir_accion ─────────────────────────────────────────────────────
 
+
 class TestDecidirAccion:
     def test_finaliza_si_en_destino(self, percepcion_basica, ambiente_basico):
         percepcion_basica.nodo_actual = "N3"  # ya en destino
@@ -176,12 +192,15 @@ class TestDecidirAccion:
         percepcion_basica.nodo_actual = "X"
         percepcion_basica.nodo_destino = "Y"
         amb = Ambiente(grafo=g, fecha=datetime.now(), hora="08:00")
-        ctx = ContextoAccion(percepcion=percepcion_basica, ambiente=amb, max_espera=1, pasos_espera=1)
+        ctx = ContextoAccion(
+            percepcion=percepcion_basica, ambiente=amb, max_espera=1, pasos_espera=1
+        )
         accion = decidir_accion(ctx)
         assert accion.tipo == TipoAccion.RECALCULAR.value
 
 
 # ─── Tests MotorDecision ──────────────────────────────────────────────────────
+
 
 class TestMotorDecision:
     def test_crear_motor_desde_parametros(self, grafo_basico):
@@ -200,7 +219,9 @@ class TestMotorDecision:
 
     def test_ejecutar_completo_llega_a_destino(self, grafo_basico):
         motor = MotorDecision.desde_parametros(
-            grafo=grafo_basico, origen="N1", destino="N3",
+            grafo=grafo_basico,
+            origen="N1",
+            destino="N3",
             criterio=CriterioOptimizacion.MENOR_TIEMPO,
         )
         resultados = motor.ejecutar_completo(max_pasos=10)
@@ -216,6 +237,7 @@ class TestMotorDecision:
 
 
 # ─── Tests obtener_acciones_posibles ─────────────────────────────────────────
+
 
 class TestObtenerAccionesPosibles:
     def test_retorna_lista_de_acciones(self, grafo_basico, ambiente_basico):

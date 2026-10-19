@@ -69,7 +69,12 @@ def grafo_con_callejon() -> Grafo:
 def grafo_inconexo() -> Grafo:
     """O→A desconectado de X→Y (destino)."""
     g = Grafo()
-    for nid, lat, lon in [("O", 4.60, -74.00), ("A", 4.61, -74.00), ("X", 4.60, -73.50), ("Y", 4.61, -73.50)]:
+    for nid, lat, lon in [
+        ("O", 4.60, -74.00),
+        ("A", 4.61, -74.00),
+        ("X", 4.60, -73.50),
+        ("Y", 4.61, -73.50),
+    ]:
         g.agregar_nodo(_hacer_nodo(nid, lat, lon))
     g.agregar_arista(_hacer_arista("O", "A", tiempo=5.0, dist=500.0))
     g.agregar_arista(_hacer_arista("X", "Y", tiempo=5.0, dist=500.0))
