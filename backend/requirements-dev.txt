@@ -1,0 +1,8 @@
+# Dependencias mínimas para desarrollo local y CI (lint + tests del núcleo).
+# El runtime completo (OSMnx, GeoPandas, pandas…) está en requirements.txt.
+pytest==8.3.3
+pytest-cov==5.0.0
+ruff==0.16.6
+pydantic==2.9.2
+networkx==3.3
+pre-commit==4.0.1

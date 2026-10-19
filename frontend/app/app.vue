@@ -229,15 +229,15 @@ onMounted(() => {
           <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
         </button>
         <button
-          @click="cargarGrafo"
           :disabled="cargando"
           class="tx-button tx-button-primary"
+          @click="cargarGrafo"
         >
           {{ cargando ? 'Sincronizando...' : 'Actualizar Grafo' }}
         </button>
         <button
-          @click="limpiarRuta"
           class="tx-button tx-button-secondary"
+          @click="limpiarRuta"
         >
           Limpiar Sesión
         </button>
@@ -284,9 +284,9 @@ onMounted(() => {
             </select>
           </div>
           <button
-            @click="buscarRuta"
             :disabled="!origenSeleccionado || !destinoSeleccionado || origenSeleccionado === destinoSeleccionado || cargando"
             class="tx-button tx-button-action"
+            @click="buscarRuta"
           >
             {{ cargando ? 'Buscando...' : 'Ejecutar Motor de Búsqueda' }}
           </button>
@@ -348,7 +348,7 @@ onMounted(() => {
         </div>
 
         <!-- Estadísticas del Grafo -->
-        <div class="tx-panel" v-if="stats" style="margin-top: 1.5rem;">
+        <div v-if="stats" class="tx-panel" style="margin-top: 1.5rem;">
           <h3 class="tx-panel-title">Métricas de Red</h3>
           <dl class="tx-data-list">
             <div class="tx-data-row">
@@ -375,7 +375,7 @@ onMounted(() => {
         </div>
 
         <!-- Nodo Seleccionado -->
-        <div class="tx-panel" v-if="nodoSeleccionado" style="margin-top: 1.5rem;">
+        <div v-if="nodoSeleccionado" class="tx-panel" style="margin-top: 1.5rem;">
           <h3 class="tx-panel-title">Telemetría de Nodo</h3>
           <dl class="tx-data-list">
             <div class="tx-data-row">
@@ -398,7 +398,7 @@ onMounted(() => {
         </div>
 
         <!-- Arista Seleccionada -->
-        <div class="tx-panel" v-if="aristaSeleccionada" style="margin-top: 1.5rem;">
+        <div v-if="aristaSeleccionada" class="tx-panel" style="margin-top: 1.5rem;">
           <h3 class="tx-panel-title">Telemetría de Enlace</h3>
           <dl class="tx-data-list">
             <div class="tx-data-row">
@@ -425,7 +425,7 @@ onMounted(() => {
                 </span>
               </dd>
             </div>
-            <div class="tx-data-row" v-if="aristaSeleccionada.nombre_via">
+            <div v-if="aristaSeleccionada.nombre_via" class="tx-data-row">
               <dt class="tx-data-term">Vía</dt> 
               <dd class="tx-data-value">{{ aristaSeleccionada.nombre_via }}</dd>
             </div>
