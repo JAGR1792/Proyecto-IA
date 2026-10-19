@@ -517,4 +517,34 @@ Tras el merge, la interfaz volvió a mostrar `Unexpected token '<', "<!DOCTYPE "
 - ⚠️ `nuxt build` y `nuxt dev` no deben convivir: el build sobrescribe el caché que usa el dev server.
 - Siguiente: si se quiere blindar más, un fallback automático del frontend a `http://localhost:8000/api/v1` en desarrollo.
 
+---
+
+## ADR-021 — CI en GitHub Actions y lint reproducible con ruff
+
+**Fecha:** 2026-09
+**Estado:** Aceptado
+
+### Contexto
+El repositorio no tenía integración continua y el lint no era reproducible: `ruff check .` reportaba **55 errores** (imports sin usar, `str` + `Enum`, `typing.Dict/List`, `networkx` sin definir en anotaciones) y `ruff format --check` marcaba 17 archivos; el pin de ruff era `0.6.9` mientras el entorno local usaba `0.16.6`, y la configuración estaba en la sección obsoleta `[tool.ruff]`. ESLint acumulaba 9 warnings de orden de atributos. Se pidió dejar CI/CD y linters para que cada commit pase las mismas validaciones.
+
+### Decisión
+- **Ruff:** migrar la configuración a `[tool.ruff.lint]` y fijar `ruff==0.16.6` en `requirements.txt`, `pyproject.toml` y `.pre-commit-config.yaml`.
+- **Normalización del backend:** `ruff check --fix` + `ruff format` sobre todo `backend/`; conversión de los enums `str, Enum` a `StrEnum` (Python ≥ 3.11), `networkx` bajo `TYPE_CHECKING` y limpieza de imports sin uso. Sin cambios de comportamiento (111 tests siguen pasando).
+- **Dependencias de CI:** nuevo `backend/requirements-dev.txt` con lo mínimo para lint y tests (`pytest`, `pytest-cov`, `ruff`, `pydantic`, `networkx`, `pre-commit`); el runtime completo sigue en `requirements.txt`.
+- **Workflow `.github/workflows/ci.yml`:** en cada push y PR a `main`/`dev`:
+  - *Backend*: `ruff check .`, `ruff format --check .`, `pytest` (cobertura mínima 80 %).
+  - *Frontend*: `npm ci`, `npm run lint:ci` (`--max-warnings 0`), `npm run typecheck` (`vue-tsc --noEmit`) y `npm run build`.
+- **Frontend:** scripts `lint:ci` y `typecheck`; se corrigieron los 9 warnings de `vue/attributes-order` con `eslint --fix`.
+- **Pre-commit:** `.pre-commit-config.yaml` ejecuta `ruff --fix` y `ruff-format` sobre `backend/` antes de cada commit (instalación documentada).
+- **Documentación:** README con badge de CI, sección de CI/CD, `requirements-dev`, hooks y una guía de solución de problemas del error `Unexpected token '<'`; ADR-020 conserva el diagnóstico técnico.
+- **CD:** Vercel sigue desplegando `main` y previews automáticamente; no se añade workflow de despliegue para no duplicarlo.
+
+### Consecuencias
+- ✅ `ruff check .` y `ruff format --check .` pasan; 111 tests y cobertura 94,49 %; ESLint con 0 warnings; `vue-tsc` sin errores; build de producción OK.
+- ✅ La CI bloquea pushes/PRs con lint, formato, tipos o tests rotos, y el pre-commit evita commits sucios.
+- ✅ El pipeline usa dependencias mínimas: no instala OSMnx/GeoPandas para los tests del núcleo.
+- ⚠️ `StrEnum` exige Python ≥ 3.11 (ya era el mínimo declarado).
+- ⚠️ `mypy` queda fuera de la CI (deuda de tipos); documentado como paso opcional.
+- Siguiente: incorporar `mypy` al pipeline cuando se saneen las anotaciones.
+
 

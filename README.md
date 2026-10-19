@@ -1,4 +1,6 @@
-# Taxi IA · Chapinero 
+# Taxi IA · Chapinero
+
+[![CI](https://github.com/JAGR1792/Proyecto-IA/actions/workflows/ci.yml/badge.svg)](https://github.com/JAGR1792/Proyecto-IA/actions/workflows/ci.yml)
 
 **Sistema Inteligente para Planificación de Rutas y Análisis de Movilidad.**
 
@@ -145,23 +147,70 @@ npm run preview
 ```bash
 cd backend
 
+# Instalar herramientas de desarrollo (pytest, ruff, pre-commit)
+pip install -r requirements-dev.txt
+
 # Tests con cobertura (umbral exigido: 80 %)
-pytest -v --cov=src --cov-report=term-missing
+pytest
 
-# Lint y formato
-ruff check src/
-ruff format src/
+# Lint y formato (mismos comandos que la CI)
+ruff check .
+ruff format --check .
 
-# Type checking
+# Type checking (opcional)
 mypy src/
 ```
 
 ```bash
 cd frontend
 
-npm run lint       # ESLint
-vue-tsc --noEmit   # TypeScript (opcional)
+npm run lint        # ESLint
+npm run lint:ci     # ESLint fallando también con warnings
+npm run typecheck   # vue-tsc --noEmit
 ```
+
+### Integración continua (GitHub Actions)
+
+El workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) corre en cada push y pull request a `main` y `dev`:
+
+| Job | Qué valida |
+|-----|------------|
+| **Backend** | `ruff check`, `ruff format --check` y `pytest` con cobertura mínima del 80 % |
+| **Frontend** | `eslint --max-warnings 0`, `vue-tsc --noEmit` y `nuxt build` |
+
+**CD:** Vercel despliega automáticamente `main` y genera previews de las demás ramas (ver [Deploy](#deploy-vercel)).
+
+### Hooks locales (opcional, recomendado)
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pre-commit install
+```
+
+Así cada commit pasa `ruff check --fix` y `ruff format` sobre `backend/` antes de crearse; la CI repite la verificación para lo que se suba.
+
+---
+
+## Solución de problemas
+
+### `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`
+
+**Causa:** el frontend pidió a la API y recibió el HTML que Nuxt usa para el SPA. Ocurre cuando `apiBase` apunta al frontend y no al backend, típicamente porque `nuxt dev` perdió su proxy (`nitro.devProxy`), porque el backend no está levantado o porque se ejecutó `nuxt build` con el dev server activo (comparten el caché `.nuxt`).
+
+**Solución:**
+
+1. Comprueba que el backend responde: `curl http://localhost:8000/health`.
+2. Comprueba el proxy: `curl -i http://localhost:3000/api/v1/grafo/` debe devolver `Content-Type: application/json`.
+3. Si devuelve HTML, **detén y vuelve a arrancar** `npm run dev` (el proxy se restablece al iniciar).
+4. Nunca ejecutes `npm run build` mientras `npm run dev` está activo.
+5. En producción, verifica que `vercel.json` mantiene el rewrite de `/api/v1` al servicio backend.
+
+Desde ADR-020 el frontend detecta esta situación y muestra un mensaje claro en lugar del error de `JSON.parse`. Diagnóstico completo en [`documentacion/decisiones.md`](documentacion/decisiones.md) (ADR-020).
+
+### El mapa carga pero no muestra nodos ni vías
+
+Revisa el control **Capas** (checkboxes “Vías” y “Nodos” junto al selector Mapa/Grafo); si ambos están desmarcados solo se dibuja la ruta activa.
 
 ---
 
