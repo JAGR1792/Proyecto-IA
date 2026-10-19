@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import GraphView from '@/components/GraphView.vue'
 import MapaOSM from '@/components/MapaOSM.vue'
 import type { NodoGrafo, AristaGrafo } from '@/components/GraphView.vue'
@@ -23,6 +23,18 @@ const algoritmoSeleccionado = ref<string>('voraz')
 const resultadoRuta = ref<any>(null)
 const vistaActiva = ref<'grafo' | 'mapa'>('mapa')
 const temaActivo = ref<'oscuro' | 'claro'>('oscuro')
+
+// Nombres legibles de los algoritmos devueltos por la API
+const ETIQUETAS_ALGORITMO: Record<string, string> = {
+  voraz: 'Voraz (Greedy)',
+  ucs: 'UCS (Costo Uniforme)',
+  a_estrella: 'A*',
+}
+
+const etiquetaAlgoritmo = computed(() => {
+  const id = resultadoRuta.value?.algoritmo
+  return id ? ETIQUETAS_ALGORITMO[id] ?? id : '—'
+})
 
 function aplicarTema() {
   const root = document.documentElement
@@ -83,6 +95,7 @@ async function cargarGrafo() {
       congestion: a.congestion,
       disponible: a.disponible,
       nombre_via: a.atributos?.nombre_via,
+      geometria: a.atributos?.geometria ?? null,
     }))
 
     // Cargar estadísticas
@@ -252,11 +265,11 @@ onMounted(() => {
           <div class="tx-form-group">
             <label class="tx-label">Algoritmo de Búsqueda</label>
             <select v-model="algoritmoSeleccionado" class="tx-select">
+              <option value="a_estrella">A* (óptimo con heurística)</option>
+              <option value="ucs">UCS (óptimo sin heurística)</option>
               <option value="voraz">Voraz (Greedy)</option>
-              <option value="bfs" disabled>BFS (Corte 2)</option>
-              <option value="dfs" disabled>DFS (Corte 2)</option>
-              <option value="ucs" disabled>UCS (Corte 2)</option>
-              <option value="a_estrella" disabled>A* (Corte 2)</option>
+              <option value="bfs" disabled>BFS (pendiente)</option>
+              <option value="dfs" disabled>DFS (pendiente)</option>
             </select>
           </div>
           <button
@@ -285,7 +298,7 @@ onMounted(() => {
             </div>
             <div class="tx-data-row">
               <dt class="tx-data-term">Algoritmo</dt>
-              <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.algoritmo }} (greedy)</dd>
+              <dd class="tx-data-value tx-font-mono">{{ etiquetaAlgoritmo }}</dd>
             </div>
             <div class="tx-data-row">
               <dt class="tx-data-term">Camino</dt>
@@ -300,6 +313,10 @@ onMounted(() => {
             <div class="tx-data-row">
               <dt class="tx-data-term">Tiempo Est.</dt>
               <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.tiempo_total_min.toFixed(1) }} min</dd>
+            </div>
+            <div class="tx-data-row">
+              <dt class="tx-data-term">Costo (criterio)</dt>
+              <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.costo_total.toFixed(2) }}</dd>
             </div>
             <div class="tx-data-row">
               <dt class="tx-data-term">Conexiones</dt>

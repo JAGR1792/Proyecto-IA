@@ -25,6 +25,7 @@ interface AristaGrafo {
   congestion: string
   disponible: boolean
   nombre_via?: string
+  geometria?: number[][] | null
 }
 
 interface Props {
