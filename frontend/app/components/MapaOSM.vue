@@ -5,6 +5,7 @@
  */
 import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import type { Map as LeafletMap } from 'leaflet'
+import { esJson } from '@/utils/api'
 
 interface Props {
   nodos: { id: string; nombre: string; lat: number; lon: number; tipo: string }[]
@@ -48,7 +49,7 @@ const props = withDefaults(defineProps<Props>(), {
   aristaResaltada: () => [],
   mostrarRedVial: true,
   mostrarNodos: true,
-  apiBase: 'http://localhost:8000/api/v1',
+  apiBase: '/api/v1',
 })
 
 const emit = defineEmits<Emits>()
@@ -171,15 +172,28 @@ async function inicializarMapa() {
   cargarDatos()
 }
 
+/** Pide JSON y falla con un mensaje claro si el servidor devuelve HTML. */
+async function pedirJson(url: string): Promise<any> {
+  const respuesta = await fetch(url)
+  const tipo = respuesta.headers.get('content-type') || ''
+  if (!respuesta.ok || !esJson(tipo)) {
+    throw new Error(
+      `La API no respondió JSON en ${url} (status ${respuesta.status}). ` +
+        'Verifica que el backend esté activo.',
+    )
+  }
+  return respuesta.json()
+}
+
 async function cargarDatos() {
   if (!mapa) return
   cargando.value = true
   error.value = null
   try {
     const [bbox, geoNodos, geoAristas] = await Promise.all([
-      fetch(`${props.apiBase}/mapa/bbox`).then((r) => r.json()),
-      fetch(`${props.apiBase}/mapa/geojson/nodos`).then((r) => r.json()),
-      fetch(`${props.apiBase}/mapa/geojson/aristas`).then((r) => r.json()),
+      pedirJson(`${props.apiBase}/mapa/bbox`),
+      pedirJson(`${props.apiBase}/mapa/geojson/nodos`),
+      pedirJson(`${props.apiBase}/mapa/geojson/aristas`),
     ])
 
     layerAristas!.addData(geoAristas as any)
@@ -307,7 +321,11 @@ async function aplicarRuta() {
       .bindTooltip('Destino')
   }
 
-  mapa.flyToBounds(capaRuta.getBounds(), { padding: [30, 30], duration: 0.6 })
+  try {
+    mapa.flyToBounds(capaRuta.getBounds(), { padding: [30, 30], duration: 0.6 })
+  } catch {
+    // El mapa aún no tiene vista (los datos no cargaron): cargarDatos la fija.
+  }
 }
 
 /** Resalta sobre el GeoJSON base las aristas que pertenecen a la ruta. */

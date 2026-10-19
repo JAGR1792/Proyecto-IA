@@ -493,4 +493,28 @@ La red de Chapinero tiene 888 nodos y 1.741 aristas. Con todo visible, el mapa q
 - ⚠️ Las preferencias de capas no se guardan al recargar (solo viven en la sesión).
 - Siguiente: si el equipo lo pide, persistir capas y añadir filtros por tipo de vía o congestión.
 
+---
+
+## ADR-020 — Diagnóstico de "Unexpected token '<'" y guardas de respuesta JSON
+
+**Fecha:** 2026-09
+**Estado:** Aceptado
+
+### Contexto
+Tras el merge, la interfaz volvió a mostrar `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. El backend estaba sano (`/health` 200), pero `http://localhost:3000/api/v1/grafo/` devolvía **HTML con status 200**: el `nuxt dev` había perdido el `devProxy` tras encadenar reinicios. El log mostraba `Restarting Nuxt due to error: EBUSY ... .tmpdir` (temporales de guardado atómico) y además se ejecutaron dos `nuxt build` con el dev server activo; ambos comparten `node_modules/.cache/nuxt/.nuxt`.
+
+### Decisión
+- **Operación:** reiniciar `nuxt dev` después de un `nuxt build` o de cambiar `nuxt.config.ts`; el proxy se restablece al arrancar.
+- **`nuxt.config.ts`:** el watcher de Vite ignora los temporales de guardado atómico (`**/*.tmpdir/**`, `**/*.tmp`) para evitar los reinicios por `EBUSY` en Windows.
+- **`app/utils/api.ts`:** helper `esJson()` que acepta `application/json` y los tipos con sufijo `+json` (los endpoints de mapa usan `application/geo+json`).
+- **`app.vue`:** `cargarGrafo()` valida `ok` y content-type antes de parsear y muestra un mensaje accionable ("La API respondió text/html… reinicia el servidor de desarrollo") en lugar del error críptico de `JSON.parse`; las estadísticas ya no tumban la carga del grafo si fallan.
+- **`MapaOSM.vue`:** `pedirJson()` aplica la misma validación en los tres endpoints del mapa y `flyToBounds` se protege cuando el mapa todavía no tiene vista.
+
+### Consecuencias
+- ✅ El error deja de ser opaco: explica qué respondió el servidor y cómo recuperarse.
+- ✅ El desarrollo sobrevive a guardados atómicos y acepta `application/geo+json` como JSON válido.
+- ✅ Verificado con Edge headless/CDP tras reiniciar el dev server: 2.633 paths, ruta de 44 segmentos, redibujado al remontar y 0 errores de consola.
+- ⚠️ `nuxt build` y `nuxt dev` no deben convivir: el build sobrescribe el caché que usa el dev server.
+- Siguiente: si se quiere blindar más, un fallback automático del frontend a `http://localhost:8000/api/v1` en desarrollo.
+
 
