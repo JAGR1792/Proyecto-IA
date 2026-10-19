@@ -93,7 +93,10 @@ class RepositorioGrafo:
     # ==================== GeoJSON ====================
 
     def guardar_geojson(
-        self, grafo: Grafo, nombre_nodos: str = "nodos.geojson", nombre_aristas: str = "aristas.geojson"
+        self,
+        grafo: Grafo,
+        nombre_nodos: str = "nodos.geojson",
+        nombre_aristas: str = "aristas.geojson",
     ) -> tuple[Path, Path]:
         """Exporta nodos y aristas como GeoJSON FeatureCollections."""
         ruta_nodos = self.directorio / nombre_nodos
@@ -102,16 +105,24 @@ class RepositorioGrafo:
         features_nodos, features_aristas = self._construir_features_geojson(grafo)
 
         with open(ruta_nodos, "w", encoding="utf-8") as f:
-            json.dump({"type": "FeatureCollection", "features": features_nodos}, f, ensure_ascii=False, indent=2)
+            json.dump(
+                {"type": "FeatureCollection", "features": features_nodos},
+                f,
+                ensure_ascii=False,
+                indent=2,
+            )
 
         with open(ruta_aristas, "w", encoding="utf-8") as f:
-            json.dump({"type": "FeatureCollection", "features": features_aristas}, f, ensure_ascii=False, indent=2)
+            json.dump(
+                {"type": "FeatureCollection", "features": features_aristas},
+                f,
+                ensure_ascii=False,
+                indent=2,
+            )
 
         return ruta_nodos, ruta_aristas
 
-    def generar_geojson(
-        self, grafo: Grafo
-    ) -> tuple[dict[str, Any], dict[str, Any]]:
+    def generar_geojson(self, grafo: Grafo) -> tuple[dict[str, Any], dict[str, Any]]:
         """Genera FeatureCollections GeoJSON de nodos y aristas en memoria (sin disco)."""
         features_nodos, features_aristas = self._construir_features_geojson(grafo)
         return (
@@ -128,7 +139,9 @@ class RepositorioGrafo:
         nx.write_graphml(G, buffer)
         return buffer.getvalue().decode("utf-8")
 
-    def _construir_features_geojson(self, grafo: Grafo) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    def _construir_features_geojson(
+        self, grafo: Grafo
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         """Construye las features GeoJSON de nodos y aristas sin persistir."""
         # Nodos
         features_nodos = []
@@ -208,7 +221,9 @@ class RepositorioGrafo:
                         nombre=props["nombre"],
                         coordenadas=Coordenadas(latitud=coords[1], longitud=coords[0]),
                         tipo=TipoNodo(props.get("tipo", "interseccion")),
-                        atributos=AtributosNodo(**{k: v for k, v in props.items() if k not in ["id", "nombre", "tipo"]}),
+                        atributos=AtributosNodo(
+                            **{k: v for k, v in props.items() if k not in ["id", "nombre", "tipo"]}
+                        ),
                     )
                 )
 
@@ -232,10 +247,25 @@ class RepositorioGrafo:
                         congestion=NivelCongestion(props.get("congestion", "baja")),
                         disponible=props.get("disponible", True),
                         incidentes=props.get("incidentes", 0),
-                        atributos=AtributosArista(**{k: v for k, v in props.items() if k not in [
-                            "id", "origen", "destino", "distancia", "tiempo_estimado",
-                            "costo", "velocidad_promedio", "congestion", "disponible", "incidentes"
-                        ]}),
+                        atributos=AtributosArista(
+                            **{
+                                k: v
+                                for k, v in props.items()
+                                if k
+                                not in [
+                                    "id",
+                                    "origen",
+                                    "destino",
+                                    "distancia",
+                                    "tiempo_estimado",
+                                    "costo",
+                                    "velocidad_promedio",
+                                    "congestion",
+                                    "disponible",
+                                    "incidentes",
+                                ]
+                            }
+                        ),
                     )
                 )
 
@@ -302,7 +332,12 @@ class RepositorioGrafo:
                     coordenadas=Coordenadas(latitud=row["latitud"], longitud=row["longitud"]),
                     tipo=TipoNodo(row.get("tipo", "interseccion")),
                     atributos=AtributosNodo(
-                        **{k: v for k, v in row.items() if k not in ["id", "nombre", "latitud", "longitud", "tipo"] and pd.notna(v)}
+                        **{
+                            k: v
+                            for k, v in row.items()
+                            if k not in ["id", "nombre", "latitud", "longitud", "tipo"]
+                            and pd.notna(v)
+                        }
                     ),
                 )
             )
@@ -322,10 +357,24 @@ class RepositorioGrafo:
                     disponible=row.get("disponible", True),
                     incidentes=row.get("incidentes", 0),
                     atributos=AtributosArista(
-                        **{k: v for k, v in row.items() if k not in [
-                            "id", "origen", "destino", "distancia", "tiempo_estimado",
-                            "costo", "velocidad_promedio", "congestion", "disponible", "incidentes"
-                        ] and pd.notna(v)}
+                        **{
+                            k: v
+                            for k, v in row.items()
+                            if k
+                            not in [
+                                "id",
+                                "origen",
+                                "destino",
+                                "distancia",
+                                "tiempo_estimado",
+                                "costo",
+                                "velocidad_promedio",
+                                "congestion",
+                                "disponible",
+                                "incidentes",
+                            ]
+                            and pd.notna(v)
+                        }
                     ),
                 )
             )
@@ -396,9 +445,18 @@ class RepositorioGrafo:
         """Añade atributos de OSM a las aristas."""
         # Velocidades por defecto según tipo de vía OSM (km/h)
         velocidad_por_tipo = {
-            "motorway": 90, "trunk": 70, "primary": 60, "secondary": 50,
-            "tertiary": 45, "residential": 30, "service": 20, "pedestrian": 5,
-            "cycleway": 15, "living_street": 10, "unclassified": 40, "road": 30,
+            "motorway": 90,
+            "trunk": 70,
+            "primary": 60,
+            "secondary": 50,
+            "tertiary": 45,
+            "residential": 30,
+            "service": 20,
+            "pedestrian": 5,
+            "cycleway": 15,
+            "living_street": 10,
+            "unclassified": 40,
+            "road": 30,
         }
         for arista in grafo.aristas:
             # Dict de llaves: OSMnx usa ints; nuestro modelo usa str
@@ -489,8 +547,10 @@ class RepositorioGrafo:
             nombre_salida="osm_grafo",
         )
 
-        print(f"  âœ“ Descargados: {grafo.metadata['nodos_originales']} nodos, "
-              f"{grafo.metadata['aristas_originales']} aristas originales")
+        print(
+            f"  âœ“ Descargados: {grafo.metadata['nodos_originales']} nodos, "
+            f"{grafo.metadata['aristas_originales']} aristas originales"
+        )
 
         # Persistir en todos los formatos
         self.guardar_json(grafo, "grafo_osm.json")
@@ -510,25 +570,118 @@ class RepositorioGrafo:
 
         # 6 Nodos del PDF
         nodos = [
-            Nodo(id="n1", nombre="Entrada Principal", coordenadas=Coordenadas(latitud=4.6097, longitud=-74.0817), tipo=TipoNodo.EDIFICIO),
-            Nodo(id="n2", nombre="Edificio IngenierÃ­a", coordenadas=Coordenadas(latitud=4.6102, longitud=-74.0820), tipo=TipoNodo.EDIFICIO),
-            Nodo(id="n3", nombre="Biblioteca", coordenadas=Coordenadas(latitud=4.6105, longitud=-74.0815), tipo=TipoNodo.EDIFICIO),
-            Nodo(id="n4", nombre="CafeterÃ­a", coordenadas=Coordenadas(latitud=4.6100, longitud=-74.0825), tipo=TipoNodo.ZONA),
-            Nodo(id="n5", nombre="Laboratorios", coordenadas=Coordenadas(latitud=4.6110, longitud=-74.0818), tipo=TipoNodo.EDIFICIO),
-            Nodo(id="n6", nombre="Zona Deportiva", coordenadas=Coordenadas(latitud=4.6115, longitud=-74.0822), tipo=TipoNodo.ZONA),
+            Nodo(
+                id="n1",
+                nombre="Entrada Principal",
+                coordenadas=Coordenadas(latitud=4.6097, longitud=-74.0817),
+                tipo=TipoNodo.EDIFICIO,
+            ),
+            Nodo(
+                id="n2",
+                nombre="Edificio IngenierÃ­a",
+                coordenadas=Coordenadas(latitud=4.6102, longitud=-74.0820),
+                tipo=TipoNodo.EDIFICIO,
+            ),
+            Nodo(
+                id="n3",
+                nombre="Biblioteca",
+                coordenadas=Coordenadas(latitud=4.6105, longitud=-74.0815),
+                tipo=TipoNodo.EDIFICIO,
+            ),
+            Nodo(
+                id="n4",
+                nombre="CafeterÃ­a",
+                coordenadas=Coordenadas(latitud=4.6100, longitud=-74.0825),
+                tipo=TipoNodo.ZONA,
+            ),
+            Nodo(
+                id="n5",
+                nombre="Laboratorios",
+                coordenadas=Coordenadas(latitud=4.6110, longitud=-74.0818),
+                tipo=TipoNodo.EDIFICIO,
+            ),
+            Nodo(
+                id="n6",
+                nombre="Zona Deportiva",
+                coordenadas=Coordenadas(latitud=4.6115, longitud=-74.0822),
+                tipo=TipoNodo.ZONA,
+            ),
         ]
         for n in nodos:
             grafo.agregar_nodo(n)
 
         # Aristas con valores del PDF (distancia, tiempo, costo)
         aristas = [
-            Arista(id="e1", origen="n1", destino="n2", distancia=300, tiempo_estimado=4, costo=0, velocidad_promedio=45, congestion=NivelCongestion.BAJA),
-            Arista(id="e2", origen="n1", destino="n4", distancia=200, tiempo_estimado=3, costo=0, velocidad_promedio=40, congestion=NivelCongestion.BAJA),
-            Arista(id="e3", origen="n2", destino="n3", distancia=300, tiempo_estimado=4, costo=0, velocidad_promedio=45, congestion=NivelCongestion.MEDIA),
-            Arista(id="e4", origen="n2", destino="n5", distancia=200, tiempo_estimado=3, costo=0, velocidad_promedio=40, congestion=NivelCongestion.BAJA),
-            Arista(id="e5", origen="n3", destino="n6", distancia=400, tiempo_estimado=5, costo=0, velocidad_promedio=48, congestion=NivelCongestion.BAJA),
-            Arista(id="e6", origen="n4", destino="n5", distancia=300, tiempo_estimado=4, costo=0, velocidad_promedio=45, congestion=NivelCongestion.MEDIA),
-            Arista(id="e7", origen="n5", destino="n6", distancia=200, tiempo_estimado=3, costo=0, velocidad_promedio=40, congestion=NivelCongestion.BAJA),
+            Arista(
+                id="e1",
+                origen="n1",
+                destino="n2",
+                distancia=300,
+                tiempo_estimado=4,
+                costo=0,
+                velocidad_promedio=45,
+                congestion=NivelCongestion.BAJA,
+            ),
+            Arista(
+                id="e2",
+                origen="n1",
+                destino="n4",
+                distancia=200,
+                tiempo_estimado=3,
+                costo=0,
+                velocidad_promedio=40,
+                congestion=NivelCongestion.BAJA,
+            ),
+            Arista(
+                id="e3",
+                origen="n2",
+                destino="n3",
+                distancia=300,
+                tiempo_estimado=4,
+                costo=0,
+                velocidad_promedio=45,
+                congestion=NivelCongestion.MEDIA,
+            ),
+            Arista(
+                id="e4",
+                origen="n2",
+                destino="n5",
+                distancia=200,
+                tiempo_estimado=3,
+                costo=0,
+                velocidad_promedio=40,
+                congestion=NivelCongestion.BAJA,
+            ),
+            Arista(
+                id="e5",
+                origen="n3",
+                destino="n6",
+                distancia=400,
+                tiempo_estimado=5,
+                costo=0,
+                velocidad_promedio=48,
+                congestion=NivelCongestion.BAJA,
+            ),
+            Arista(
+                id="e6",
+                origen="n4",
+                destino="n5",
+                distancia=300,
+                tiempo_estimado=4,
+                costo=0,
+                velocidad_promedio=45,
+                congestion=NivelCongestion.MEDIA,
+            ),
+            Arista(
+                id="e7",
+                origen="n5",
+                destino="n6",
+                distancia=200,
+                tiempo_estimado=3,
+                costo=0,
+                velocidad_promedio=40,
+                congestion=NivelCongestion.BAJA,
+            ),
         ]
         for a in aristas:
             grafo.agregar_arista(a)
@@ -536,6 +689,8 @@ class RepositorioGrafo:
         # Guardar
         self.guardar_json(grafo, "dataset_inicial_pdf.json")
         self.guardar_csv(grafo, "dataset_inicial_pdf")
-        self.guardar_geojson(grafo, "dataset_inicial_pdf_nodos.geojson", "dataset_inicial_pdf_aristas.geojson")
+        self.guardar_geojson(
+            grafo, "dataset_inicial_pdf_nodos.geojson", "dataset_inicial_pdf_aristas.geojson"
+        )
 
         return grafo

@@ -1,8 +1,8 @@
 """Validadores para atributos del grafo."""
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
-from .modelos import Arista, Grafo, NivelCongestion, Nodo, TipoNodo, TipoVia
+from .modelos import Arista, Grafo, Nodo
 
 
 class ExcepcionValidacion(Exception):
@@ -11,7 +11,7 @@ class ExcepcionValidacion(Exception):
     pass
 
 
-def validar_grafo_completo(grafo: Grafo) -> Tuple[bool, List[str]]:
+def validar_grafo_completo(grafo: Grafo) -> tuple[bool, list[str]]:
     """Valida integridad completa del grafo.
 
     Returns:
@@ -67,7 +67,7 @@ def validar_grafo_completo(grafo: Grafo) -> Tuple[bool, List[str]]:
     return len([e for e in errores if not e.startswith("Advertencia")]) == 0, errores
 
 
-def validar_nodo(nodo: Nodo) -> List[str]:
+def validar_nodo(nodo: Nodo) -> list[str]:
     """Valida un nodo individual."""
     errores = []
 
@@ -86,7 +86,7 @@ def validar_nodo(nodo: Nodo) -> List[str]:
     return errores
 
 
-def validar_arista(arista: Arista, nodos: Dict[str, Nodo]) -> List[str]:
+def validar_arista(arista: Arista, nodos: dict[str, Nodo]) -> list[str]:
     """Valida una arista individual."""
     errores = []
 
@@ -111,7 +111,7 @@ def validar_arista(arista: Arista, nodos: Dict[str, Nodo]) -> List[str]:
     return errores
 
 
-def validar_conexion_bidireccional(grafo: Grafo) -> List[str]:
+def validar_conexion_bidireccional(grafo: Grafo) -> list[str]:
     """Verifica que conexiones bidireccionales tengan aristas en ambos sentidos."""
     advertencias = []
     pares_vistos = set()
@@ -123,7 +123,10 @@ def validar_conexion_bidireccional(grafo: Grafo) -> List[str]:
         pares_vistos.add(par)
 
         # Buscar arista inversa
-        inversa = next((a for a in grafo.aristas if a.origen == arista.destino and a.destino == arista.origen), None)
+        inversa = next(
+            (a for a in grafo.aristas if a.origen == arista.destino and a.destino == arista.origen),
+            None,
+        )
 
         if inversa is None and not arista.atributos.sentido_unico:
             advertencias.append(
@@ -134,7 +137,7 @@ def validar_conexion_bidireccional(grafo: Grafo) -> List[str]:
     return advertencias
 
 
-def calcular_estadisticas(grafo: Grafo) -> Dict[str, Any]:
+def calcular_estadisticas(grafo: Grafo) -> dict[str, Any]:
     """Calcula estadísticas descriptivas del grafo."""
     if not grafo.nodos:
         return {"nodos": 0, "aristas": 0}

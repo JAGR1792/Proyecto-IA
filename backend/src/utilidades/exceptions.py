@@ -1,5 +1,6 @@
 """Excepciones personalizadas del proyecto."""
 
+
 class ExcepcionBase(Exception):
     """Excepción base con código de error y detalles."""
 

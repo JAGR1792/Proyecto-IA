@@ -21,6 +21,7 @@ _motor_actual: MotorDecision | None = None
 
 class SolicitudIniciar(BaseModel):
     """Entrada para inicializar el agente."""
+
     origen: str
     destino: str
     criterio: str = "menor_tiempo"
@@ -30,6 +31,7 @@ class SolicitudIniciar(BaseModel):
 
 class RespuestaPaso(BaseModel):
     """Salida de un paso del agente."""
+
     accion: str
     descripcion: str
     estado: str
@@ -43,6 +45,7 @@ class RespuestaPaso(BaseModel):
 
 class RespuestaResumen(BaseModel):
     """Resumen completo del estado del agente."""
+
     paso_actual: int
     nodo_actual: str
     nodo_destino: str
@@ -85,7 +88,7 @@ async def iniciar_agente(solicitud: SolicitudIniciar):
         raise HTTPException(
             status_code=422,
             detail=f"Criterio '{solicitud.criterio}' inválido. "
-                   f"Válidos: {[c.value for c in CriterioOptimizacion]}"
+            f"Válidos: {[c.value for c in CriterioOptimizacion]}",
         )
 
     fecha = datetime.fromisoformat(solicitud.fecha) if solicitud.fecha else datetime.now()
@@ -129,7 +132,9 @@ async def ejecutar_paso():
     global _motor_actual
 
     if _motor_actual is None:
-        raise HTTPException(status_code=400, detail="Agente no iniciado. Llame a POST /iniciar primero.")
+        raise HTTPException(
+            status_code=400, detail="Agente no iniciado. Llame a POST /iniciar primero."
+        )
 
     resultado = _motor_actual.ejecutar_paso()
 
@@ -164,7 +169,9 @@ async def ejecutar_completo(max_pasos: int = 30):
     global _motor_actual
 
     if _motor_actual is None:
-        raise HTTPException(status_code=400, detail="Agente no iniciado. Llame a POST /iniciar primero.")
+        raise HTTPException(
+            status_code=400, detail="Agente no iniciado. Llame a POST /iniciar primero."
+        )
 
     if max_pasos > 100:
         raise HTTPException(status_code=422, detail="max_pasos no puede superar 100")
@@ -231,6 +238,7 @@ async def acciones_posibles(nodo_id: str):
     from datetime import datetime
 
     from src.agente.peas import Ambiente
+
     ambiente = Ambiente(grafo=grafo, fecha=datetime.now(), hora="08:00")
     acciones = obtener_acciones_posibles(nodo_id, ambiente, [])
 

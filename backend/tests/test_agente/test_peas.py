@@ -15,9 +15,11 @@ from src.grafo.modelos import Arista, Coordenadas, Grafo, NivelCongestion, Nodo,
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
 
+
 def _hacer_nodo(nid: str, lat: float = 4.6, lon: float = -74.0) -> Nodo:
     return Nodo(
-        id=nid, nombre=f"Intersección {nid}",
+        id=nid,
+        nombre=f"Intersección {nid}",
         coordenadas=Coordenadas(latitud=lat, longitud=lon),
         tipo=TipoNodo.INTERSECCION,
     )
@@ -25,8 +27,11 @@ def _hacer_nodo(nid: str, lat: float = 4.6, lon: float = -74.0) -> Nodo:
 
 def _hacer_arista(oid: str, did: str, tiempo: float = 5.0, dist: float = 1000.0) -> Arista:
     return Arista(
-        id=f"{oid}-{did}", origen=oid, destino=did,
-        distancia=dist, tiempo_estimado=tiempo,
+        id=f"{oid}-{did}",
+        origen=oid,
+        destino=did,
+        distancia=dist,
+        tiempo_estimado=tiempo,
     )
 
 
@@ -53,6 +58,7 @@ def modelo_peas(grafo_lineal):
 
 
 # ─── Tests MedidaDesempeno ────────────────────────────────────────────────────
+
 
 class TestMedidaDesempeno:
     def test_costo_menor_tiempo(self):
@@ -81,6 +87,7 @@ class TestMedidaDesempeno:
 
 # ─── Tests Ambiente ───────────────────────────────────────────────────────────
 
+
 class TestAmbiente:
     def test_obtener_nodos_disponibles(self, grafo_lineal):
         amb = Ambiente(grafo=grafo_lineal, fecha=datetime.now(), hora="08:00")
@@ -97,7 +104,9 @@ class TestAmbiente:
 
     def test_conexion_bloqueada_no_disponible(self, grafo_lineal):
         amb = Ambiente(
-            grafo=grafo_lineal, fecha=datetime.now(), hora="08:00",
+            grafo=grafo_lineal,
+            fecha=datetime.now(),
+            hora="08:00",
             conexiones_bloqueadas={"N1-N2"},
         )
         assert amb.conexion_disponible("N1", "N2") is False
@@ -108,6 +117,7 @@ class TestAmbiente:
 
 
 # ─── Tests ModeloPEAS ─────────────────────────────────────────────────────────
+
 
 class TestModeloPEAS:
     def test_crear_peas_inicial(self, grafo_lineal):
@@ -120,14 +130,32 @@ class TestModeloPEAS:
         assert modelo_peas.objetivo_cumplido() is False
 
     def test_registrar_accion_actualiza_ruta(self, modelo_peas):
-        accion = Accion(tipo="avanzar", nodo_origen="N1", nodo_destino="N2", tiempo_estimado=10.0, distancia=500.0)
+        accion = Accion(
+            tipo="avanzar",
+            nodo_origen="N1",
+            nodo_destino="N2",
+            tiempo_estimado=10.0,
+            distancia=500.0,
+        )
         modelo_peas.registrar_accion(accion)
         assert "N1" in modelo_peas.percepcion.ruta_construida
 
     def test_evaluar_desempeno(self, modelo_peas):
         # Registrar 2 acciones para que ruta_construida tenga >1 elemento
-        accion1 = Accion(tipo="avanzar", nodo_origen="N1", nodo_destino="N2", tiempo_estimado=10.0, distancia=500.0)
-        accion2 = Accion(tipo="avanzar", nodo_origen="N2", nodo_destino="N3", tiempo_estimado=8.0, distancia=700.0)
+        accion1 = Accion(
+            tipo="avanzar",
+            nodo_origen="N1",
+            nodo_destino="N2",
+            tiempo_estimado=10.0,
+            distancia=500.0,
+        )
+        accion2 = Accion(
+            tipo="avanzar",
+            nodo_origen="N2",
+            nodo_destino="N3",
+            tiempo_estimado=8.0,
+            distancia=700.0,
+        )
         modelo_peas.registrar_accion(accion1)
         modelo_peas.registrar_accion(accion2)
         medida = modelo_peas.evaluar_desempeno(destino_alcanzado=True)

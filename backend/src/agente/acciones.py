@@ -6,14 +6,14 @@ El motor de búsqueda se implementará en Corte 2.
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from ..grafo.modelos import Arista, NivelCongestion
 from .peas import Accion, Ambiente, Percepcion
 
 
-class TipoAccion(str, Enum):
+class TipoAccion(StrEnum):
     """Catálogo de acciones posibles del agente (PDF 5.1)."""
 
     AVANZAR = "avanzar"
@@ -198,7 +198,8 @@ def decidir_accion(contexto: ContextoAccion) -> Accion:
     # 2. Obtener conexiones disponibles
     vecinas = amb.grafo.obtener_vecinos(nodo)
     disponibles = [
-        a for a in vecinas
+        a
+        for a in vecinas
         if amb.conexion_disponible(a.origen, a.destino)
         and a.congestion != NivelCongestion.BLOQUEADA
     ]
@@ -260,15 +261,17 @@ def obtener_acciones_posibles(
             estado = "bloqueado"
 
         accion = construir_accion_avanzar(arista)
-        acciones.append({
-            "tipo": accion.tipo,
-            "destino": arista.destino,
-            "tiempo_estimado": arista.tiempo_estimado,
-            "distancia": arista.distancia,
-            "congestion": arista.congestion.value,
-            "via": arista.atributos.nombre_via,
-            "estado": estado,
-            "descripcion": accion.descripcion,
-        })
+        acciones.append(
+            {
+                "tipo": accion.tipo,
+                "destino": arista.destino,
+                "tiempo_estimado": arista.tiempo_estimado,
+                "distancia": arista.distancia,
+                "congestion": arista.congestion.value,
+                "via": arista.atributos.nombre_via,
+                "estado": estado,
+                "descripcion": accion.descripcion,
+            }
+        )
 
     return acciones

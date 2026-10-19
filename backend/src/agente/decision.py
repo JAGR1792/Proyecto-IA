@@ -8,7 +8,7 @@ Este módulo actúa como capa de orquestación entre percepción y acción.
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from ..grafo.modelos import Grafo
@@ -29,7 +29,7 @@ from .peas import (
 from .percepcion import PercepcionCompleta
 
 
-class EstadoDecision(str, Enum):
+class EstadoDecision(StrEnum):
     """Estado del proceso de decisión del agente."""
 
     LISTO = "listo"
