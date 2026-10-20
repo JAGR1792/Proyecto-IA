@@ -160,6 +160,8 @@ function obtenerEstilos() {
         'font-size': '10px',
         'font-family': '"JetBrains Mono", monospace',
         'font-weight': 'bold',
+        'text-wrap': 'wrap',
+        'text-max-width': '95px',
         'color': textoNodo,
         'text-outline-width': 2,
         'text-outline-color': outlineNodo,

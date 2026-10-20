@@ -607,4 +607,29 @@ El dashboard mostraba distancia, tiempo y el costo del criterio de búsqueda, pe
 - ⚠️ El factor de excelencia y la tarjeta EO quedan implementados con la unidad de $172 y recargos oficiales, pero no se validaron contra una tarjeta EO publicada.
 - Siguiente: estimar la espera con datos de tráfico y validar la tabla EO cuando la SDM publique la tarjeta 2026.
 
+---
+
+## ADR-024 - Selección de nodos en mapa y nombres amigables de vías
+
+**Fecha:** 2026-10
+**Estado:** Aceptado
+
+### Contexto
+El dashboard obligaba a elegir origen y destino en desplegables con 888 opciones etiquetadas como `Nodo <id>`, un identificador largo y poco útil para reconocer una esquina. El mapa y el grafo ya emitían eventos de clic sobre nodos, pero el manejador solo mostraba telemetría. El dataset sí trae los nombres de las vías en cada arista (`atributos.nombre_via`), aunque el nombre del nodo sea genérico.
+
+### Decisión
+- **Nombres en el frontend:** nuevo helper `frontend/app/utils/nombres.ts` que construye un mapa `nodo.id -> nombre visible` a partir de las vías incidentes. Usa hasta dos vías, prefiere un cruce de tipos distintos (Calle/Carrera), elimina duplicados del tipo "Avenida Calle 80" vs "Calle 80", agrega `+N` si hay más vías y cae a `Intersección` cuando no hay datos.
+- **Etiquetas:** los desplegables y los tooltips muestran `nombre · #últimos6` para desambiguar nodos que comparten la misma vía. Los IDs enviados a la API no cambian.
+- **Selección:** botones `Marcar origen` y `Marcar destino` activan un modo de clic; al hacer clic en un nodo del mapa o del grafo se fija el extremo correspondiente y se desactiva el modo. El panel de telemetría agrega `Usar como origen` y `Usar como destino`. El modo activa la capa de nodos y muestra un aviso sobre el mapa.
+- **Mapa:** `MapaOSM.vue` recibe `modoSeleccion`, `origenId` y `destinoId`, actualiza los tooltips cuando llegan los nombres y dibuja anillos de selección independientes de la ruta activa.
+- **Grafo:** `GraphView.vue` recibe los nodos con nombre amigable y permite el mismo flujo de selección; las etiquetas admiten varias líneas.
+- **Compatibilidad:** se mantienen los desplegables y la selección por ID; el cambio es incremental y no toca el backend ni el contrato de búsqueda.
+
+### Consecuencias
+- El usuario puede fijar una esquina reconocible directamente en el mapa, sin buscar su ID.
+- 885 de los 888 nodos tienen al menos una vía incidente; los 3 restantes usan `Intersección` y el sufijo de ID.
+- Los nombres se calculan en el cliente a partir del grafo ya cargado; no se agrega una consulta ni se duplica información en la API.
+- Verificación: `npm run lint:ci`, `npm run typecheck` y `npm run build` pasan. No hay tests unitarios de frontend en el proyecto; la validación es de compilación y prueba manual.
+- Limitación: el nombre es una aproximación legible, no una dirección postal ni un geocoder. Si se necesita precisión, el siguiente paso es enriquecer los nodos en el backend con `display_name` de Nominatim o datos catastrales.
+
 

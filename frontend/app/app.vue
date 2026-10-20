@@ -4,6 +4,7 @@ import GraphView from '@/components/GraphView.vue'
 import MapaOSM from '@/components/MapaOSM.vue'
 import type { NodoGrafo, AristaGrafo } from '@/components/GraphView.vue'
 import { esJson } from '@/utils/api'
+import { construirNombresAmigables, sufijoIdNodo } from '@/utils/nombres'
 
 const nodos = ref<NodoGrafo[]>([])
 const aristas = ref<AristaGrafo[]>([])
@@ -30,6 +31,29 @@ const temaActivo = ref<'oscuro' | 'claro'>('oscuro')
 // Capas de contexto: la ruta activa se dibuja siempre, aunque se oculten
 const mostrarRedVial = ref(true)
 const mostrarNodos = ref(true)
+
+// Selección de extremos directamente sobre el mapa o el grafo
+type RolExtremo = 'origen' | 'destino'
+const modoSeleccionMapa = ref<RolExtremo | null>(null)
+
+// Nombres legibles: "Calle 75 con Carrera 11" en vez de "Nodo 253761879"
+const nombresAmigables = computed(() =>
+  construirNombresAmigables(nodos.value, aristas.value),
+)
+const nodosConNombre = computed<NodoGrafo[]>(() =>
+  nodos.value.map((nodo) => ({
+    ...nodo,
+    nombre: nombresAmigables.value.get(nodo.id) ?? nodo.nombre,
+  })),
+)
+const nodosOrdenados = computed(() =>
+  [...nodosConNombre.value].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
+)
+
+function etiquetaNodoPorId(id: string): string {
+  const nombre = nombresAmigables.value.get(id)
+  return nombre ? `${nombre} · ${sufijoIdNodo(id)}` : sufijoIdNodo(id)
+}
 
 // Opciones de tarifa de taxi (Decreto 042 de 2026)
 const tarifaNocturna = ref(false)
@@ -181,9 +205,27 @@ async function cargarGrafo() {
   }
 }
 
-function manejarClickNodo(nodo: NodoGrafo) {
-  nodoSeleccionado.value = nodo
+function fijarExtremo(rol: RolExtremo, nodo: NodoGrafo) {
+  const nodoAmigable = nodosConNombre.value.find((n) => n.id === nodo.id) ?? nodo
+  if (rol === 'origen') {
+    origenSeleccionado.value = nodo.id
+  } else {
+    destinoSeleccionado.value = nodo.id
+  }
+  nodoSeleccionado.value = nodoAmigable
   aristaSeleccionada.value = null
+  modoSeleccionMapa.value = null
+  // La ruta anterior ya no corresponde a los extremos elegidos
+  limpiarRuta()
+}
+
+function manejarClickNodo(nodo: NodoGrafo) {
+  const nodoAmigable = nodosConNombre.value.find((n) => n.id === nodo.id) ?? nodo
+  nodoSeleccionado.value = nodoAmigable
+  aristaSeleccionada.value = null
+  if (modoSeleccionMapa.value) {
+    fijarExtremo(modoSeleccionMapa.value, nodoAmigable)
+  }
 }
 
 function manejarClickArista(arista: AristaGrafo) {
@@ -191,9 +233,22 @@ function manejarClickArista(arista: AristaGrafo) {
   nodoSeleccionado.value = null
 }
 
+function alternarModoSeleccion(rol: RolExtremo) {
+  modoSeleccionMapa.value = modoSeleccionMapa.value === rol ? null : rol
+  if (modoSeleccionMapa.value) {
+    mostrarNodos.value = true
+  }
+}
+
+function usarNodoComo(rol: RolExtremo) {
+  if (!nodoSeleccionado.value) return
+  fijarExtremo(rol, nodoSeleccionado.value)
+}
+
 function limpiarRuta() {
   rutaResaltada.value = []
   aristaResaltada.value = []
+  resultadoRuta.value = null
   comparacion.value = null
 }
 
@@ -359,15 +414,47 @@ onMounted(() => {
             <label class="tx-label">Punto de Origen</label>
             <select v-model="origenSeleccionado" class="tx-select">
               <option value="">Seleccionar intersección...</option>
-              <option v-for="n in nodos" :key="n.id" :value="n.id">{{ n.nombre }} ({{ n.id }})</option>
+              <option v-for="n in nodosOrdenados" :key="n.id" :value="n.id">
+                {{ n.nombre }} · {{ sufijoIdNodo(n.id) }}
+              </option>
             </select>
           </div>
           <div class="tx-form-group">
             <label class="tx-label">Destino Final</label>
             <select v-model="destinoSeleccionado" class="tx-select">
               <option value="">Seleccionar intersección...</option>
-              <option v-for="n in nodos" :key="n.id" :value="n.id">{{ n.nombre }} ({{ n.id }})</option>
+              <option v-for="n in nodosOrdenados" :key="n.id" :value="n.id">
+                {{ n.nombre }} · {{ sufijoIdNodo(n.id) }}
+              </option>
             </select>
+          </div>
+          <div class="tx-form-group">
+            <label class="tx-label">Selección rápida en mapa</label>
+            <div class="tx-map-pick">
+              <button
+                type="button"
+                class="tx-button tx-button-secondary"
+                :class="{ 'tx-view-btn-activo': modoSeleccionMapa === 'origen' }"
+                @click="alternarModoSeleccion('origen')"
+              >
+                Marcar origen
+              </button>
+              <button
+                type="button"
+                class="tx-button tx-button-secondary"
+                :class="{ 'tx-view-btn-activo': modoSeleccionMapa === 'destino' }"
+                @click="alternarModoSeleccion('destino')"
+              >
+                Marcar destino
+              </button>
+            </div>
+            <p class="tx-panel-note tx-map-pick-note">
+              {{ modoSeleccionMapa ? 'Haz clic en un nodo del mapa o del grafo.' : 'También puedes elegir en los desplegables.' }}
+            </p>
+            <div v-if="origenSeleccionado || destinoSeleccionado" class="tx-ruta-resumen">
+              <span v-if="origenSeleccionado"><strong>Origen:</strong> {{ etiquetaNodoPorId(origenSeleccionado) }}</span>
+              <span v-if="destinoSeleccionado"><strong>Destino:</strong> {{ etiquetaNodoPorId(destinoSeleccionado) }}</span>
+            </div>
           </div>
           <div class="tx-form-group">
             <label class="tx-label">Función de Optimización</label>
@@ -575,6 +662,18 @@ onMounted(() => {
               <dd class="tx-data-value tx-font-mono">{{ nodoSeleccionado.lat.toFixed(6) }}, {{ nodoSeleccionado.lon.toFixed(6) }}</dd>
             </div>
           </dl>
+          <div v-if="nodoSeleccionado.id === origenSeleccionado || nodoSeleccionado.id === destinoSeleccionado" class="tx-node-roles">
+            <span v-if="nodoSeleccionado.id === origenSeleccionado">Origen actual</span>
+            <span v-if="nodoSeleccionado.id === destinoSeleccionado">Destino actual</span>
+          </div>
+          <div class="tx-node-actions">
+            <button type="button" class="tx-button tx-button-secondary" @click="usarNodoComo('origen')">
+              Usar como origen
+            </button>
+            <button type="button" class="tx-button tx-button-secondary" @click="usarNodoComo('destino')">
+              Usar como destino
+            </button>
+          </div>
         </div>
 
         <!-- Arista Seleccionada -->
@@ -653,19 +752,22 @@ onMounted(() => {
         <div class="tx-panel tx-panel--flat">
           <MapaOSM
             v-if="vistaActiva === 'mapa'"
-            :nodos="nodos"
+            :nodos="nodosConNombre"
             :aristas="aristas"
             :ruta-resaltada="rutaResaltada"
             :arista-resaltada="aristaResaltada"
             :mostrar-red-vial="mostrarRedVial"
             :mostrar-nodos="mostrarNodos"
+            :modo-seleccion="modoSeleccionMapa"
+            :origen-id="origenSeleccionado"
+            :destino-id="destinoSeleccionado"
             :api-base="apiBase"
             @nodo-click="manejarClickNodo"
             @arista-click="manejarClickArista"
           />
           <GraphView
             v-else
-            :nodos="nodos"
+            :nodos="nodosConNombre"
             :aristas="aristas"
             :ruta-resaltada="rutaResaltada"
             :arista-resaltada="aristaResaltada"
@@ -958,6 +1060,62 @@ onMounted(() => {
   margin: -0.75rem 0 1rem;
   font-size: 0.8125rem;
   color: var(--text-secondary);
+}
+
+.tx-map-pick {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tx-map-pick .tx-button {
+  flex: 1;
+  min-width: 0;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.tx-map-pick-note {
+  margin: 0.45rem 0 0;
+}
+
+.tx-ruta-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.tx-ruta-resumen strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.tx-node-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tx-node-actions .tx-button {
+  flex: 1;
+  min-width: 0;
+}
+
+.tx-node-roles {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 0.7rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-brand);
 }
 
 .tx-table-wrap {

@@ -4,7 +4,7 @@
  * Consume los endpoints /api/v1/mapa/geojson/nodos y /api/v1/mapa/geojson/aristas.
  * Incluye capas base Mapa (OSM) y Satélite (Esri), con etiquetas opcionales.
  */
-import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Map as LeafletMap } from 'leaflet'
 import { esJson } from '@/utils/api'
 
@@ -21,6 +21,9 @@ interface Props {
   aristaResaltada?: string[]
   mostrarRedVial?: boolean
   mostrarNodos?: boolean
+  modoSeleccion?: 'origen' | 'destino' | null
+  origenId?: string | null
+  destinoId?: string | null
   apiBase?: string
 }
 
@@ -50,10 +53,18 @@ const props = withDefaults(defineProps<Props>(), {
   aristaResaltada: () => [],
   mostrarRedVial: true,
   mostrarNodos: true,
+  modoSeleccion: null,
+  origenId: null,
+  destinoId: null,
   apiBase: '/api/v1',
 })
 
 const emit = defineEmits<Emits>()
+
+const nombresPorId = computed(
+  () => new Map(props.nodos.map((nodo) => [nodo.id, nodo.nombre])),
+)
+const nodosPorId = computed(() => new Map(props.nodos.map((nodo) => [nodo.id, nodo])))
 
 const containerRef = ref<HTMLElement | null>(null)
 const cargando = ref(true)
@@ -64,6 +75,8 @@ let layerAristas: any = null
 let layerNodos: any = null
 let capaOrigen: any = null
 let capaDestino: any = null
+let capaOrigenSeleccion: any = null
+let capaDestinoSeleccion: any = null
 let capaRutaBase: any = null
 let capaRuta: any = null
 
@@ -107,7 +120,7 @@ function estiloArista(feature: any) {
 function estiloNodo(feature: any) {
   const tipo = (feature.properties?.tipo || 'interseccion').toLowerCase()
   return {
-    radius: 6,
+    radius: props.modoSeleccion ? 8 : 6,
     fillColor: COLORES_TIPO[tipo] || '#3f3f46',
     color: '#09090b',
     weight: 1.5,
@@ -180,18 +193,24 @@ async function inicializarMapa() {
     pointToLayer: (_feature, latlng) => leaflet.circleMarker(latlng),
     style: estiloNodo,
     onEachFeature: (feature, layer) => {
-      layer.bindTooltip(
-        `${feature.properties?.nombre || feature.properties?.id}`,
-        { sticky: true },
-      )
+      const propsNodo = feature.properties || {}
+      const nombre =
+        nombresPorId.value.get(propsNodo.id) || propsNodo.nombre || `Nodo ${propsNodo.id}`
+      layer.bindTooltip(`${nombre} · #${String(propsNodo.id).slice(-6)}`, {
+        sticky: true,
+      })
       layer.on('click', () => {
         const c = feature.geometry?.coordinates || []
+        const nombreActual =
+          nombresPorId.value.get(propsNodo.id) ||
+          propsNodo.nombre ||
+          `Nodo ${propsNodo.id}`
         emit('nodo-click', {
-          id: feature.properties?.id,
-          nombre: feature.properties?.nombre,
+          id: propsNodo.id,
+          nombre: nombreActual,
           lat: c[1],
           lon: c[0],
-          tipo: feature.properties?.tipo,
+          tipo: propsNodo.tipo || 'interseccion',
         })
       })
     },
@@ -226,6 +245,7 @@ async function cargarDatos() {
 
     layerAristas!.addData(geoAristas as any)
     layerNodos!.addData(geoNodos as any)
+    actualizarNombresNodos()
 
     mapa!.fitBounds([
       [bbox.min_lat, bbox.min_lon],
@@ -234,6 +254,7 @@ async function cargarDatos() {
 
     // La ruta puede haberse calculado antes de que el mapa terminara de cargar
     await aplicarRuta()
+    aplicarSeleccion()
     resaltarAristas()
     aplicarVisibilidadCapas()
   } catch (e: any) {
@@ -292,6 +313,51 @@ function limpiarCapasRuta() {
   capaRuta = null
   capaOrigen = null
   capaDestino = null
+}
+
+function limpiarSeleccion() {
+  capaOrigenSeleccion?.remove()
+  capaDestinoSeleccion?.remove()
+  capaOrigenSeleccion = null
+  capaDestinoSeleccion = null
+}
+
+/** Refresca los tooltips cuando los nombres amigables llegan después del GeoJSON. */
+function actualizarNombresNodos() {
+  if (!layerNodos) return
+  layerNodos.eachLayer((layer: any) => {
+    const propsNodo = layer.feature?.properties
+    if (!propsNodo?.id) return
+    const nombre =
+      nombresPorId.value.get(propsNodo.id) ||
+      propsNodo.nombre ||
+      `Nodo ${propsNodo.id}`
+    layer.setTooltipContent(`${nombre} · #${String(propsNodo.id).slice(-6)}`)
+  })
+}
+
+/** Dibuja un anillo alrededor de los extremos elegidos, sin depender de la ruta. */
+function aplicarSeleccion() {
+  if (!mapa || !L) return
+  limpiarSeleccion()
+
+  const dibujar = (id: string | null | undefined, color: string) => {
+    if (!id) return null
+    const nodo = nodosPorId.value.get(id)
+    if (!nodo) return null
+    return L!.circleMarker([nodo.lat, nodo.lon], {
+      radius: 12,
+      color,
+      weight: 3,
+      fillColor: color,
+      fillOpacity: 0.12,
+      // El anillo es solo visual: no debe bloquear el clic sobre el nodo.
+      interactive: false,
+    }).addTo(mapa!)
+  }
+
+  capaOrigenSeleccion = dibujar(props.origenId, '#a3e635')
+  capaDestinoSeleccion = dibujar(props.destinoId, '#ef4444')
 }
 
 async function aplicarRuta() {
@@ -392,8 +458,17 @@ watch(() => props.aristaResaltada, () => {
   resaltarAristas()
   void aplicarRuta()
 }, { deep: true })
-watch(() => props.nodos, () => { void aplicarRuta() }, { deep: true })
+watch(() => props.nodos, () => {
+  actualizarNombresNodos()
+  void aplicarRuta()
+  aplicarSeleccion()
+}, { deep: true })
 watch(() => props.aristas, () => { void aplicarRuta() }, { deep: true })
+watch(() => props.origenId, aplicarSeleccion)
+watch(() => props.destinoId, aplicarSeleccion)
+watch(() => props.modoSeleccion, () => {
+  if (layerNodos) layerNodos.setStyle(estiloNodo)
+})
 watch(() => props.mostrarRedVial, aplicarVisibilidadCapas)
 watch(() => props.mostrarNodos, aplicarVisibilidadCapas)
 
@@ -410,9 +485,15 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="tx-graph-container mapa-osm-container">
+  <div
+    class="tx-graph-container mapa-osm-container"
+    :class="{ 'mapa-osm-pick': modoSeleccion }"
+  >
     <div v-if="cargando" class="mapa-osm-overlay">Cargando red vial OpenStreetMap...</div>
     <div v-else-if="error" class="mapa-osm-overlay mapa-osm-error">Error: {{ error }}</div>
+    <div v-if="modoSeleccion && !cargando && !error" class="mapa-osm-pick-hint">
+      Haz clic en un nodo para fijar {{ modoSeleccion === 'origen' ? 'el origen' : 'el destino' }}
+    </div>
     <div ref="containerRef" class="mapa-osm-canvas" />
   </div>
 </template>
@@ -456,5 +537,27 @@ onUnmounted(() => {
 
 .mapa-osm-error {
   color: var(--status-error, #ef4444);
+}
+
+.mapa-osm-pick :deep(.leaflet-container) {
+  cursor: crosshair;
+}
+
+.mapa-osm-pick-hint {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 500;
+  max-width: calc(100% - 2rem);
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--accent-brand, #fbbf24);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-surface-glass, rgba(9, 9, 11, 0.88));
+  color: var(--accent-brand, #fbbf24);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.8rem;
+  text-align: center;
+  pointer-events: none;
 }
 </style>
