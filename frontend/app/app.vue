@@ -471,7 +471,7 @@ onMounted(() => {
               <option value="ucs">UCS (óptimo sin heurística)</option>
               <option value="voraz">Voraz (Greedy)</option>
               <option value="bfs" disabled>BFS (pendiente)</option>
-              <option value="dfs" disabled>DFS (pendiente)</option>
+              <option value="dfs" >DFS (busqueda en profundidad)</option>
             </select>
           </div>
           <button
