@@ -25,6 +25,7 @@ class SolicitudIniciar(BaseModel):
     origen: str
     destino: str
     criterio: str = "menor_tiempo"
+    algoritmo: str = "a_estrella"
     fecha: str | None = None
     hora: str = "08:00"
 
@@ -37,9 +38,11 @@ class RespuestaPaso(BaseModel):
     estado: str
     paso: int
     mensaje: str
+    algoritmo: str = "a_estrella"
     estado_actual: dict[str, Any]
     medida_desempeno: dict[str, Any]
     acciones_posibles: list[dict[str, Any]]
+    ruta_planificada: list[str] = []
     objetivo_cumplido: bool
 
 
@@ -49,9 +52,12 @@ class RespuestaResumen(BaseModel):
     paso_actual: int
     nodo_actual: str
     nodo_destino: str
+    algoritmo: str = "a_estrella"
+    ruta_planificada: list[str] = []
     ruta_construida: list[str]
     distancia_total: float
     historial_acciones: list[str]
+    planificacion: dict[str, Any] = {}
     medida_desempeno: dict[str, Any]
     objetivo_cumplido: bool
 
@@ -93,14 +99,18 @@ async def iniciar_agente(solicitud: SolicitudIniciar):
 
     fecha = datetime.fromisoformat(solicitud.fecha) if solicitud.fecha else datetime.now()
 
-    _motor_actual = MotorDecision.desde_parametros(
-        grafo=grafo,
-        origen=solicitud.origen,
-        destino=solicitud.destino,
-        criterio=criterio,
-        hora=solicitud.hora,
-        fecha=fecha,
-    )
+    try:
+        _motor_actual = MotorDecision.desde_parametros(
+            grafo=grafo,
+            origen=solicitud.origen,
+            destino=solicitud.destino,
+            criterio=criterio,
+            hora=solicitud.hora,
+            fecha=fecha,
+            algoritmo=solicitud.algoritmo,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
     percepcion = _motor_actual.modelo.percepcion
     acciones_pos = obtener_acciones_posibles(
@@ -114,10 +124,16 @@ async def iniciar_agente(solicitud: SolicitudIniciar):
         descripcion=f"Agente iniciado en '{solicitud.origen}' → '{solicitud.destino}'",
         estado=EstadoDecision.LISTO.value,
         paso=0,
-        mensaje=f"Listo para planificar ruta con criterio '{criterio.value}'",
+        mensaje=(
+            f"Ruta planificada con {solicitud.algoritmo} y criterio '{criterio.value}'"
+            if _motor_actual.ruta_planificada
+            else f"Sin ruta con {solicitud.algoritmo} para el criterio '{criterio.value}'"
+        ),
+        algoritmo=_motor_actual.algoritmo,
         estado_actual=percepcion.obtener_estado_actual(),
         medida_desempeno={},
         acciones_posibles=acciones_pos,
+        ruta_planificada=list(_motor_actual.ruta_planificada),
         objetivo_cumplido=False,
     )
 
@@ -144,6 +160,7 @@ async def ejecutar_paso():
         estado=resultado.estado.value,
         paso=resultado.paso,
         mensaje=resultado.mensaje,
+        algoritmo=_motor_actual.algoritmo,
         estado_actual=resultado.percepcion.obtener_estado_actual(),
         medida_desempeno={
             "criterio": resultado.medida.criterio.value,
@@ -155,6 +172,7 @@ async def ejecutar_paso():
             "ruta_valida": resultado.medida.ruta_valida,
         },
         acciones_posibles=resultado.acciones_posibles,
+        ruta_planificada=list(_motor_actual.ruta_planificada),
         objetivo_cumplido=resultado.estado == EstadoDecision.DESTINO_ALCANZADO,
     )
 
@@ -185,6 +203,7 @@ async def ejecutar_completo(max_pasos: int = 30):
             estado=r.estado.value,
             paso=r.paso,
             mensaje=r.mensaje,
+            algoritmo=_motor_actual.algoritmo,
             estado_actual=r.percepcion.obtener_estado_actual(),
             medida_desempeno={
                 "criterio": r.medida.criterio.value,
@@ -196,6 +215,7 @@ async def ejecutar_completo(max_pasos: int = 30):
                 "ruta_valida": r.medida.ruta_valida,
             },
             acciones_posibles=r.acciones_posibles,
+            ruta_planificada=list(_motor_actual.ruta_planificada),
             objetivo_cumplido=r.estado == EstadoDecision.DESTINO_ALCANZADO,
         )
         for r in resultados

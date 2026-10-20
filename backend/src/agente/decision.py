@@ -1,9 +1,8 @@
-"""Módulo de decisión del agente inteligente - Corte 1 (stub/interfaz).
+"""Módulo de decisión del agente inteligente.
 
-Define la interfaz base del módulo de decisión. La implementación completa
-con algoritmos de búsqueda (BFS, DFS, UCS, Voraz, A*) se realiza en Corte 2.
-
-Este módulo actúa como capa de orquestación entre percepción y acción.
+Orquesta el ciclo percepción → decisión → acción. La ruta se planifica con
+los algoritmos de búsqueda del paquete ``busqueda`` (A* por defecto) y el
+agente ejecuta la acción de avance que corresponda a esa ruta.
 """
 
 from dataclasses import dataclass, field
@@ -11,11 +10,15 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-from ..grafo.modelos import Grafo
+from ..busqueda.base import AlgoritmoBusqueda, ResultadoBusqueda
+from ..busqueda.registro import crear_algoritmos
+from ..grafo.modelos import Arista, Grafo
 from .acciones import (
     ContextoAccion,
     TipoAccion,
-    decidir_accion,
+    construir_accion_avanzar,
+    construir_accion_finalizar,
+    construir_accion_recalcular,
     obtener_acciones_posibles,
 )
 from .peas import (
@@ -63,25 +66,36 @@ class ResultadoDecision:
 
 
 class MotorDecision:
-    """Motor de decisión del agente inteligente (Corte 1).
+    """Motor de decisión del agente inteligente.
 
-    Orquesta el ciclo percepción → decisión → acción del agente.
-    En Corte 1 usa lógica greedy local. En Corte 2 se reemplaza por
-    algoritmos de búsqueda informados/no informados.
+    Orquesta el ciclo percepción → decisión → acción. La ruta se calcula una
+    vez con el algoritmo de búsqueda elegido y se sigue paso a paso; si el
+    agente queda fuera de la ruta planificada, se recalcula.
 
     Attributes:
         modelo: Modelo PEAS completo del agente.
         sensores: Módulo de percepción con todos los sensores.
         contexto: Contexto de la acción actual (historial, pasos).
-        _paso_actual: Contador de pasos ejecutados.
+        algoritmo: ID del algoritmo de búsqueda usado para planificar.
+        ruta_planificada: Camino óptimo desde el nodo actual hasta el destino.
     """
 
-    def __init__(self, modelo: ModeloPEAS, sensores: PercepcionCompleta):
-        """Inicializa el motor con el modelo PEAS y los sensores.
+    def __init__(
+        self,
+        modelo: ModeloPEAS,
+        sensores: PercepcionCompleta,
+        algoritmo: str = "a_estrella",
+    ):
+        """Inicializa el motor con el modelo PEAS, los sensores y el algoritmo.
 
         Args:
             modelo: Modelo PEAS ya inicializado (via crear_peas_inicial).
             sensores: Instancia de PercepcionCompleta con el grafo cargado.
+            algoritmo: ID del algoritmo de búsqueda (``a_estrella`` por
+                defecto, ``ucs`` o ``voraz``).
+
+        Raises:
+            ValueError: Si el algoritmo no está registrado.
         """
         self.modelo = modelo
         self.sensores = sensores
@@ -90,6 +104,29 @@ class MotorDecision:
             ambiente=modelo.ambiente,
         )
         self._paso_actual = 0
+        self.algoritmo = algoritmo
+        self._buscador: AlgoritmoBusqueda = self._resolver_algoritmo(algoritmo)
+        self.ruta_planificada: list[str] = []
+        self._resultado_ruta: ResultadoBusqueda | None = None
+        self._planificar_ruta()
+
+    @staticmethod
+    def _resolver_algoritmo(algoritmo: str) -> AlgoritmoBusqueda:
+        """Obtiene la instancia del algoritmo registrado.
+
+        Args:
+            algoritmo: ID del algoritmo.
+
+        Returns:
+            Instancia del algoritmo de búsqueda.
+
+        Raises:
+            ValueError: Si el ID no corresponde a un algoritmo registrado.
+        """
+        algoritmos = crear_algoritmos()
+        if algoritmo not in algoritmos:
+            raise ValueError(f"Algoritmo '{algoritmo}' inválido. Válidos: {', '.join(algoritmos)}")
+        return algoritmos[algoritmo]
 
     @classmethod
     def desde_parametros(
@@ -100,6 +137,7 @@ class MotorDecision:
         criterio: CriterioOptimizacion = CriterioOptimizacion.MENOR_TIEMPO,
         hora: str = "08:00",
         fecha: datetime | None = None,
+        algoritmo: str = "a_estrella",
     ) -> "MotorDecision":
         """Factory: crea el motor desde parámetros básicos.
 
@@ -110,6 +148,7 @@ class MotorDecision:
             criterio: Criterio de optimización.
             hora: Hora de inicio en formato HH:MM.
             fecha: Fecha del viaje (None = ahora).
+            algoritmo: ID del algoritmo de búsqueda a usar.
 
         Returns:
             Instancia de MotorDecision lista para ejecutar.
@@ -126,7 +165,7 @@ class MotorDecision:
             hora=hora,
         )
         sensores = PercepcionCompleta(grafo)
-        return cls(modelo, sensores)
+        return cls(modelo, sensores, algoritmo=algoritmo)
 
     def _actualizar_percepcion(self) -> Percepcion:
         """Genera y actualiza la percepción completa del agente.
@@ -149,11 +188,53 @@ class MotorDecision:
         self.contexto.percepcion = nueva
         return nueva
 
+    def _planificar_ruta(self) -> ResultadoBusqueda:
+        """Calcula la ruta óptima desde el nodo actual con el buscador elegido.
+
+        Returns:
+            Resultado de la búsqueda, también almacenado para seguir la ruta.
+        """
+        percepcion = self.modelo.percepcion
+        self._resultado_ruta = self._buscador.buscar(
+            self.modelo.ambiente.grafo,
+            percepcion.nodo_actual,
+            percepcion.nodo_destino,
+            percepcion.criterio.value,
+        )
+        self.ruta_planificada = (
+            list(self._resultado_ruta.camino) if self._resultado_ruta.ruta_encontrada else []
+        )
+        return self._resultado_ruta
+
+    def _siguiente_arista(self) -> Arista | None:
+        """Retorna la arista que sigue en la ruta planificada.
+
+        Returns:
+            La arista a recorrer, o None si no hay ruta o ya se llegó.
+        """
+        if not self._resultado_ruta or not self.ruta_planificada:
+            return None
+
+        actual = self.modelo.percepcion.nodo_actual
+        if actual not in self.ruta_planificada:
+            return None
+
+        indice = self.ruta_planificada.index(actual)
+        if indice >= len(self._resultado_ruta.aristas_camino):
+            return None
+
+        arista_id = self._resultado_ruta.aristas_camino[indice]
+        return next(
+            (arista for arista in self.modelo.ambiente.grafo.aristas if arista.id == arista_id),
+            None,
+        )
+
     def ejecutar_paso(self) -> ResultadoDecision:
         """Ejecuta un ciclo de decisión: percibir → decidir → actuar.
 
-        Implementa el bucle básico del agente racional (Corte 1).
-        En Corte 2 este método invocará el algoritmo de búsqueda seleccionado.
+        Si el nodo actual está en la ruta planificada, avanza por la siguiente
+        arista; si no, replanifica. Si no existe ruta, devuelve RECALCULAR y
+        el estado SIN_RUTA.
 
         Returns:
             ResultadoDecision con la acción tomada y el estado actualizado.
@@ -168,8 +249,23 @@ class MotorDecision:
             self.contexto.historial,
         )
 
-        # Seleccionar acción
-        accion = decidir_accion(self.contexto)
+        # Planificar si hace falta o si el agente quedó fuera de la ruta
+        if not self.ruta_planificada or percepcion.nodo_actual not in self.ruta_planificada:
+            self._planificar_ruta()
+
+        # Seleccionar acción según la ruta planificada
+        if percepcion.nodo_actual == percepcion.nodo_destino:
+            accion = construir_accion_finalizar(percepcion.nodo_actual)
+        else:
+            arista = self._siguiente_arista()
+            if arista is None:
+                accion = construir_accion_recalcular(
+                    percepcion.nodo_actual,
+                    "no hay ruta transitable hacia el destino",
+                )
+            else:
+                accion = construir_accion_avanzar(arista)
+                self.contexto.historial.append(percepcion.nodo_actual)
 
         # Registrar acción en el modelo
         self.modelo.registrar_accion(accion)
@@ -189,9 +285,15 @@ class MotorDecision:
         elif accion.tipo == TipoAccion.ERROR.value:
             estado = EstadoDecision.ERROR
             mensaje = f"Error: {accion.descripcion}"
-        elif accion.tipo == TipoAccion.RECALCULAR.value and not acciones_pos:
-            estado = EstadoDecision.SIN_RUTA
-            mensaje = "No se encontró ruta disponible."
+        elif accion.tipo == TipoAccion.RECALCULAR.value:
+            estado = (
+                EstadoDecision.SIN_RUTA if not self.ruta_planificada else EstadoDecision.EN_CURSO
+            )
+            mensaje = (
+                "No se encontró una ruta transitable hacia el destino."
+                if estado == EstadoDecision.SIN_RUTA
+                else str(accion)
+            )
         else:
             estado = EstadoDecision.EN_CURSO
             mensaje = str(accion)
@@ -238,14 +340,25 @@ class MotorDecision:
         """Retorna resumen del estado actual del motor de decisión.
 
         Returns:
-            Diccionario con estado, historial de acciones y métricas.
+            Diccionario con estado, algoritmo, ruta planificada, historial de
+            acciones y métricas de desempeño.
         """
+        resultado = self._resultado_ruta
         return {
             "paso_actual": self._paso_actual,
             "nodo_actual": self.modelo.percepcion.nodo_actual,
             "nodo_destino": self.modelo.percepcion.nodo_destino,
+            "algoritmo": self.algoritmo,
+            "ruta_planificada": list(self.ruta_planificada),
             "ruta_construida": self.modelo.percepcion.ruta_construida,
             "distancia_total": self.modelo.medida.distancia_total,
+            "planificacion": {
+                "costo": resultado.costo_total if resultado else None,
+                "distancia_m": resultado.distancia_total_m if resultado else None,
+                "tiempo_min": resultado.tiempo_total_min if resultado else None,
+                "nodos_explorados": resultado.nodos_explorados if resultado else None,
+                "tiempo_ms": resultado.tiempo_ejecucion_ms if resultado else None,
+            },
             "historial_acciones": [str(a) for a in self.modelo.historial_acciones],
             "medida_desempeno": {
                 "criterio": self.modelo.medida.criterio.value,

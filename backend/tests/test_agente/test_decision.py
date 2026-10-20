@@ -236,6 +236,69 @@ class TestMotorDecision:
             assert clave in resumen
 
 
+class TestMotorDecisionConBusqueda:
+    def test_planifica_con_astar(self, grafo_basico):
+        motor = MotorDecision.desde_parametros(grafo_basico, "N1", "N3", algoritmo="a_estrella")
+
+        assert motor.algoritmo == "a_estrella"
+        assert motor.ruta_planificada == ["N1", "N2", "N3"]
+        assert motor.obtener_resumen()["planificacion"]["costo"] == 10.0
+
+    def test_sigue_la_ruta_optima_paso_a_paso(self, grafo_basico):
+        motor = MotorDecision.desde_parametros(grafo_basico, "N1", "N3", algoritmo="a_estrella")
+
+        resultados = motor.ejecutar_completo(max_pasos=10)
+
+        assert resultados[-1].estado == EstadoDecision.DESTINO_ALCANZADO
+        assert motor.modelo.percepcion.ruta_construida == ["N1", "N2", "N3"]
+        assert motor.modelo.medida.num_conexiones == 2
+        assert motor.modelo.medida.distancia_total == 1200.0
+        assert motor.modelo.medida.tiempo_total_min == 10.0
+
+    def test_primer_paso_avanza_por_la_ruta_planificada(self, grafo_basico):
+        motor = MotorDecision.desde_parametros(grafo_basico, "N1", "N3")
+
+        resultado = motor.ejecutar_paso()
+
+        assert resultado.accion.tipo == TipoAccion.AVANZAR.value
+        assert resultado.accion.nodo_destino == "N2"
+
+    def test_sin_ruta_devuelve_sin_ruta(self):
+        grafo = Grafo()
+        grafo.agregar_nodo(_nodo("X"))
+        grafo.agregar_nodo(_nodo("Y"))
+        motor = MotorDecision.desde_parametros(grafo, "X", "Y")
+
+        resultado = motor.ejecutar_paso()
+
+        assert motor.ruta_planificada == []
+        assert resultado.estado == EstadoDecision.SIN_RUTA
+        assert resultado.accion.tipo == TipoAccion.RECALCULAR.value
+
+    def test_algoritmo_invalido_lanza_error(self, grafo_basico):
+        with pytest.raises(ValueError):
+            MotorDecision.desde_parametros(grafo_basico, "N1", "N3", algoritmo="no_existe")
+
+    @pytest.mark.parametrize("algoritmo", ["ucs", "voraz"])
+    def test_otros_algoritmos_se_pueden_usar(self, grafo_basico, algoritmo):
+        motor = MotorDecision.desde_parametros(grafo_basico, "N1", "N3", algoritmo=algoritmo)
+
+        assert motor.algoritmo == algoritmo
+        assert motor.ruta_planificada[0] == "N1"
+        assert motor.ruta_planificada[-1] == "N3"
+
+    def test_resumen_incluye_planificacion(self, grafo_basico):
+        motor = MotorDecision.desde_parametros(grafo_basico, "N1", "N3")
+        motor.ejecutar_paso()
+
+        resumen = motor.obtener_resumen()
+
+        assert resumen["algoritmo"] == "a_estrella"
+        assert resumen["ruta_planificada"] == ["N1", "N2", "N3"]
+        assert resumen["planificacion"]["costo"] == 10.0
+        assert resumen["planificacion"]["nodos_explorados"] >= 1
+
+
 # ─── Tests obtener_acciones_posibles ─────────────────────────────────────────
 
 
