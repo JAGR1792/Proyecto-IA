@@ -8,6 +8,7 @@ duplicar listas.
 
 from src.busqueda.a_estrella import BusquedaAEstrella
 from src.busqueda.base import AlgoritmoBusqueda
+from src.busqueda.dfs import BusquedaProfundidad
 from src.busqueda.ucs import BusquedaCostoUniforme
 from src.busqueda.voraz import BusquedaVoraz
 
@@ -23,4 +24,5 @@ def crear_algoritmos() -> dict[str, AlgoritmoBusqueda]:
         "voraz": BusquedaVoraz(),
         "ucs": BusquedaCostoUniforme(),
         "a_estrella": BusquedaAEstrella(),
+        "dfs": BusquedaProfundidad(),
     }
