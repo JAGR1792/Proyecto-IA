@@ -22,7 +22,7 @@ router = APIRouter()
 # Identificadores de algoritmos disponibles en la API
 _ID_ALGORITMO = Literal["bfs", "dfs", "ucs", "voraz", "a_estrella"]
 
-# Registro central: BFS y DFS se habilitan al añadirlos en registro.py
+# Registro central de algoritmos (busqueda/registro.py)
 _ALGORITMOS = crear_algoritmos()
 
 _INFO_ALGORITMOS = [
@@ -44,7 +44,7 @@ _INFO_ALGORITMOS = [
     {
         "id": "bfs",
         "nombre": "BFS",
-        "descripcion": "Búsqueda en amplitud",
+        "descripcion": "Búsqueda en amplitud (menos conexiones, ignora costos)",
     },
     {
         "id": "dfs",
@@ -248,5 +248,5 @@ async def listar_algoritmos():
         "algoritmos": [
             {**info, "implementado": info["id"] in _ALGORITMOS} for info in _INFO_ALGORITMOS
         ],
-        "nota": "BFS y DFS quedan a cargo del equipo; el comparador los incluye al registrarlos",
+        "nota": "Todos los algoritmos del Corte 2 están registrados en busqueda/registro.py",
     }

@@ -21,7 +21,7 @@ La red de estudio es la red vial real de Chapinero (OpenStreetMap): **888 nodos 
 
 | Entregable del PDF | Estado | Evidencia |
 |---|---|---|
-| Código funcional con BFS, DFS, UCS, voraz y A* | ⚠️ UCS, voraz y A* implementados; BFS/DFS pendientes (equipo) | `backend/src/busqueda/` |
+| Código funcional con BFS, DFS, UCS, voraz y A* | ✅ Los cinco implementados y registrados en `registro.py` (BFS: ADR-024) | `backend/src/busqueda/` |
 | Visualización de rutas | ✅ | `MapaOSM.vue`, `GraphView.vue`, capas conmutables |
 | Pruebas con distintos escenarios | ✅ | 131 tests + benchmark con escenario base y cierre del 10 % |
 | Tabla comparativa | ✅ | `benchmark_busqueda.py`, endpoint `POST /busqueda/comparar`, tabla en la UI |

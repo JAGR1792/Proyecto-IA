@@ -459,7 +459,7 @@ onMounted(() => {
               <option value="a_estrella">A* (óptimo con heurística)</option>
               <option value="ucs">UCS (óptimo sin heurística)</option>
               <option value="voraz">Voraz (Greedy)</option>
-              <option value="bfs" disabled>BFS (pendiente)</option>
+              <option value="bfs">BFS (amplitud, menos conexiones)</option>
               <option value="dfs" >DFS (busqueda en profundidad)</option>
             </select>
           </div>
