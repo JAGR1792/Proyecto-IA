@@ -21,7 +21,8 @@ class TestComparadorAlgoritmos:
         assert comparacion.destino == "D"
         assert comparacion.criterio == "menor_tiempo"
         assert comparacion.mejor_costo == 4.0
-        assert comparacion.mejor_algoritmo in {"ucs", "a_estrella"}
+        assert comparacion.mejor_algoritmo in comparacion.optimos
+        assert {"ucs", "a_estrella"} <= set(comparacion.optimos)
         assert {"ucs", "a_estrella"} <= set(comparacion.optimos)
         assert "voraz" not in comparacion.optimos
 
@@ -82,4 +83,4 @@ class TestComparadorAlgoritmos:
 
     def test_crear_algoritmos_devuelve_instancias_nuevas(self):
         assert crear_algoritmos() is not crear_algoritmos()
-        assert set(crear_algoritmos()) == {"voraz", "ucs", "a_estrella"}
+        assert set(crear_algoritmos()) == {"voraz", "ucs", "a_estrella", "dfs"}
