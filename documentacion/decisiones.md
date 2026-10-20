@@ -608,3 +608,43 @@ El dashboard mostraba distancia, tiempo y el costo del criterio de búsqueda, pe
 - Siguiente: estimar la espera con datos de tráfico y validar la tabla EO cuando la SDM publique la tarjeta 2026.
 
 
+
+---
+
+## ADR-024 — Búsqueda en amplitud (BFS)
+
+**Fecha:** 2026-10
+**Estado:** Aceptado
+
+### Contexto
+El Corte 2 exige implementar y comparar BFS, DFS, UCS, voraz y A*. Tras el ADR-022 (comparador y registro central) y la integración de DFS, BFS era el único algoritmo pendiente: aparecía en la API como no implementado y deshabilitado en el selector del frontend.
+
+### Decisión
+- **`busqueda/bfs.py`:** `BusquedaAmplitud` hereda de `AlgoritmoBusqueda` y reutiliza `validar_criterio`, `reconstruir_camino` y `construir_resultado`.
+  - Frontera FIFO (`collections.deque`) y conjunto `alcanzados` para no repetir nodos ni entrar en ciclos.
+  - **Prueba de meta al generar** el vecino (no al extraerlo): evita expandir el último nivel completo y conserva la garantía de menor número de aristas.
+  - Usa `grafo.obtener_vecinos()`, igual que UCS, A* y voraz, por lo que respeta las aristas con `disponible = False`.
+  - El criterio **no** altera el orden de exploración; solo fija la unidad de `costo_total` para que la tabla comparativa sea homogénea.
+  - `detalle` reporta `nodos_alcanzados` y `max_frontera` (memoria usada), útiles para el análisis de complejidad O(b^d).
+- **Registro:** `bfs` se agrega en `registro.crear_algoritmos()`, así que queda disponible en la API, el comparador, el benchmark y el agente sin más cambios.
+- **API y frontend:** `GET /busqueda/algoritmos` lo marca como implementado y la opción BFS queda habilitada en el selector.
+- **Tests:** `tests/test_busqueda/test_bfs.py` (13 casos: menos aristas frente a la ruta más rápida, independencia del criterio, igualdad con UCS en `menor_conexiones`, aristas bloqueadas, grafo inconexo, ciclos, orden por niveles y métricas) y `test_comparador.py` actualizado con el nuevo registro.
+
+### Consecuencias
+- ✅ Comparación sobre la red OSM (888 nodos / 1741 aristas), 30 pares origen–destino aleatorios con ruta (semilla 7), costo relativo a UCS:
+
+  | Criterio | Algoritmo | Óptimas | Exceso medio de costo | Nodos explorados (prom.) |
+  |---|---|---|---|---|
+  | menor_tiempo | UCS | 30/30 | 0 % | 457 |
+  | menor_tiempo | A* | 30/30 | 0 % | 223 |
+  | menor_tiempo | BFS | 8/30 | 5,3 % | 434 |
+  | menor_tiempo | DFS | 2/30 | 511 % | 372 |
+  | menor_tiempo | Voraz | 1/30 | 58,5 % | 54 |
+  | menor_conexiones | UCS | 30/30 | 0 % | 464 |
+  | menor_conexiones | BFS | 30/30 | 0 % | 434 |
+  | menor_conexiones | DFS | 1/30 | 612 % | 372 |
+
+- ✅ BFS es **óptimo para `menor_conexiones`** (todas las aristas cuestan 1) y coincide con UCS explorando un poco menos gracias a la prueba de meta temprana.
+- ⚠️ Para `menor_tiempo` y `menor_distancia` **no es óptimo**: minimiza aristas, no costo; aun así queda muy por delante de DFS y voraz.
+- ⚠️ Explora casi tanto como UCS porque no tiene heurística; A* reduce la exploración ~50 % en `menor_tiempo`.
+- ⚠️ DFS además descarta aristas con congestión `BLOQUEADA`, mientras BFS/UCS/A* solo filtran por `disponible`; conviene unificar el criterio de cierre en un ADR posterior.
