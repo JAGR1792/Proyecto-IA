@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from src.grafo.modelos import CRITERIOS_OPTIMIZACION, Arista, Grafo
+from src.tarifas.taximetro import TarifaTaxi
 
 # Criterios de optimización soportados (PDF 5.2)
 CRITERIOS_VALIDOS: tuple[str, ...] = CRITERIOS_OPTIMIZACION
@@ -65,6 +66,7 @@ class ResultadoBusqueda(BaseModel):
         nodos_explorados: Cantidad de nodos expandidos.
         tiempo_ejecucion_ms: Milisegundos de ejecución del algoritmo.
         detalle: Información adicional del proceso.
+        tarifa_taxi: Tarifa de taxi liquidada para la ruta, si se solicitó.
     """
 
     algoritmo: str
@@ -78,6 +80,10 @@ class ResultadoBusqueda(BaseModel):
     nodos_explorados: int = 0
     tiempo_ejecucion_ms: float = 0.0
     detalle: dict[str, Any] = Field(default_factory=dict)
+    tarifa_taxi: TarifaTaxi | None = Field(
+        None,
+        description="Tarifa de taxi liquidada para la ruta (si se solicitó)",
+    )
 
 
 def construir_resultado(

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
- * MapaOSM - Vista geográfica del grafo usando OpenStreetMap (Leaflet).
+ * MapaOSM - Vista geográfica del grafo usando Leaflet.
  * Consume los endpoints /api/v1/mapa/geojson/nodos y /api/v1/mapa/geojson/aristas.
+ * Incluye capas base Mapa (OSM) y Satélite (Esri), con etiquetas opcionales.
  */
 import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import type { Map as LeafletMap } from 'leaflet'
@@ -123,10 +124,37 @@ async function inicializarMapa() {
     attributionControl: true,
   })
 
-  leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors',
-  }).addTo(mapa)
+  const capaMapa = leaflet.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    },
+  )
+  const capaSatelite = leaflet.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {
+      maxZoom: 19,
+      attribution:
+        'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+    },
+  )
+  const capaEtiquetas = leaflet.tileLayer(
+    'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    {
+      maxZoom: 19,
+      attribution: 'Etiquetas &copy; Esri',
+    },
+  )
+
+  capaMapa.addTo(mapa)
+  leaflet
+    .control.layers(
+      { Mapa: capaMapa, Satélite: capaSatelite },
+      { Etiquetas: capaEtiquetas },
+      { position: 'topright', collapsed: false },
+    )
+    .addTo(mapa)
 
   layerAristas = leaflet.geoJSON(null, {
     style: estiloArista,

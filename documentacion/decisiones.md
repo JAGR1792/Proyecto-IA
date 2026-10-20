@@ -547,4 +547,64 @@ El repositorio no tenía integración continua y el lint no era reproducible: `r
 - ⚠️ `mypy` queda fuera de la CI (deuda de tipos); documentado como paso opcional.
 - Siguiente: incorporar `mypy` al pipeline cuando se saneen las anotaciones.
 
+---
+
+## ADR-022 — Comparador, benchmark y cierre del Corte 2 (sin BFS/DFS)
+
+**Fecha:** 2026-10
+**Estado:** Aceptado
+
+### Contexto
+El PDF del Corte 2 exige implementar **y comparar** BFS, DFS, UCS, voraz y A*, con pruebas en distintos escenarios, tabla comparativa, análisis de la heurística e informe con demostración. UCS, voraz y A* ya estaban implementados (ADR-017), pero faltaba todo lo que convierte la implementación en evidencia: comparador, endpoint, tabla, experimentos, informe y demostración. Además `MotorDecision` seguía usando el greedy local. El equipo decidió que **BFS y DFS los implementan los compañeros**, por lo que el resto debía quedar preparado para incorporarlos sin retrabajo.
+
+### Decisión
+- **`busqueda/registro.py`:** `crear_algoritmos()` es la única fuente de verdad. API, comparador, benchmark y agente lo consultan; al registrar BFS/DFS aparecen en todos los componentes automáticamente.
+- **`busqueda/comparador.py`:** ejecuta todos los algoritmos sobre el mismo origen/destino/criterio y calcula `mejor_algoritmo`, `mejor_costo` y `optimos`. El desempate usa costo, nodos explorados y milisegundos.
+- **API:** `POST /busqueda/comparar` reemplaza el placeholder 501 y comparte validación de nodos y criterio con `/buscar`. `GET /busqueda/algoritmos` deriva `implementado` del registro.
+- **Benchmark (`benchmark_busqueda.py`):** selección reproducible de pares (semilla 42), tres criterios y todos los algoritmos; escenario base y escenario con un porcentaje de aristas cerradas en memoria (`--bloquear-pct`); exporta CSV, JSON y Markdown a `datos/resultados/` (ignorado por git). Calcula la brecha porcentual frente al mejor costo de cada consulta.
+- **Frontend:** botón **Comparar algoritmos** y tabla a ancho completo bajo el mapa, ordenada por costo, con filas óptimas resaltadas y métricas de nodos/ms. La comparación se limpia al lanzar una búsqueda nueva o al usar “Limpiar Sesión”.
+- **Agente:** `MotorDecision` planifica con el algoritmo indicado (A* por defecto) al iniciar, sigue la ruta paso a paso y replanifica si queda fuera de ella. `POST /agente/iniciar` acepta `algoritmo`; las respuestas exponen `ruta_planificada`, `planificacion` y las métricas.
+- **Documentación:** `informe_corte2.md` (algoritmos, prueba de admisibilidad/consistencia, metodología, resultados, limitaciones) y `demo_corte2.md` (guion de 6 minutos); README y ADR sincronizados.
+- **BFS/DFS:** se dejan fuera de esta entrega por acuerdo del equipo; la UI las muestra como pendientes y el comparador las incorporará al registrarlas.
+
+### Consecuencias
+- ✅ Evidencia reproducible: escenario base 8 pares × 3 criterios × 3 algoritmos; UCS/A* empatan en el óptimo y A* explora 3,7 %–69 % menos nodos; voraz queda 104 %–114 % por encima del costo óptimo.
+- ✅ Con 10 % de cierres (174 aristas) el costo óptimo sube ~18 % pero UCS/A* mantienen la optimalidad y el voraz sigue ~91 % peor.
+- ✅ El agente demuestra la integración: planifica `n1 → n4 → n5 → n6` con A* y llega en 3 pasos.
+- ✅ 131 tests y 95,1 % de cobertura; CI y build en verde.
+- ⚠️ Los tiempos son de una sola corrida; conviene repetir y usar mediana en la versión final.
+- ⚠️ El escenario de cierre es sintético y no representa cierres reales.
+- ⚠️ La heurística de conexiones es débil (h ∈ {0,1}); A* apenas mejora a UCS en ese criterio.
+- Siguiente: incorporar BFS/DFS, repetir mediciones y avanzar al Corte 3 (regresión, clasificación y agrupamiento).
+
+---
+
+## ADR-023 — Tarifa oficial de taxi y capa satelital
+
+**Fecha:** 2026-10
+**Estado:** Aceptado
+
+### Contexto
+El dashboard mostraba distancia, tiempo y el costo del criterio de búsqueda, pero no el valor que pagaría un usuario en un taxi real. Bogotá regula la tarifa con el Decreto Distrital 042 de 2026 (modifica los artículos 315, 339 y 340 del Decreto 652 de 2025): unidad de $159 por cada 100 m o 24 s, con $172 cuando se autoriza el factor de excelencia. La tarjeta oficial publica valores a la centena más cercana, mientras que el equipo pidió un modo conservador de redondeo hacia arriba (`ceil`) para la simulación. Además, el mapa solo ofrecía la capa de OpenStreetMap.
+
+### Decisión
+- **`src/tarifas/taximetro.py`:** función pura `calcular_tarifa_taximetro()` y modelo Pydantic `TarifaTaxi` (`unidades`, `valor_metro`, `recargos`, `total`, `detalle`). No depende del grafo ni de la API.
+- **Cálculo:** `u_distancia = ceil(distancia_m / 100)`, `u_espera = ceil(espera_s / 24)`, `unidades = max(28 + u_distancia + u_espera, 50)`; `valor_metro = redondear(unidades × unidad)`; recargos oficiales fijos (nocturno/dominical 24 u, aeropuerto 50 u, puerta a puerta 9 u, ZEO 20 u); `total = valor_metro + recargos`.
+- **Reglas:** nocturno y dominical/festivo no se acumulan; ZEO exige `factor_excelencia=True`; las entradas negativas y los modos de redondeo inválidos lanzan `ValueError`.
+- **Redondeo:** `ceil` por defecto (hacia arriba) y `oficial` para reproducir la tarjeta (centena más cercana). La diferencia máxima es $100 por carrera.
+- **API:** `ResultadoBusqueda.tarifa_taxi` es opcional; `OpcionesTarifa` se añade a `SolicitudBusqueda` y `SolicitudComparacion`; `/buscar` y `/comparar` liquidan la tarifa con `_aplicar_tarifa()` y la devuelven por ruta. La tarifa no se suma a `Arista.costo` ni al costo del algoritmo.
+- **Frontend:** panel **Tarifa de Taxi** con condiciones (nocturno, dominical, aeropuerto, puerta a puerta, factor de excelencia, ZEO), espera y redondeo; la tarifa aparece en el resultado y en una columna extra de la tabla comparativa. `MapaOSM.vue` añade la capa base **Satélite** de Esri World Imagery y etiquetas opcionales, con control de capas.
+- **Pruebas:** `tests/test_tarifas/test_taximetro.py` (37 casos), `test_integracion_api.py` (10 casos) y `test_endpoints.py` (3 casos). La suite completa queda en 181 tests y 95,4 % de cobertura.
+
+### Consecuencias
+- ✅ La ruta ahora reporta un valor de taxi trazable y reproducible con la norma vigente.
+- ✅ 5,2 km = 80 unidades = $12.800 con `ceil` o $12.700 con `oficial`; el recargo nocturno suma $3.800.
+- ✅ El módulo es independiente del grafo: se puede reutilizar en el agente o en un endpoint de tarifa sin tocar la búsqueda.
+- ✅ La UI permite comparar el impacto de las condiciones del viaje y del redondeo sin reiniciar la búsqueda.
+- ⚠️ La tarjeta oficial redondea a la centena más cercana; `ceil` puede diferir hasta en $100. Está documentado y es configurable.
+- ⚠️ `espera_s` es un parámetro del cliente: `tiempo_total_min` es tiempo de viaje, no tiempo detenido; no se debe usar como espera.
+- ⚠️ La ventana nocturna se documenta como 20:00–5:00 (SDM); algunas copias legales mencionan 19:00–6:00. El backend no valida la hora, solo recibe la bandera.
+- ⚠️ El factor de excelencia y la tarjeta EO quedan implementados con la unidad de $172 y recargos oficiales, pero no se validaron contra una tarjeta EO publicada.
+- Siguiente: estimar la espera con datos de tráfico y validar la tabla EO cuando la SDM publique la tarjeta 2026.
+
 

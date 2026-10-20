@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import GraphView from '@/components/GraphView.vue'
 import MapaOSM from '@/components/MapaOSM.vue'
 import type { NodoGrafo, AristaGrafo } from '@/components/GraphView.vue'
@@ -22,23 +22,82 @@ const destinoSeleccionado = ref<string>('')
 const criterioSeleccionado = ref<string>('menor_tiempo')
 const algoritmoSeleccionado = ref<string>('voraz')
 const resultadoRuta = ref<any>(null)
+const comparacion = ref<any>(null)
+const comparando = ref(false)
+const panelComparacion = ref<HTMLElement | null>(null)
 const vistaActiva = ref<'grafo' | 'mapa'>('mapa')
 const temaActivo = ref<'oscuro' | 'claro'>('oscuro')
 // Capas de contexto: la ruta activa se dibuja siempre, aunque se oculten
 const mostrarRedVial = ref(true)
 const mostrarNodos = ref(true)
 
+// Opciones de tarifa de taxi (Decreto 042 de 2026)
+const tarifaNocturna = ref(false)
+const tarifaDominical = ref(false)
+const tarifaAeropuerto = ref(false)
+const tarifaPuertaAPuerta = ref(false)
+const tarifaFactorExcelencia = ref(false)
+const tarifaZonaAmarilla = ref(false)
+const tarifaEsperaSeg = ref(0)
+const tarifaRedondeo = ref<'ceil' | 'oficial'>('ceil')
+
+const opcionesTarifa = computed(() => ({
+  espera_s: Number(tarifaEsperaSeg.value) || 0,
+  nocturno: tarifaNocturna.value,
+  domingo_o_festivo: tarifaDominical.value,
+  aeropuerto: tarifaAeropuerto.value,
+  puerta_a_puerta: tarifaPuertaAPuerta.value,
+  factor_excelencia: tarifaFactorExcelencia.value,
+  zona_amarilla: tarifaZonaAmarilla.value && tarifaFactorExcelencia.value,
+  redondeo: tarifaRedondeo.value,
+}))
+
+const FORMATO_COP = new Intl.NumberFormat('es-CO', {
+  style: 'currency',
+  currency: 'COP',
+  maximumFractionDigits: 0,
+})
+
+function formatearCOP(valor: number): string {
+  return FORMATO_COP.format(valor)
+}
+
 // Nombres legibles de los algoritmos devueltos por la API
 const ETIQUETAS_ALGORITMO: Record<string, string> = {
   voraz: 'Voraz (Greedy)',
   ucs: 'UCS (Costo Uniforme)',
   a_estrella: 'A*',
+  bfs: 'BFS',
+  dfs: 'DFS',
+}
+
+function etiquetaDeAlgoritmo(id: string): string {
+  return ETIQUETAS_ALGORITMO[id] ?? id
 }
 
 const etiquetaAlgoritmo = computed(() => {
   const id = resultadoRuta.value?.algoritmo
-  return id ? ETIQUETAS_ALGORITMO[id] ?? id : '—'
+  return id ? etiquetaDeAlgoritmo(id) : '—'
 })
+
+const comparacionOrdenada = computed(() => {
+  const filas: any[] = comparacion.value?.resultados ?? []
+  return [...filas].sort((a, b) => {
+    if (a.ruta_encontrada !== b.ruta_encontrada) return a.ruta_encontrada ? -1 : 1
+    if (a.costo_total !== b.costo_total) return a.costo_total - b.costo_total
+    return a.nodos_explorados - b.nodos_explorados
+  })
+})
+
+function esMejorResultado(resultado: any): boolean {
+  const mejor = comparacion.value?.mejor_costo
+  return (
+    resultado.ruta_encontrada &&
+    mejor !== null &&
+    mejor !== undefined &&
+    Math.abs(resultado.costo_total - mejor) < 1e-9
+  )
+}
 
 function aplicarTema() {
   const root = document.documentElement
@@ -135,6 +194,7 @@ function manejarClickArista(arista: AristaGrafo) {
 function limpiarRuta() {
   rutaResaltada.value = []
   aristaResaltada.value = []
+  comparacion.value = null
 }
 
 async function buscarRuta() {
@@ -144,6 +204,7 @@ async function buscarRuta() {
   cargando.value = true
   error.value = null
   resultadoRuta.value = null
+  comparacion.value = null
 
   try {
     const response = await fetch(`${apiBase}/busqueda/buscar`, {
@@ -154,11 +215,12 @@ async function buscarRuta() {
         destino: destinoSeleccionado.value,
         algoritmo: algoritmoSeleccionado.value,
         criterio: criterioSeleccionado.value,
+        tarifa: opcionesTarifa.value,
       }),
     })
 
     const tipoContenido = response.headers.get('content-type') || ''
-    if (!tipoContenido.includes('application/json')) {
+    if (!esJson(tipoContenido)) {
       throw new Error(
         `La API no respondió JSON (status ${response.status}). Verifica que el backend esté activo en ${apiBase}.`
       )
@@ -181,6 +243,48 @@ async function buscarRuta() {
     console.error('Error buscando ruta:', e)
   } finally {
     cargando.value = false
+  }
+}
+
+async function compararAlgoritmos() {
+  if (!origenSeleccionado.value || !destinoSeleccionado.value) return
+  if (origenSeleccionado.value === destinoSeleccionado.value) return
+
+  comparando.value = true
+  error.value = null
+
+  try {
+    const response = await fetch(`${apiBase}/busqueda/comparar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        origen: origenSeleccionado.value,
+        destino: destinoSeleccionado.value,
+        criterio: criterioSeleccionado.value,
+        tarifa: opcionesTarifa.value,
+      }),
+    })
+
+    const tipoContenido = response.headers.get('content-type') || ''
+    if (!esJson(tipoContenido)) {
+      throw new Error(
+        `La API no respondió JSON (status ${response.status}). Verifica que el backend esté activo.`
+      )
+    }
+
+    const data = await response.json()
+    if (!response.ok) {
+      throw new Error(data.detail || `Error ${response.status} en la comparación`)
+    }
+
+    comparacion.value = data
+    await nextTick()
+    panelComparacion.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  } catch (e: any) {
+    error.value = e.message
+    console.error('Error comparando algoritmos:', e)
+  } finally {
+    comparando.value = false
   }
 }
 
@@ -290,6 +394,69 @@ onMounted(() => {
           >
             {{ cargando ? 'Buscando...' : 'Ejecutar Motor de Búsqueda' }}
           </button>
+          <button
+            :disabled="!origenSeleccionado || !destinoSeleccionado || origenSeleccionado === destinoSeleccionado || cargando || comparando"
+            class="tx-button tx-button-compare"
+            @click="compararAlgoritmos"
+          >
+            {{ comparando ? 'Comparando...' : 'Comparar algoritmos' }}
+          </button>
+        </div>
+
+        <!-- Opciones de Tarifa de Taxi -->
+        <div class="tx-panel" style="margin-top: 1.5rem;">
+          <h3 class="tx-panel-title">Tarifa de Taxi</h3>
+          <div class="tx-form-group">
+            <label class="tx-label">Condiciones del viaje</label>
+            <label class="tx-check tx-check-block">
+              <input v-model="tarifaNocturna" type="checkbox" />
+              Nocturno (20:00 - 5:00)
+            </label>
+            <label class="tx-check tx-check-block">
+              <input v-model="tarifaDominical" type="checkbox" />
+              Domingo o festivo
+            </label>
+            <label class="tx-check tx-check-block">
+              <input v-model="tarifaAeropuerto" type="checkbox" />
+              Aeropuerto / Puente Aéreo
+            </label>
+            <label class="tx-check tx-check-block">
+              <input v-model="tarifaPuertaAPuerta" type="checkbox" />
+              Servicio puerta a puerta
+            </label>
+            <label class="tx-check tx-check-block">
+              <input v-model="tarifaFactorExcelencia" type="checkbox" />
+              Factor de excelencia (unidad $172)
+            </label>
+            <label class="tx-check tx-check-block">
+              <input
+                v-model="tarifaZonaAmarilla"
+                type="checkbox"
+                :disabled="!tarifaFactorExcelencia"
+              />
+              Zona amarilla (ZEO)
+            </label>
+          </div>
+          <div class="tx-form-group">
+            <label class="tx-label">Espera (segundos)</label>
+            <input
+              v-model.number="tarifaEsperaSeg"
+              type="number"
+              min="0"
+              step="10"
+              class="tx-input"
+            />
+          </div>
+          <div class="tx-form-group">
+            <label class="tx-label">Redondeo</label>
+            <select v-model="tarifaRedondeo" class="tx-select">
+              <option value="ceil">Hacia arriba (ceil)</option>
+              <option value="oficial">Centena más cercana (oficial)</option>
+            </select>
+          </div>
+          <p class="tx-panel-note" style="margin-bottom: 0;">
+            Decreto 042 de 2026. El nocturno y el dominical no se acumulan.
+          </p>
         </div>
 
         <!-- Resultado de Ruta -->
@@ -324,6 +491,19 @@ onMounted(() => {
             <div class="tx-data-row">
               <dt class="tx-data-term">Tiempo Est.</dt>
               <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.tiempo_total_min.toFixed(1) }} min</dd>
+            </div>
+            <div v-if="resultadoRuta.tarifa_taxi" class="tx-data-row">
+              <dt class="tx-data-term">Tarifa taxi</dt>
+              <dd class="tx-data-value tx-font-mono">
+                {{ formatearCOP(resultadoRuta.tarifa_taxi.total) }}
+                <span class="tx-result-nota" style="display: block; margin: 0;">
+                  {{ resultadoRuta.tarifa_taxi.unidades }} unidades<span
+                    v-if="resultadoRuta.tarifa_taxi.recargos > 0"
+                  >
+                    · recargos {{ formatearCOP(resultadoRuta.tarifa_taxi.recargos) }}</span
+                  >
+                </span>
+              </dd>
             </div>
             <div class="tx-data-row">
               <dt class="tx-data-term">Costo (criterio)</dt>
@@ -527,6 +707,71 @@ onMounted(() => {
             </div>
           </div>
         </div>
+
+        <!-- Comparación de Algoritmos -->
+        <div
+          v-if="comparacion"
+          ref="panelComparacion"
+          class="tx-panel"
+          style="margin-top: 1.5rem;"
+        >
+          <h3 class="tx-panel-title">Comparación de Algoritmos</h3>
+          <p class="tx-panel-note">
+            Mismo origen, destino y criterio ({{ comparacion.criterio }}).
+          </p>
+          <div class="tx-table-wrap">
+            <table class="tx-table">
+              <thead>
+                <tr>
+                  <th scope="col">Algoritmo</th>
+                  <th scope="col">Costo</th>
+                  <th scope="col">Dist.</th>
+                  <th scope="col">Tiempo</th>
+                  <th scope="col">Tarifa taxi</th>
+                  <th scope="col">Aristas</th>
+                  <th scope="col">Nodos</th>
+                  <th scope="col">ms</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="fila in comparacionOrdenada"
+                  :key="fila.algoritmo"
+                  :class="{ 'tx-table-optimo': esMejorResultado(fila) }"
+                >
+                  <td>
+                    {{ etiquetaDeAlgoritmo(fila.algoritmo) }}
+                    <span v-if="esMejorResultado(fila)" class="tx-badge tx-badge-ruta-ok">óptimo</span>
+                  </td>
+                  <td class="tx-font-mono">
+                    {{ fila.ruta_encontrada ? fila.costo_total.toFixed(2) : '—' }}
+                  </td>
+                  <td class="tx-font-mono">
+                    {{ fila.ruta_encontrada ? (fila.distancia_total_m / 1000).toFixed(2) + ' km' : '—' }}
+                  </td>
+                  <td class="tx-font-mono">
+                    {{ fila.ruta_encontrada ? fila.tiempo_total_min.toFixed(2) + ' min' : '—' }}
+                  </td>
+                  <td class="tx-font-mono">
+                    {{ fila.tarifa_taxi ? formatearCOP(fila.tarifa_taxi.total) : '—' }}
+                  </td>
+                  <td class="tx-font-mono">{{ fila.detalle?.num_aristas ?? 0 }}</td>
+                  <td class="tx-font-mono">{{ fila.nodos_explorados }}</td>
+                  <td class="tx-font-mono">{{ fila.tiempo_ejecucion_ms.toFixed(2) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="tx-result-nota">
+            Tarifa de taxi con Decreto 042 de 2026 ·
+            {{ tarifaRedondeo === 'ceil' ? 'redondeo hacia arriba' : 'centena más cercana' }}.
+          </p>
+          <p v-if="comparacion.optimos?.length" class="tx-result-nota">
+            Óptimos: {{ comparacion.optimos.map(etiquetaDeAlgoritmo).join(', ') }} ·
+            mejor costo {{ comparacion.mejor_costo?.toFixed(2) }}
+          </p>
+          <p v-else class="tx-result-nota">Ningún algoritmo encontró ruta entre esos nodos.</p>
+        </div>
       </section>
     </main>
   </div>
@@ -625,6 +870,48 @@ onMounted(() => {
   outline-offset: 2px;
 }
 
+.tx-check-block {
+  display: flex;
+  width: 100%;
+  margin-bottom: 0.35rem;
+}
+
+.tx-check-block:last-child {
+  margin-bottom: 0;
+}
+
+.tx-check input[type='checkbox']:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tx-check:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tx-input {
+  width: 100%;
+  background-color: var(--bg-base);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  transition: all var(--transition-fast);
+}
+
+.tx-input:hover {
+  border-color: var(--border-focus);
+}
+
+.tx-input:focus {
+  outline: none;
+  border-color: var(--accent-brand);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.18);
+}
+
 .tx-view-btn-activo {
   background-color: var(--bg-surface-active);
   color: var(--text-primary, #fafafa);
@@ -653,5 +940,73 @@ onMounted(() => {
 .tx-theme-toggle--activo {
   color: var(--accent-brand-hover);
   background-color: var(--bg-surface-active);
+}
+
+.tx-button-compare {
+  width: 100%;
+  margin-top: 0.6rem;
+  background-color: transparent;
+  color: var(--accent-brand);
+  border: 1px solid var(--border-focus);
+}
+
+.tx-button-compare:hover:not(:disabled) {
+  background-color: rgba(251, 191, 36, 0.1);
+}
+
+.tx-panel-note {
+  margin: -0.75rem 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.tx-table-wrap {
+  overflow-x: auto;
+}
+
+.tx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.tx-table th,
+.tx-table td {
+  padding: 0.45rem 0.4rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.tx-table th:first-child,
+.tx-table td:first-child {
+  text-align: left;
+}
+
+.tx-table th {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.tx-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tx-table-optimo td {
+  background-color: var(--status-success-bg);
+}
+
+.tx-table-optimo td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent-route);
+}
+
+.tx-table td .tx-badge {
+  margin-left: 0.35rem;
+  font-size: 0.62rem;
+  padding: 0.05rem 0.35rem;
 }
 </style>
