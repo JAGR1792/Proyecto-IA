@@ -8,7 +8,7 @@ Proyecto académico del curso *Inteligencia Artificial* (SIST5036), Universidad 
 
 El sistema modela la **red vial real de taxis** en la zona de estudio de **Chapinero (Bogotá)** como un grafo dirigido, y expone una API (FastAPI) y un dashboard web (Nuxt 3) para explorar nodos, aristas, rutas y el comportamiento de un agente inteligente.
 
-> Estado actual: **Cierre del Corte 1** completado — modelos de grafo, repositorio de datos, módulo de agente (PEAS/percepción/decision) y visualización en mapa interactivo.
+> Estado actual: **Corte 2** — UCS, voraz y A\* con heurística admisible, comparador, benchmark y agente que planifica con búsqueda. BFS y DFS pendientes (equipo).
 
 ---
 
@@ -47,6 +47,7 @@ El sistema modela la **red vial real de taxis** en la zona de estudio de **Chapi
 │   │   │   └── decision.py          # Selección de acción (MotorDecision)
 │   │   ├── busqueda/                # Algoritmos de búsqueda (Voraz, UCS y A*)
 │   │   ├── heuristicas/             # Heurísticas admisibles para A*
+│   │   ├── tarifas/                 # Tarifa oficial de taxi (Decreto 042 de 2026)
 │   │   └── utilidades/              # Config, logging, excepciones
 │   ├── datos/                       # Datasets (JSON, GeoJSON, GraphML, CSV)
 │   ├── tests/                       # Tests unitarios (pytest)
@@ -59,7 +60,7 @@ El sistema modela la **red vial real de taxis** en la zona de estudio de **Chapi
 │   │   ├── app.vue                  # Layout principal + lógica del panel
 │   │   ├── components/
 │   │   │   ├── GraphView.vue        # Vista grafo (Cytoscape.js)
-│   │   │   └── MapaOSM.vue          # Mapa interactivo (Leaflet)
+│   │   │   └── MapaOSM.vue          # Mapa interactivo (Leaflet, mapa/satélite)
 │   │   └── assets/css/main.css      # Sistema de diseño (tema claro/oscuro)
 │   ├── public/
 │   ├── nuxt.config.ts
@@ -68,7 +69,7 @@ El sistema modela la **red vial real de taxis** en la zona de estudio de **Chapi
 ├── documentacion/                   # Toda la documentación del proyecto
 │   ├── formulacion.md               # Problema, alcance, objetivos
 │   ├── peas.md                      # Modelo PEAS del agente
-│   ├── decisiones.md                # Log de decisiones (ADR-001 a ADR-018)
+│   ├── decisiones.md                # Log de decisiones (ADR-001 a ADR-023)
 │   ├── informe_corte1.md            # Informe de la Primera Entrega
 │   ├── diagrama_red.md              # Descripción del grafo ejemplo (6 nodos)
 │   ├── dataset_inicial.md           # Estructura de los datasets
@@ -159,6 +160,10 @@ ruff format --check .
 
 # Type checking (opcional)
 mypy src/
+
+# Benchmark reproducible del Corte 2 (escenario base y cierre del 10 %)
+python benchmark_busqueda.py --pares 8 --semilla 42
+python benchmark_busqueda.py --pares 8 --semilla 42 --bloquear-pct 10
 ```
 
 ```bash
@@ -226,11 +231,41 @@ Base: `/api/v1` · Documentación interactiva: `http://localhost:8000/docs`
 | `/grafo/graphml` | GET | Exportación GraphML |
 | `/mapa/geojson/*`, `/mapa/graphml`, `/mapa/bbox` | GET | Datos para visualización |
 | `/agente/estado`, `/agente/paso` | GET/POST | Estado y avance del agente |
-| `/busqueda/buscar` | POST | Búsqueda de rutas (Voraz, UCS y A*) con criterio de optimización |
+| `/busqueda/buscar` | POST | Búsqueda de rutas (Voraz, UCS y A*) con criterio y tarifa de taxi opcional |
+| `/busqueda/comparar` | POST | Compara todos los algoritmos implementados sobre la misma ruta y liquida la tarifa por algoritmo |
 | `/busqueda/algoritmos` | GET | Algoritmos disponibles y estado de implementación |
 | `/health` | GET | Health check |
 
 > Los endpoints de exportación generan las respuestas **en memoria** (sin escribir en disco), por lo que son compatibles con el entorno serverless *read-only* de Vercel (ver ADR-012).
+
+> `/busqueda/buscar` y `/busqueda/comparar` aceptan un objeto opcional `tarifa` con `espera_s`, `nocturno`, `domingo_o_festivo`, `aeropuerto`, `puerta_a_puerta`, `factor_excelencia`, `zona_amarilla` y `redondeo` (`ceil` u `oficial`). La respuesta incluye `tarifa_taxi` por cada ruta encontrada.
+
+---
+
+## Tarifa de taxi (Bogotá, 2026)
+
+El backend liquida la tarifa con el **Decreto Distrital 042 de 2026** (modifica el Decreto 652 de 2025). La unidad oficial es **$159** por cada 100 m o 24 s de espera, o **$172** con factor de excelencia. La tarifa se calcula **por viaje**, no por arista:
+
+| Concepto | Unidades | Valor oficial |
+|----------|----------|---------------|
+| Banderazo | 28 | $4.500 |
+| Carrera mínima | 50 | $8.000 |
+| Espera (24 s o fracción) | 1 | $159 |
+| Nocturno (20:00–5:00) o dominical/festivo | 24 | $3.800 |
+| Aeropuerto / Puente Aéreo | 50 | $8.000 |
+| Puerta a puerta | 9 | $1.400 |
+| Zona amarilla (ZEO, solo con factor de excelencia) | 20 | $3.400 |
+
+Con factor de excelencia la unidad es $172: nocturno $4.100, aeropuerto $8.600, puerta a puerta $1.500 y ZEO $3.400.
+
+El nocturno y el dominical/festivo **no se acumulan**: se cobra un solo recargo. `redondeo="ceil"` (por defecto) redondea hacia arriba; `redondeo="oficial"` reproduce la tarjeta oficial a la centena más cercana. Ejemplo: 5,2 km = 80 unidades = **$12.800** con `ceil` o **$12.700** con `oficial`.
+
+```python
+from src.tarifas import calcular_tarifa_taximetro
+
+tarifa = calcular_tarifa_taximetro(5_200, nocturno=True)
+print(tarifa.total)  # 16600
+```
 
 ---
 
@@ -260,6 +295,8 @@ Toda la documentación está en `documentacion/`:
 | `peas.md` | Modelo PEAS del agente |
 | `decisiones.md` | Registro de decisiones técnicas (ADR) |
 | `informe_corte1.md` | Informe de la Primera Entrega |
+| `informe_corte2.md` | Informe del Corte 2: algoritmos, heurística, resultados y análisis |
+| `demo_corte2.md` | Guion de demostración del Corte 2 |
 | `diagrama_red.md` | Grafo de ejemplo (6 nodos) |
 | `dataset_inicial.md` | Estructura de datos (JSON/CSV/GeoJSON) |
 
@@ -268,5 +305,5 @@ Toda la documentación está en `documentacion/`:
 ## Roadmap
 
 - **Corte 1 (hecho):** modelos de grafo, repositorio, datos OSM reales (888 nodos / 1741 aristas), módulo de agente, frontend con mapa/grafo, deploy en Vercel.
-- **Corte 2 (en curso):** motores **Voraz (greedy)**, **UCS** y **A\*** implementados y conectados al frontend (rutas óptimas con UCS/A*); pendientes BFS, DFS y el comparador de algoritmos.
+- **Corte 2 (en curso):** motores **Voraz (greedy)**, **UCS** y **A\*** implementados y conectados al frontend; **comparador** (`POST /busqueda/comparar`), tabla comparativa en la UI, benchmark reproducible con escenarios base/cierre y agente que planifica con búsqueda. Incluye **tarifa oficial de taxi** (Decreto 042 de 2026) en la API y la UI, y **mapa satelital** con capas Esri. Pendientes **BFS y DFS** (a cargo del equipo). Ver [`documentacion/informe_corte2.md`](documentacion/informe_corte2.md).
 - **Corte 3 (pendiente):** modelos de ML (predicción de congestión) sobre la red.

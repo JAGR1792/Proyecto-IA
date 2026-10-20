@@ -10,6 +10,8 @@ from src.busqueda.base import (
     reconstruir_camino,
     validar_criterio,
 )
+from src.busqueda.comparador import ComparacionAlgoritmos, comparar_algoritmos
+from src.busqueda.registro import crear_algoritmos
 from src.busqueda.ucs import BusquedaCostoUniforme
 from src.busqueda.voraz import BusquedaVoraz
 
@@ -20,8 +22,11 @@ __all__ = [
     "BusquedaAEstrella",
     "BusquedaCostoUniforme",
     "BusquedaVoraz",
+    "ComparacionAlgoritmos",
+    "comparar_algoritmos",
     "construir_resultado",
     "costo_arista",
+    "crear_algoritmos",
     "reconstruir_camino",
     "validar_criterio",
 ]
