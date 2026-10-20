@@ -1,10 +1,12 @@
 """Endpoints para gestión del grafo de movilidad."""
 
 import json
+from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import Response
 
+from src.congestion.horarios import grafo_en_hora
 from src.grafo.modelos import Grafo
 from src.grafo.repositorio import ExcepcionRepositorio, RepositorioGrafo
 
@@ -40,9 +42,11 @@ def obtener_grafo() -> Grafo:
 
 
 @router.get("/")
-async def obtener_grafo_completo():
-    """Retorna el grafo completo (nodos + aristas)."""
-    grafo = obtener_grafo()
+async def obtener_grafo_completo(
+    hora_salida: Annotated[str | None, Query(pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")] = None,
+):
+    """Retorna el grafo con la congestión sintética para HH:MM, si se solicita."""
+    grafo = grafo_en_hora(obtener_grafo(), hora_salida)
     return {
         "dirigido": grafo.dirigido,
         "metadata": grafo.metadata,

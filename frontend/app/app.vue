@@ -7,6 +7,56 @@ import { esJson } from '@/utils/api'
 
 const nodos = ref<NodoGrafo[]>([])
 const aristas = ref<AristaGrafo[]>([])
+
+// Etiquetas legibles a partir de los nombres reales de las vías conectadas en OSM.
+// Se conservan los IDs del grafo: esto solo mejora la presentación.
+const nombresViasPorNodo = computed(() => {
+  const nombres = new Map<string, Set<string>>()
+
+  for (const arista of aristas.value) {
+    const nombreVia = arista.nombre_via?.trim()
+    if (!nombreVia) continue
+
+    // Consideramos vías entrantes y salientes: son referencias geográficas,
+    // independientemente del sentido permitido de circulación.
+    for (const idNodo of [arista.origen, arista.destino]) {
+      if (!nombres.has(idNodo)) nombres.set(idNodo, new Set<string>())
+      nombres.get(idNodo)?.add(nombreVia)
+    }
+  }
+
+  return nombres
+})
+
+function nombreLegibleInterseccion(nodo: NodoGrafo): string {
+  const vias = [...(nombresViasPorNodo.value.get(nodo.id) ?? new Set<string>())]
+    .sort((a, b) => a.localeCompare(b, 'es', { numeric: true }))
+
+  const calle = vias.find((via) => /\b(calle|diagonal)\b/i.test(via))
+  const carrera = vias.find((via) => /\b(carrera|transversal)\b/i.test(via))
+
+  if (calle && carrera) return `${calle} con ${carrera}`
+  if (vias.length >= 2) return `${vias[0]} / ${vias[1]}`
+  if (vias.length === 1) return `${vias[0]} · ref. ${nodo.id.slice(-5)}`
+
+  // Si OSM no indica ninguna calle, no inventamos una dirección.
+  return /^Nodo \d+$/.test(nodo.nombre) ? `Intersección OSM ${nodo.id}` : nodo.nombre
+}
+
+const nodosOrdenados = computed(() =>
+  [...nodos.value].sort((a, b) =>
+    nombreLegibleInterseccion(a).localeCompare(nombreLegibleInterseccion(b), 'es', {
+      numeric: true,
+    }),
+  ),
+)
+
+function nombreNodoPorId(id: string | undefined): string {
+  if (!id) return '—'
+  const nodo = nodos.value.find((n) => n.id === id)
+  return nodo ? nombreLegibleInterseccion(nodo) : `Punto OSM ${id}`
+}
+
 const rutaResaltada = ref<string[]>([])
 const aristaResaltada = ref<string[]>([])
 const cargando = ref(false)
@@ -20,6 +70,7 @@ const apiBase = runtimeConfig.public.apiBase
 const origenSeleccionado = ref<string>('')
 const destinoSeleccionado = ref<string>('')
 const criterioSeleccionado = ref<string>('menor_tiempo')
+const horaSalida = ref<string>('08:00')
 const algoritmoSeleccionado = ref<string>('voraz')
 const resultadoRuta = ref<any>(null)
 const comparacion = ref<any>(null)
@@ -135,7 +186,7 @@ async function cargarGrafo() {
   error.value = null
   try {
     // Cargar grafo completo
-    const response = await fetch(`${apiBase}/grafo/`)
+    const response = await fetch(`${apiBase}/grafo/?hora_salida=${encodeURIComponent(horaSalida.value)}`)
     const tipo = response.headers.get('content-type') || ''
     if (!response.ok || !esJson(tipo)) {
       throw new Error(
@@ -197,6 +248,14 @@ function limpiarRuta() {
   comparacion.value = null
 }
 
+async function cambiarHoraSalida() {
+  rutaResaltada.value = []
+  aristaResaltada.value = []
+  resultadoRuta.value = null
+  comparacion.value = null
+  await cargarGrafo()
+}
+
 async function buscarRuta() {
   if (!origenSeleccionado.value || !destinoSeleccionado.value) return
   if (origenSeleccionado.value === destinoSeleccionado.value) return
@@ -215,6 +274,7 @@ async function buscarRuta() {
         destino: destinoSeleccionado.value,
         algoritmo: algoritmoSeleccionado.value,
         criterio: criterioSeleccionado.value,
+        hora_salida: horaSalida.value,
         tarifa: opcionesTarifa.value,
       }),
     })
@@ -261,6 +321,7 @@ async function compararAlgoritmos() {
         origen: origenSeleccionado.value,
         destino: destinoSeleccionado.value,
         criterio: criterioSeleccionado.value,
+        hora_salida: horaSalida.value,
         tarifa: opcionesTarifa.value,
       }),
     })
@@ -359,14 +420,14 @@ onMounted(() => {
             <label class="tx-label">Punto de Origen</label>
             <select v-model="origenSeleccionado" class="tx-select">
               <option value="">Seleccionar intersección...</option>
-              <option v-for="n in nodos" :key="n.id" :value="n.id">{{ n.nombre }} ({{ n.id }})</option>
+              <option v-for="n in nodosOrdenados" :key="n.id" :value="n.id">{{ nombreLegibleInterseccion(n) }}</option>
             </select>
           </div>
           <div class="tx-form-group">
             <label class="tx-label">Destino Final</label>
             <select v-model="destinoSeleccionado" class="tx-select">
               <option value="">Seleccionar intersección...</option>
-              <option v-for="n in nodos" :key="n.id" :value="n.id">{{ n.nombre }} ({{ n.id }})</option>
+              <option v-for="n in nodosOrdenados" :key="n.id" :value="n.id">{{ nombreLegibleInterseccion(n) }}</option>
             </select>
           </div>
           <div class="tx-form-group">
@@ -376,6 +437,21 @@ onMounted(() => {
               <option value="menor_distancia">Menor Distancia</option>
               <option value="menor_conexiones">Menor Cantidad Conexiones</option>
             </select>
+          </div>
+          <div class="tx-form-group">
+            <label for="hora-salida" class="tx-label">Hora de salida</label>
+            <input
+              id="hora-salida"
+              v-model="horaSalida"
+              type="time"
+              step="60"
+              required
+              class="tx-input"
+              @change="cambiarHoraSalida"
+            />
+            <p class="tx-panel-note">
+              Cualquier hora de 00:00 a 23:59. Tráfico simulado para un día hábil típico; no es tráfico en vivo.
+            </p>
           </div>
           <div class="tx-form-group">
             <label class="tx-label">Algoritmo de Búsqueda</label>
@@ -462,6 +538,7 @@ onMounted(() => {
         <!-- Resultado de Ruta -->
         <div v-if="resultadoRuta" class="tx-panel" style="margin-top: 1.5rem;">
           <h3 class="tx-panel-title">Resultado de Ruta</h3>
+          <p class="tx-panel-note">Salida: {{ horaSalida }} · congestión sintética</p>
           <dl class="tx-data-list">
             <div class="tx-data-row">
               <dt class="tx-data-term">Estado</dt>
@@ -477,6 +554,14 @@ onMounted(() => {
             <div class="tx-data-row">
               <dt class="tx-data-term">Algoritmo</dt>
               <dd class="tx-data-value tx-font-mono">{{ etiquetaAlgoritmo }}</dd>
+            </div>
+            <div class="tx-data-row">
+              <dt class="tx-data-term">Origen / Destino</dt>
+              <dd class="tx-data-value" style="max-width: 220px; overflow-wrap: anywhere;">
+                {{ nombreNodoPorId(resultadoRuta.camino[0]) }}
+                →
+                {{ nombreNodoPorId(resultadoRuta.camino[resultadoRuta.camino.length - 1]) }}
+              </dd>
             </div>
             <div class="tx-data-row">
               <dt class="tx-data-term">Camino</dt>
@@ -716,6 +801,7 @@ onMounted(() => {
           style="margin-top: 1.5rem;"
         >
           <h3 class="tx-panel-title">Comparación de Algoritmos</h3>
+          <p class="tx-panel-note">Salida: {{ horaSalida }} · misma simulación para todos los algoritmos</p>
           <p class="tx-panel-note">
             Mismo origen, destino y criterio ({{ comparacion.criterio }}).
           </p>
