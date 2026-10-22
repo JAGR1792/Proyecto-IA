@@ -83,4 +83,4 @@ class TestComparadorAlgoritmos:
 
     def test_crear_algoritmos_devuelve_instancias_nuevas(self):
         assert crear_algoritmos() is not crear_algoritmos()
-        assert set(crear_algoritmos()) == {"voraz", "ucs", "a_estrella", "dfs"}
+        assert set(crear_algoritmos()) == {"voraz", "ucs", "a_estrella", "bfs", "dfs"}
