@@ -611,7 +611,7 @@ El dashboard mostraba distancia, tiempo y el costo del criterio de búsqueda, pe
 
 ---
 
-## ADR-024 — Búsqueda en amplitud (BFS)
+## ADR-025 — Búsqueda en amplitud (BFS)
 
 **Fecha:** 2026-10
 **Estado:** Aceptado
@@ -631,20 +631,27 @@ El Corte 2 exige implementar y comparar BFS, DFS, UCS, voraz y A*. Tras el ADR-0
 - **Tests:** `tests/test_busqueda/test_bfs.py` (13 casos: menos aristas frente a la ruta más rápida, independencia del criterio, igualdad con UCS en `menor_conexiones`, aristas bloqueadas, grafo inconexo, ciclos, orden por niveles y métricas) y `test_comparador.py` actualizado con el nuevo registro.
 
 ### Consecuencias
-- ✅ Comparación sobre la red OSM (888 nodos / 1741 aristas), 30 pares origen–destino aleatorios con ruta (semilla 7), costo relativo a UCS:
+- ✅ Comparación reproducible sobre la red OSM (888 nodos / 1741 aristas). Comando: `python benchmark_busqueda.py --pares 30 --semilla 7 --algoritmos ucs,a_estrella,bfs,dfs,voraz` (desde `backend/`). De los 30 pares, 29 tienen ruta; el par restante está desconectado y se excluye de los promedios.
 
-  | Criterio | Algoritmo | Óptimas | Exceso medio de costo | Nodos explorados (prom.) |
-  |---|---|---|---|---|
-  | menor_tiempo | UCS | 30/30 | 0 % | 457 |
-  | menor_tiempo | A* | 30/30 | 0 % | 223 |
-  | menor_tiempo | BFS | 8/30 | 5,3 % | 434 |
-  | menor_tiempo | DFS | 2/30 | 511 % | 372 |
-  | menor_tiempo | Voraz | 1/30 | 58,5 % | 54 |
-  | menor_conexiones | UCS | 30/30 | 0 % | 464 |
-  | menor_conexiones | BFS | 30/30 | 0 % | 434 |
-  | menor_conexiones | DFS | 1/30 | 612 % | 372 |
+  | Criterio | Algoritmo | Rutas | Óptimas | Exceso medio de costo | Nodos explorados (prom.) |
+  |---|---|---:|---:|---:|---:|
+  | menor_tiempo | UCS | 29/30 | 29/29 | 0,0 % | 386,1 |
+  | menor_tiempo | A* | 29/30 | 29/29 | 0,0 % | 201,8 |
+  | menor_tiempo | BFS | 29/30 | 5/29 | 2,7 % | 332,6 |
+  | menor_tiempo | DFS | 29/30 | 0/29 | 810,6 % | 460,0 |
+  | menor_tiempo | Voraz | 29/30 | 3/29 | 119,9 % | 100,6 |
+  | menor_distancia | UCS | 29/30 | 29/29 | 0,0 % | 386,1 |
+  | menor_distancia | A* | 29/30 | 29/29 | 0,0 % | 135,4 |
+  | menor_distancia | BFS | 29/30 | 5/29 | 2,7 % | 332,6 |
+  | menor_distancia | DFS | 29/30 | 0/29 | 810,5 % | 460,0 |
+  | menor_distancia | Voraz | 29/30 | 3/29 | 119,9 % | 100,6 |
+  | menor_conexiones | UCS | 29/30 | 29/29 | 0,0 % | 359,3 |
+  | menor_conexiones | A* | 29/30 | 29/29 | 0,0 % | 344,0 |
+  | menor_conexiones | BFS | 29/30 | 29/29 | 0,0 % | 332,6 |
+  | menor_conexiones | DFS | 29/30 | 0/29 | 954,0 % | 460,0 |
+  | menor_conexiones | Voraz | 29/30 | 6/29 | 139,9 % | 100,6 |
 
 - ✅ BFS es **óptimo para `menor_conexiones`** (todas las aristas cuestan 1) y coincide con UCS explorando un poco menos gracias a la prueba de meta temprana.
-- ⚠️ Para `menor_tiempo` y `menor_distancia` **no es óptimo**: minimiza aristas, no costo; aun así queda muy por delante de DFS y voraz.
-- ⚠️ Explora casi tanto como UCS porque no tiene heurística; A* reduce la exploración ~50 % en `menor_tiempo`.
+- ⚠️ Para `menor_tiempo` y `menor_distancia` **no es óptimo**: minimiza aristas, no costo. Aun así, el exceso medio es solo 2,7 % y queda muy por delante de DFS (810 %) y voraz (120 %).
+- ⚠️ Explora algo menos que UCS (332,6 vs 386,1 nodos) porque no cuenta la expansión del destino; A* reduce la exploración 47,7 % en `menor_tiempo` y 64,9 % en `menor_distancia` frente a UCS.
 - ⚠️ DFS además descarta aristas con congestión `BLOQUEADA`, mientras BFS/UCS/A* solo filtran por `disponible`; conviene unificar el criterio de cierre en un ADR posterior.
