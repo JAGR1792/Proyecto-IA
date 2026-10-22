@@ -2,7 +2,7 @@
 
 **Curso:** Inteligencia Artificial (SIST5036) — Universidad Sergio Arboleda, Semestre VI, 2026
 **Fecha:** Octubre 2026
-**Estado:** Entregado (BFS y DFS a cargo del resto del equipo)
+**Estado:** Entregado (BFS, DFS, UCS, voraz y A*)
 **Repositorio:** <https://github.com/JAGR1792/Proyecto-IA>
 
 ---
@@ -11,7 +11,7 @@
 
 El Corte 2 pedía **implementar y comparar BFS, DFS, UCS, búsqueda voraz y A\***, incluyendo el análisis de la heurística, la visualización de rutas, pruebas con distintos escenarios, una tabla comparativa, el análisis de admisibilidad y consistencia, y un informe técnico con demostración (`Proyecto_IA.pdf`, pág. 8).
 
-Este informe cubre los algoritmos implementados en esta entrega —**UCS, voraz y A\***—, la heurística geográfica admisible y consistente, el comparador, el benchmark reproducible, la visualización de rutas y la integración con el agente. **BFS y DFS quedan a cargo de los compañeros del equipo**; el registro, el comparador, el benchmark y la interfaz ya están preparados para incorporarlos sin cambios adicionales.
+Este informe cubre los **cinco algoritmos del Corte 2** —**BFS, DFS, UCS, voraz y A\***—, la heurística geográfica admisible y consistente, el comparador, el benchmark reproducible, la visualización de rutas y la integración con el agente. BFS y DFS quedaron integrados en el mismo registro central y están disponibles en la API, el comparador, el benchmark y la interfaz.
 
 La red de estudio es la red vial real de Chapinero (OpenStreetMap): **888 nodos y 1.741 aristas**, con tres criterios de optimización del PDF (§5.2): menor tiempo, menor distancia y menor número de conexiones.
 
@@ -21,9 +21,9 @@ La red de estudio es la red vial real de Chapinero (OpenStreetMap): **888 nodos 
 
 | Entregable del PDF | Estado | Evidencia |
 |---|---|---|
-| Código funcional con BFS, DFS, UCS, voraz y A* | ⚠️ UCS, voraz y A* implementados; BFS/DFS pendientes (equipo) | `backend/src/busqueda/` |
+| Código funcional con BFS, DFS, UCS, voraz y A* | ✅ Los cinco implementados y registrados en `registro.py` (BFS: ADR-025) | `backend/src/busqueda/` |
 | Visualización de rutas | ✅ | `MapaOSM.vue`, `GraphView.vue`, capas conmutables |
-| Pruebas con distintos escenarios | ✅ | 131 tests + benchmark con escenario base y cierre del 10 % |
+| Pruebas con distintos escenarios | ✅ | 209 tests + benchmark con escenario base y cierre del 10 % |
 | Tabla comparativa | ✅ | `benchmark_busqueda.py`, endpoint `POST /busqueda/comparar`, tabla en la UI |
 | Análisis de admisibilidad y consistencia | ✅ | §5 y `tests/test_heuristicas/test_admisibles.py` |
 | Informe técnico | ✅ | Este documento |
@@ -37,6 +37,8 @@ La red de estudio es la red vial real de Chapinero (OpenStreetMap): **888 nodos 
 backend/src/busqueda/
 ├── base.py          # ResultadoBusqueda, costo por criterio, reconstrucción de camino
 ├── registro.py      # Único lugar donde se declaran los algoritmos disponibles
+├── bfs.py           # BFS con cola FIFO y prueba de meta al generar
+├── dfs.py           # DFS iterativo con pila LIFO y control de ciclos
 ├── ucs.py           # Dijkstra / Uniform Cost Search
 ├── voraz.py         # Greedy best-first con retroceso
 ├── a_estrella.py    # A* con heurística inyectable
@@ -46,7 +48,7 @@ backend/src/heuristicas/admisible.py   # h(n) por criterio, admisible y consiste
 backend/benchmark_busqueda.py          # Experimento reproducible (CSV/JSON/Markdown)
 ```
 
-`registro.crear_algoritmos()` es la fuente única de verdad: la API, el comparador, el benchmark y el agente obtienen de allí los algoritmos. Cuando el equipo añada `bfs.py` y `dfs.py`, basta registrarlos para que aparezcan en `/busqueda/algoritmos`, en la tabla comparativa y en el benchmark.
+`registro.crear_algoritmos()` es la fuente única de verdad: la API, el comparador, el benchmark y el agente obtienen de allí los algoritmos. Los cinco motores ya están registrados y aparecen en `/busqueda/algoritmos`, en la tabla comparativa y en el benchmark.
 
 ### 3.1 UCS (Uniform Cost Search)
 
@@ -66,9 +68,13 @@ Expande la frontera con menor `f(n) = g(n) + h(n)`, donde `g` es el costo acumul
 
 En cada paso elige el vecino con menor distancia aérea al destino y retrocede si cae en un callejón sin salida. Se conserva como **baseline** para cuantificar cuánto se pierde al no optimizar el costo global.
 
-### 3.4 BFS y DFS (pendientes)
+### 3.4 BFS (amplitud)
 
-No forman parte de esta entrega (las implementan los compañeros). El diseño ya las contempla: `_ID_ALGORITMO` incluye `bfs` y `dfs`, `registro.py` es el punto de extensión y la UI los muestra deshabilitados con la nota “pendiente”.
+Usa una cola FIFO y un conjunto de nodos alcanzados. La prueba de meta se hace al generar cada vecino, por lo que devuelve la ruta con menos aristas y evita expandir el último nivel completo. No usa costos ni heurística: para `menor_tiempo` y `menor_distancia` no es óptimo, pero sirve como línea base no informada. Su detalle incluye `nodos_alcanzados` y `max_frontera`.
+
+### 3.5 DFS (profundidad)
+
+Usa una pila LIFO con retroceso y control de ciclos. Encuentra una ruta transitable, pero no garantiza el menor costo ni el menor número de aristas. Descarta aristas no disponibles y aristas con congestión `BLOQUEADA`. Es el baseline que muestra el costo de explorar sin optimizar.
 
 ---
 
@@ -138,12 +144,12 @@ La heurística de conexiones es débil (`h ∈ {0,1}`), por eso la mejora es peq
 | Grafo | `backend/datos/dataset_osm.json` — 888 nodos, 1.741 aristas |
 | Pares origen/destino | 8, seleccionados con semilla 42, separación mínima 400 m |
 | Criterios | 3 (menor_tiempo, menor_distancia, menor_conexiones) |
-| Algoritmos | voraz, UCS, A* |
+| Algoritmos | voraz, UCS y A* en la corrida base de 8 pares; BFS y DFS se comparan en el ADR-025 con 30 pares |
 | Escenario base | red completa |
 | Escenario de cierre | 10 % de aristas cerradas (174 de 1.741, semilla 42) |
 | Métricas | costo, distancia, tiempo, aristas, nodos explorados, ms y brecha frente al mejor costo |
 
-Cada par y criterio se ejecuta con los tres algoritmos sobre el mismo grafo. La **brecha** de un algoritmo es `(costo − mejor costo) / mejor costo × 100` para esa consulta. Los tiempos corresponden a una ejecución en Windows, Python 3.14.7, sin repeticiones; son indicativos y no una medición estadística rigurosa.
+Cada par y criterio se ejecuta con los algoritmos de la corrida correspondiente sobre el mismo grafo. La **brecha** de un algoritmo es `(costo − mejor costo) / mejor costo × 100` para esa consulta. Los tiempos corresponden a una ejecución en Windows, Python 3.14.7, sin repeticiones; son indicativos y no una medición estadística rigurosa. La comparación de los cinco algoritmos, con 30 pares y semilla 7, está documentada en el ADR-025.
 
 Comandos de reproducción (desde `backend/`):
 
@@ -210,8 +216,10 @@ Se cerraron 174 aristas de forma determinista (semilla 42). Todos los pares sigu
 
 ## 8. Pruebas y calidad
 
-- **131 tests** en `backend/tests/` (grafo, agente, búsqueda, heurísticas), con **95,1 % de cobertura** (umbral exigido: 80 %).
+- **209 tests** en `backend/tests/` (grafo, agente, búsqueda, heurísticas y tarifas), con **95,74 % de cobertura** (umbral exigido: 80 %).
 - Tests específicos del corte:
+  - `test_bfs.py`: ruta con menos aristas, independencia del criterio, igualdad con UCS en `menor_conexiones`, bloqueos, grafo inconexo, ciclos, orden por niveles y métricas.
+  - `test_dfs.py`: ruta no óptima, criterios, bloqueos, sentido de vía, origen igual a destino y sin ruta.
   - `test_ucs.py`: ruta óptima, criterios, bloqueos, grafo inconexo, aristas paralelas.
   - `test_a_estrella.py`: optimalidad, menos exploración que UCS, `h ≡ 0` ⇒ UCS, voraz vs A*.
   - `test_admisibles.py`: admisibilidad y consistencia por criterio.
@@ -224,7 +232,7 @@ Se cerraron 174 aristas de forma determinista (semilla 42). Todos los pares sigu
 
 ## 9. Limitaciones y trabajo futuro
 
-- **BFS y DFS** aún no están implementados (equipo). El comparador y el benchmark los incorporarán automáticamente al registrarlos.
+- **BFS y DFS** ya están implementados y registrados; la comparación de 30 pares está en el ADR-025. Uno de esos 30 pares está desconectado, por lo que los promedios se calculan sobre 29 rutas encontradas.
 - Los datos de **congestión y tiempos son sintéticos**; el benchmark mide el comportamiento de los algoritmos, no tráfico real de Bogotá.
 - El **escenario de cierre** es una simulación determinista del 10 % de aristas; no representa un plan de cierres real.
 - Los **tiempos de ejecución** son de una sola corrida; para el informe final conviene repetir cada medición (por ejemplo, 5 repeticiones y mediana).
@@ -237,10 +245,10 @@ Se cerraron 174 aristas de forma determinista (semilla 42). Todos los pares sigu
 ## 10. Conclusiones
 
 1. UCS y A* obtienen la ruta de costo mínimo en los tres criterios; A* lo hace explorando entre 3,7 % y 69 % menos nodos, gracias a una heurística geográfica admisible y consistente.
-2. El voraz es útil como baseline, pero puede duplicar el costo de la ruta; no debe usarse como motor principal cuando el objetivo es optimizar.
-3. El comparador, el benchmark y la tabla en la interfaz convierten la comparación en una evidencia reproducible (8 pares × 3 criterios × 3 algoritmos, con y sin cierres), en lugar de una impresión cualitativa.
-4. La integración con el agente demuestra que los algoritmos no son módulos aislados: el agente planifica, sigue la ruta y reporta sus métricas.
-5. La entrega queda lista para incorporar BFS y DFS y para continuar con los modelos de aprendizaje automático del Corte 3.
+2. BFS es óptimo para `menor_conexiones` y, para tiempo/distancia, queda a solo 2,7 % del óptimo medio; DFS y voraz son baselines no óptimos con excesos de costo mucho mayores.
+3. El voraz explora menos nodos, pero puede duplicar el costo de la ruta; no debe usarse como motor principal cuando el objetivo es optimizar.
+4. El comparador, el benchmark y la tabla en la interfaz convierten la comparación en una evidencia reproducible: 8 pares × 3 criterios para la corrida base con cierres, más 30 pares × 3 criterios × 5 algoritmos en el ADR-025.
+5. La integración con el agente demuestra que los algoritmos no son módulos aislados: el agente planifica, sigue la ruta y reporta sus métricas. La entrega queda lista para los modelos de aprendizaje automático del Corte 3.
 
 ---
 
@@ -248,5 +256,5 @@ Se cerraron 174 aristas de forma determinista (semilla 42). Todos los pares sigu
 
 - `Proyecto_IA.pdf` — guía del proyecto integrador, secciones 5 (alcance) y 8 (organización por fases).
 - OpenStreetMap contributors. (2026). *OpenStreetMap*. <https://www.openstreetmap.org/>
-- Documentación interna: `documentacion/decisiones.md` (ADR-016 a ADR-022), `documentacion/formulacion.md`, `documentacion/peas.md`.
+- Documentación interna: `documentacion/decisiones.md` (ADR-016 a ADR-025), `documentacion/formulacion.md`, `documentacion/peas.md`.
 - Repositorio: <https://github.com/JAGR1792/Proyecto-IA>

@@ -8,7 +8,7 @@ Proyecto académico del curso *Inteligencia Artificial* (SIST5036), Universidad 
 
 El sistema modela la **red vial real de taxis** en la zona de estudio de **Chapinero (Bogotá)** como un grafo dirigido, y expone una API (FastAPI) y un dashboard web (Nuxt 3) para explorar nodos, aristas, rutas y el comportamiento de un agente inteligente.
 
-> Estado actual: **Corte 2** — UCS, voraz y A\* con heurística admisible, comparador, benchmark y agente que planifica con búsqueda. BFS y DFS pendientes (equipo).
+> Estado actual: **Corte 2** — UCS, voraz y A\* con heurística admisible, BFS y DFS, comparador, benchmark y agente que planifica con búsqueda.
 
 ---
 
@@ -305,5 +305,5 @@ Toda la documentación está en `documentacion/`:
 ## Roadmap
 
 - **Corte 1 (hecho):** modelos de grafo, repositorio, datos OSM reales (888 nodos / 1741 aristas), módulo de agente, frontend con mapa/grafo, deploy en Vercel.
-- **Corte 2 (en curso):** motores **Voraz (greedy)**, **UCS** y **A\*** implementados y conectados al frontend; **comparador** (`POST /busqueda/comparar`), tabla comparativa en la UI, benchmark reproducible con escenarios base/cierre y agente que planifica con búsqueda. Incluye **tarifa oficial de taxi** (Decreto 042 de 2026) en la API y la UI, **mapa satelital** con capas Esri y **selección de origen/destino por clic** con nombres amigables de vías OSM. Pendientes **BFS y DFS** (a cargo del equipo). Ver [`documentacion/informe_corte2.md`](documentacion/informe_corte2.md) y ADR-024 en [`documentacion/decisiones.md`](documentacion/decisiones.md).
+- **Corte 2 (en curso):** motores **Voraz (greedy)**, **BFS**, **DFS**, **UCS** y **A\*** implementados y conectados al frontend; **comparador** (`POST /busqueda/comparar`), tabla comparativa en la UI, benchmark reproducible con escenarios base/cierre y agente que planifica con búsqueda. Incluye **tarifa oficial de taxi** (Decreto 042 de 2026) en la API y la UI, **mapa satelital** con capas Esri y **selección de origen/destino por clic** con nombres amigables de vías OSM. Ver [`documentacion/informe_corte2.md`](documentacion/informe_corte2.md), ADR-024 y ADR-025 en [`documentacion/decisiones.md`](documentacion/decisiones.md).
 - **Corte 3 (pendiente):** modelos de ML (predicción de congestión) sobre la red.

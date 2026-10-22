@@ -633,3 +633,50 @@ El dashboard obligaba a elegir origen y destino en desplegables con 888 opciones
 - Limitación: el nombre es una aproximación legible, no una dirección postal ni un geocoder. Si se necesita precisión, el siguiente paso es enriquecer los nodos en el backend con `display_name` de Nominatim o datos catastrales.
 
 
+
+---
+
+## ADR-025 — Búsqueda en amplitud (BFS)
+
+**Fecha:** 2026-10
+**Estado:** Aceptado
+
+### Contexto
+El Corte 2 exige implementar y comparar BFS, DFS, UCS, voraz y A*. Tras el ADR-022 (comparador y registro central) y la integración de DFS, BFS era el único algoritmo pendiente: aparecía en la API como no implementado y deshabilitado en el selector del frontend.
+
+### Decisión
+- **`busqueda/bfs.py`:** `BusquedaAmplitud` hereda de `AlgoritmoBusqueda` y reutiliza `validar_criterio`, `reconstruir_camino` y `construir_resultado`.
+  - Frontera FIFO (`collections.deque`) y conjunto `alcanzados` para no repetir nodos ni entrar en ciclos.
+  - **Prueba de meta al generar** el vecino (no al extraerlo): evita expandir el último nivel completo y conserva la garantía de menor número de aristas.
+  - Usa `grafo.obtener_vecinos()`, igual que UCS, A* y voraz, por lo que respeta las aristas con `disponible = False`.
+  - El criterio **no** altera el orden de exploración; solo fija la unidad de `costo_total` para que la tabla comparativa sea homogénea.
+  - `detalle` reporta `nodos_alcanzados` y `max_frontera` (memoria usada), útiles para el análisis de complejidad O(b^d).
+- **Registro:** `bfs` se agrega en `registro.crear_algoritmos()`, así que queda disponible en la API, el comparador, el benchmark y el agente sin más cambios.
+- **API y frontend:** `GET /busqueda/algoritmos` lo marca como implementado y la opción BFS queda habilitada en el selector.
+- **Tests:** `tests/test_busqueda/test_bfs.py` (13 casos: menos aristas frente a la ruta más rápida, independencia del criterio, igualdad con UCS en `menor_conexiones`, aristas bloqueadas, grafo inconexo, ciclos, orden por niveles y métricas) y `test_comparador.py` actualizado con el nuevo registro.
+
+### Consecuencias
+- ✅ Comparación reproducible sobre la red OSM (888 nodos / 1741 aristas). Comando: `python benchmark_busqueda.py --pares 30 --semilla 7 --algoritmos ucs,a_estrella,bfs,dfs,voraz` (desde `backend/`). De los 30 pares, 29 tienen ruta; el par restante está desconectado y se excluye de los promedios.
+
+  | Criterio | Algoritmo | Rutas | Óptimas | Exceso medio de costo | Nodos explorados (prom.) |
+  |---|---|---:|---:|---:|---:|
+  | menor_tiempo | UCS | 29/30 | 29/29 | 0,0 % | 386,1 |
+  | menor_tiempo | A* | 29/30 | 29/29 | 0,0 % | 201,8 |
+  | menor_tiempo | BFS | 29/30 | 5/29 | 2,7 % | 332,6 |
+  | menor_tiempo | DFS | 29/30 | 0/29 | 810,6 % | 460,0 |
+  | menor_tiempo | Voraz | 29/30 | 3/29 | 119,9 % | 100,6 |
+  | menor_distancia | UCS | 29/30 | 29/29 | 0,0 % | 386,1 |
+  | menor_distancia | A* | 29/30 | 29/29 | 0,0 % | 135,4 |
+  | menor_distancia | BFS | 29/30 | 5/29 | 2,7 % | 332,6 |
+  | menor_distancia | DFS | 29/30 | 0/29 | 810,5 % | 460,0 |
+  | menor_distancia | Voraz | 29/30 | 3/29 | 119,9 % | 100,6 |
+  | menor_conexiones | UCS | 29/30 | 29/29 | 0,0 % | 359,3 |
+  | menor_conexiones | A* | 29/30 | 29/29 | 0,0 % | 344,0 |
+  | menor_conexiones | BFS | 29/30 | 29/29 | 0,0 % | 332,6 |
+  | menor_conexiones | DFS | 29/30 | 0/29 | 954,0 % | 460,0 |
+  | menor_conexiones | Voraz | 29/30 | 6/29 | 139,9 % | 100,6 |
+
+- ✅ BFS es **óptimo para `menor_conexiones`** (todas las aristas cuestan 1) y coincide con UCS explorando un poco menos gracias a la prueba de meta temprana.
+- ⚠️ Para `menor_tiempo` y `menor_distancia` **no es óptimo**: minimiza aristas, no costo. Aun así, el exceso medio es solo 2,7 % y queda muy por delante de DFS (810 %) y voraz (120 %).
+- ⚠️ Explora algo menos que UCS (332,6 vs 386,1 nodos) porque no cuenta la expansión del destino; A* reduce la exploración 47,7 % en `menor_tiempo` y 64,9 % en `menor_distancia` frente a UCS.
+- ⚠️ DFS además descarta aristas con congestión `BLOQUEADA`, mientras BFS/UCS/A* solo filtran por `disponible`; conviene unificar el criterio de cierre en un ADR posterior.
