@@ -680,3 +680,26 @@ El Corte 2 exige implementar y comparar BFS, DFS, UCS, voraz y A*. Tras el ADR-0
 - ⚠️ Para `menor_tiempo` y `menor_distancia` **no es óptimo**: minimiza aristas, no costo. Aun así, el exceso medio es solo 2,7 % y queda muy por delante de DFS (810 %) y voraz (120 %).
 - ⚠️ Explora algo menos que UCS (332,6 vs 386,1 nodos) porque no cuenta la expansión del destino; A* reduce la exploración 47,7 % en `menor_tiempo` y 64,9 % en `menor_distancia` frente a UCS.
 - ⚠️ DFS además descarta aristas con congestión `BLOQUEADA`, mientras BFS/UCS/A* solo filtran por `disponible`; conviene unificar el criterio de cierre en un ADR posterior.
+
+---
+
+## ADR-026 - Congestión horaria sintética por hora de salida
+
+**Fecha:** 2026-10-22
+**Estado:** Aceptado
+
+### Contexto
+El grafo base tiene tiempos y congestión fijos, así que una ruta era idéntica a cualquier hora. El Corte 2 pedía escenarios variables y la interfaz ya permitía elegir hora de salida, pero el backend la ignoraba.
+
+### Decisión
+- **`src/congestion/horarios.py`:** `grafo_en_hora(grafo, hora_salida)` devuelve una **copia** del grafo con `tiempo_estimado` y `velocidad_promedio` ajustados por un perfil sintético interpolado (06, 08, 12, 17, 19 y 22 h; transición nocturna 22-06 h).
+- Cada arista conserva un factor espacial determinista de ±15 % (SHA-256 de su ID) y un peso por tipo de vía; no se usa aleatoriedad ni se muta el grafo OSM cacheado. Las aristas no disponibles o `BLOQUEADA` se preservan.
+- La congestión resultante se clasifica en `BAJA`, `MEDIA` o `ALTA` según el factor; el cálculo es reproducible para la misma hora y red.
+- **API:** `hora_salida` es opcional en `GET /grafo/`, `POST /buscar` y `POST /comparar`; sin hora se conserva el contrato anterior. La validación exige `HH:MM`.
+- **Frontend:** `horaSalida` inicia en `08:00`, se envía al cargar el grafo y en cada búsqueda/comparación, y el panel muestra que la congestión es sintética.
+
+### Consecuencias
+- Cambiar la hora modifica los costos y puede cambiar la ruta elegida, sin tocar la topología.
+- Es un escenario **sintético**, no tráfico observado ni un pronóstico; no considera fecha ni festivos. La geometría sigue siendo OSM.
+- Tests: `tests/test_congestion/test_horarios.py` (20 casos) cubre validación, interpolación, determinismo, copia del grafo y preservación de bloqueos. Total del backend: 229 pruebas.
+- Los cinco algoritmos y el comparador consumen el grafo ajustado sin cambios propios.

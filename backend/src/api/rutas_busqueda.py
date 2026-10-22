@@ -14,6 +14,7 @@ from src.busqueda.comparador import (
     comparar_algoritmos as comparar_todos,
 )
 from src.busqueda.registro import crear_algoritmos
+from src.congestion.horarios import grafo_en_hora
 from src.tarifas.taximetro import ModoRedondeo, calcular_tarifa_taximetro
 
 router = APIRouter()
@@ -84,6 +85,11 @@ class SolicitudBusqueda(BaseModel):
     destino: str
     algoritmo: _ID_ALGORITMO = "voraz"
     criterio: str = "menor_tiempo"
+    hora_salida: str | None = Field(
+        None,
+        pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$",
+        description="HH:MM (00:00 a 23:59), tráfico sintético de día hábil típico",
+    )
     tarifa: OpcionesTarifa = Field(default_factory=OpcionesTarifa)
 
 
@@ -93,6 +99,11 @@ class SolicitudComparacion(BaseModel):
     origen: str
     destino: str
     criterio: str = "menor_tiempo"
+    hora_salida: str | None = Field(
+        None,
+        pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$",
+        description="HH:MM (00:00 a 23:59), tráfico sintético de día hábil típico",
+    )
     tarifa: OpcionesTarifa = Field(default_factory=OpcionesTarifa)
 
 
@@ -166,7 +177,7 @@ async def buscar_ruta(solicitud: SolicitudBusqueda):
             válidos.
         HTTPException 501: si el algoritmo aún no está implementado.
     """
-    grafo = obtener_grafo()
+    grafo = grafo_en_hora(obtener_grafo(), solicitud.hora_salida)
     origen, destino = solicitud.origen, solicitud.destino
     _validar_nodos(origen, destino)
 
@@ -179,6 +190,9 @@ async def buscar_ruta(solicitud: SolicitudBusqueda):
 
     try:
         resultado = algoritmo.buscar(grafo, origen, destino, solicitud.criterio)
+        if solicitud.hora_salida is not None:
+            resultado.detalle["hora_salida"] = solicitud.hora_salida
+            resultado.detalle["fuente_trafico"] = "sintetico"
         return _aplicar_tarifa(resultado, solicitud.tarifa)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
@@ -203,7 +217,7 @@ async def comparar_ruta(solicitud: SolicitudComparacion):
         HTTPException 422: si el criterio o las opciones de tarifa no son
             válidos.
     """
-    grafo = obtener_grafo()
+    grafo = grafo_en_hora(obtener_grafo(), solicitud.hora_salida)
     origen, destino = solicitud.origen, solicitud.destino
     _validar_nodos(origen, destino)
 
@@ -215,6 +229,10 @@ async def comparar_ruta(solicitud: SolicitudComparacion):
             solicitud.criterio,
             _ALGORITMOS,
         )
+        if solicitud.hora_salida is not None:
+            for resultado in comparacion.resultados:
+                resultado.detalle["hora_salida"] = solicitud.hora_salida
+                resultado.detalle["fuente_trafico"] = "sintetico"
         resultados = [
             _aplicar_tarifa(resultado, solicitud.tarifa) for resultado in comparacion.resultados
         ]

@@ -21,6 +21,7 @@ const apiBase = runtimeConfig.public.apiBase
 const origenSeleccionado = ref<string>('')
 const destinoSeleccionado = ref<string>('')
 const criterioSeleccionado = ref<string>('menor_tiempo')
+const horaSalida = ref<string>('08:00')
 const algoritmoSeleccionado = ref<string>('voraz')
 const resultadoRuta = ref<any>(null)
 const comparacion = ref<any>(null)
@@ -159,7 +160,7 @@ async function cargarGrafo() {
   error.value = null
   try {
     // Cargar grafo completo
-    const response = await fetch(`${apiBase}/grafo/`)
+    const response = await fetch(`${apiBase}/grafo/?hora_salida=${encodeURIComponent(horaSalida.value)}`)
     const tipo = response.headers.get('content-type') || ''
     if (!response.ok || !esJson(tipo)) {
       throw new Error(
@@ -252,6 +253,14 @@ function limpiarRuta() {
   comparacion.value = null
 }
 
+async function cambiarHoraSalida() {
+  rutaResaltada.value = []
+  aristaResaltada.value = []
+  resultadoRuta.value = null
+  comparacion.value = null
+  await cargarGrafo()
+}
+
 async function buscarRuta() {
   if (!origenSeleccionado.value || !destinoSeleccionado.value) return
   if (origenSeleccionado.value === destinoSeleccionado.value) return
@@ -270,6 +279,7 @@ async function buscarRuta() {
         destino: destinoSeleccionado.value,
         algoritmo: algoritmoSeleccionado.value,
         criterio: criterioSeleccionado.value,
+        hora_salida: horaSalida.value,
         tarifa: opcionesTarifa.value,
       }),
     })
@@ -316,6 +326,7 @@ async function compararAlgoritmos() {
         origen: origenSeleccionado.value,
         destino: destinoSeleccionado.value,
         criterio: criterioSeleccionado.value,
+        hora_salida: horaSalida.value,
         tarifa: opcionesTarifa.value,
       }),
     })
@@ -465,6 +476,21 @@ onMounted(() => {
             </select>
           </div>
           <div class="tx-form-group">
+            <label for="hora-salida" class="tx-label">Hora de salida</label>
+            <input
+              id="hora-salida"
+              v-model="horaSalida"
+              type="time"
+              step="60"
+              required
+              class="tx-input"
+              @change="cambiarHoraSalida"
+            />
+            <p class="tx-panel-note">
+              Cualquier hora de 00:00 a 23:59. Tráfico simulado para un día hábil típico; no es tráfico en vivo.
+            </p>
+          </div>
+          <div class="tx-form-group">
             <label class="tx-label">Algoritmo de Búsqueda</label>
             <select v-model="algoritmoSeleccionado" class="tx-select">
               <option value="a_estrella">A* (óptimo con heurística)</option>
@@ -549,6 +575,7 @@ onMounted(() => {
         <!-- Resultado de Ruta -->
         <div v-if="resultadoRuta" class="tx-panel" style="margin-top: 1.5rem;">
           <h3 class="tx-panel-title">Resultado de Ruta</h3>
+          <p class="tx-panel-note">Salida: {{ horaSalida }} · congestión sintética</p>
           <dl class="tx-data-list">
             <div class="tx-data-row">
               <dt class="tx-data-term">Estado</dt>
@@ -564,6 +591,14 @@ onMounted(() => {
             <div class="tx-data-row">
               <dt class="tx-data-term">Algoritmo</dt>
               <dd class="tx-data-value tx-font-mono">{{ etiquetaAlgoritmo }}</dd>
+            </div>
+            <div class="tx-data-row">
+              <dt class="tx-data-term">Origen / Destino</dt>
+              <dd class="tx-data-value" style="max-width: 220px; overflow-wrap: anywhere;">
+                {{ etiquetaNodoPorId(resultadoRuta.camino[0]) }}
+                →
+                {{ etiquetaNodoPorId(resultadoRuta.camino[resultadoRuta.camino.length - 1]) }}
+              </dd>
             </div>
             <div class="tx-data-row">
               <dt class="tx-data-term">Camino</dt>
@@ -818,6 +853,7 @@ onMounted(() => {
           style="margin-top: 1.5rem;"
         >
           <h3 class="tx-panel-title">Comparación de Algoritmos</h3>
+          <p class="tx-panel-note">Salida: {{ horaSalida }} · misma simulación para todos los algoritmos</p>
           <p class="tx-panel-note">
             Mismo origen, destino y criterio ({{ comparacion.criterio }}).
           </p>

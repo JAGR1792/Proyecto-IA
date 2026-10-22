@@ -1,260 +1,271 @@
-# Informe Corte 2 — Algoritmos de búsqueda y comparación
+# Informe técnico — Segundo corte: algoritmos de búsqueda
 
-**Curso:** Inteligencia Artificial (SIST5036) — Universidad Sergio Arboleda, Semestre VI, 2026
-**Fecha:** Octubre 2026
-**Estado:** Entregado (BFS, DFS, UCS, voraz y A*)
-**Repositorio:** <https://github.com/JAGR1792/Proyecto-IA>
+**Asignatura:** Inteligencia Artificial — SIST5036  
+**Proyecto:** Taxi IA — Planificación de rutas en Chapinero, Bogotá  
+**Repositorio:** https://github.com/JAGR1792/Proyecto-IA  
+**Versión de código examinada:** `main` (integración final del 22 de octubre de 2026)  
+**Estado:** Cinco algoritmos integrados y verificados; **ambos benchmarks (red base y 10 % de cierres) ejecutados con los cinco algoritmos**. Pendientes únicamente ensayo de la demostración y revisión final del equipo.
 
----
+## 1. Resumen y propósito
 
-## 1. Resumen
+El sistema representa una red vial de Chapinero obtenida de **OpenStreetMap (OSM)** mediante un grafo dirigido de **888 nodos y 1.741 aristas**. Se implementaron **búsqueda en amplitud (BFS), búsqueda en profundidad (DFS), búsqueda de costo uniforme (UCS), búsqueda voraz y A\***. La plataforma permite escoger intersecciones de origen/destino, el criterio de optimización (tiempo, distancia o conexiones), la hora de salida y las opciones de tarifa. Los cinco algoritmos están registrados en `src/busqueda/registro.py` y disponibles para búsqueda individual y comparación.
 
-El Corte 2 pedía **implementar y comparar BFS, DFS, UCS, búsqueda voraz y A\***, incluyendo el análisis de la heurística, la visualización de rutas, pruebas con distintos escenarios, una tabla comparativa, el análisis de admisibilidad y consistencia, y un informe técnico con demostración (`Proyecto_IA.pdf`, pág. 8).
+Este segundo corte corresponde a los requerimientos de la sección 8 de `Proyecto_IA.pdf`: código funcional, visualización de rutas, escenarios experimentales, tabla comparativa, demostración y análisis de admisibilidad/consistencia de la heurística. **La implementación principal se completó**. Se incorporaron los resultados de **ambas corridas del 20/10/2026 con cinco algoritmos**; los datos antiguos de tres algoritmos se conservan solo como antecedente. Con 10 % de cierres, las búsquedas tuvieron éxito en 7 de 8 pares, un resultado importante para analizar la conectividad.
 
-Este informe cubre los **cinco algoritmos del Corte 2** —**BFS, DFS, UCS, voraz y A\***—, la heurística geográfica admisible y consistente, el comparador, el benchmark reproducible, la visualización de rutas y la integración con el agente. BFS y DFS quedaron integrados en el mismo registro central y están disponibles en la API, el comparador, el benchmark y la interfaz.
+## 2. Cumplimiento y evidencia
 
-La red de estudio es la red vial real de Chapinero (OpenStreetMap): **888 nodos y 1.741 aristas**, con tres criterios de optimización del PDF (§5.2): menor tiempo, menor distancia y menor número de conexiones.
-
----
-
-## 2. Objetivos del corte y cumplimiento
-
-| Entregable del PDF | Estado | Evidencia |
+| Entregable | Evidencia actual | Estado |
 |---|---|---|
-| Código funcional con BFS, DFS, UCS, voraz y A* | ✅ Los cinco implementados y registrados en `registro.py` (BFS: ADR-025) | `backend/src/busqueda/` |
-| Visualización de rutas | ✅ | `MapaOSM.vue`, `GraphView.vue`, capas conmutables |
-| Pruebas con distintos escenarios | ✅ | 209 tests + benchmark con escenario base y cierre del 10 % |
-| Tabla comparativa | ✅ | `benchmark_busqueda.py`, endpoint `POST /busqueda/comparar`, tabla en la UI |
-| Análisis de admisibilidad y consistencia | ✅ | §5 y `tests/test_heuristicas/test_admisibles.py` |
-| Informe técnico | ✅ | Este documento |
-| Demostración | ✅ | `documentacion/demo_corte2.md` |
+| BFS, DFS, UCS, Voraz y A* | `backend/src/busqueda/` y `registro.py` | Implementado |
+| Visualización de rutas | `frontend/app/app.vue`, `MapaOSM.vue` y `GraphView.vue`; incluye nombres amigables de vías y selección de origen/destino por clic (ADR-024) | Implementado; validar visualmente durante la demo |
+| API de ruta y comparación | `POST /api/v1/busqueda/buscar` y `/comparar` | Implementado |
+| Varias condiciones y pruebas | Tests unitarios/integración; simulación de cierre del 10 %; horarios sintéticos | Implementado |
+| Tabla comparativa de cinco algoritmos | Comparador, interfaz y benchmark reproducible: 120 ejecuciones, 15 combinaciones | **Dos escenarios documentados**: 120 consultas base y 120 con 10 % de cierres |
+| Admisibilidad y consistencia | `src/heuristicas/admisible.py`, `tests/test_heuristicas/test_admisibles.py` | Implementado y probado con grafos de test |
+| Informe técnico | Este documento | Actualizado, con limitación experimental explícita |
+| Sustentación | `documentacion/demo_corte2.md` y guía técnica | Preparada; requiere ensayo |
 
----
+## 3. Arquitectura del sistema
 
-## 3. Arquitectura de búsqueda
-
-```
-backend/src/busqueda/
-├── base.py          # ResultadoBusqueda, costo por criterio, reconstrucción de camino
-├── registro.py      # Único lugar donde se declaran los algoritmos disponibles
-├── bfs.py           # BFS con cola FIFO y prueba de meta al generar
-├── dfs.py           # DFS iterativo con pila LIFO y control de ciclos
-├── ucs.py           # Dijkstra / Uniform Cost Search
-├── voraz.py         # Greedy best-first con retroceso
-├── a_estrella.py    # A* con heurística inyectable
-└── comparador.py    # Ejecuta todos y calcula el óptimo
-
-backend/src/heuristicas/admisible.py   # h(n) por criterio, admisible y consistente
-backend/benchmark_busqueda.py          # Experimento reproducible (CSV/JSON/Markdown)
+```text
+OSM → OSMnx → Grafo (nodos, aristas, sentidos y atributos)
+                         ↓
+             grafo_en_hora(grafo, HH:MM)  ← tráfico SINTÉTICO
+                         ↓
+     FastAPI → registro de algoritmos → BFS / DFS / UCS / Voraz / A*
+                                     ↓
+                construir_resultado → camino, costos, tiempos, distancia
+                                     ↓
+              cálculo de tarifa (separado de la búsqueda)
+                                     ↓
+                  Nuxt → mapa y tabla comparativa
 ```
 
-`registro.crear_algoritmos()` es la fuente única de verdad: la API, el comparador, el benchmark y el agente obtienen de allí los algoritmos. Los cinco motores ya están registrados y aparecen en `/busqueda/algoritmos`, en la tabla comparativa y en el benchmark.
+- `src/grafo/modelos.py`: contratos `Nodo`, `Arista`, `Grafo`, coordenadas; conversión de NetworkX.
+- `src/grafo/repositorio.py`: descarga y enriquecimiento OSM, lectura/escritura de datos.
+- `src/congestion/horarios.py`: transformación **no destructiva** del grafo por hora de salida.
+- `src/busqueda/base.py`: criterio, costo de arista, resultado común, reconstrucción y cronómetro.
+- `src/busqueda/registro.py`: registro central de los cinco motores.
+- `src/busqueda/comparador.py`: ejecuta todos con el mismo origen, destino, criterio y grafo.
+- `src/api/rutas_busqueda.py`: validación de solicitud, búsqueda, comparación y tarifa.
+- `src/tarifas/taximetro.py`: liquidación del valor en COP **después** de buscar la ruta.
 
-### 3.1 UCS (Uniform Cost Search)
+## 4. Definición precisa de costo, tiempo y tarifa
 
-Dijkstra sobre el costo del criterio activo. Mantiene una cola de prioridad `(costo acumulado, nodo)`, cierra cada nodo una sola vez y reconstruye el camino con los predecesores. Es **óptimo** para costos no negativos y sirve de referencia de optimalidad.
+### 4.1 Costo de una arista y costo de la ruta
 
-- Complejidad: `O((V + E) log V)` con montículo binario.
-- Criterios: `costo_arista()` devuelve minutos, metros o 1 por arista.
+La función `costo_arista(arista, criterio)` de `src/busqueda/base.py` define:
 
-### 3.2 A*
-
-Expande la frontera con menor `f(n) = g(n) + h(n)`, donde `g` es el costo acumulado y `h` la estimación admisible hasta el destino. Con `h` admisible y consistente devuelve la ruta de costo mínimo y, al dirigir la exploración, expande menos nodos que UCS. La heurística es inyectable: `h ≡ 0` equivale a UCS (usado en los tests para comprobar equivalencia).
-
-- Complejidad: `O((V + E) log V)` en el peor caso; en la práctica mucho menor.
-- Se cierra cada nodo una vez; con `h` consistente no hace falta reabrirlo.
-
-### 3.3 Búsqueda voraz (baseline no óptimo)
-
-En cada paso elige el vecino con menor distancia aérea al destino y retrocede si cae en un callejón sin salida. Se conserva como **baseline** para cuantificar cuánto se pierde al no optimizar el costo global.
-
-### 3.4 BFS (amplitud)
-
-Usa una cola FIFO y un conjunto de nodos alcanzados. La prueba de meta se hace al generar cada vecino, por lo que devuelve la ruta con menos aristas y evita expandir el último nivel completo. No usa costos ni heurística: para `menor_tiempo` y `menor_distancia` no es óptimo, pero sirve como línea base no informada. Su detalle incluye `nodos_alcanzados` y `max_frontera`.
-
-### 3.5 DFS (profundidad)
-
-Usa una pila LIFO con retroceso y control de ciclos. Encuentra una ruta transitable, pero no garantiza el menor costo ni el menor número de aristas. Descarta aristas no disponibles y aristas con congestión `BLOQUEADA`. Es el baseline que muestra el costo de explorar sin optimizar.
-
----
-
-## 4. Modelo de costo y heurística
-
-### 4.1 Criterios
-
-| Criterio | Costo de una arista | Unidad |
+| Criterio | Costo de arista `c(u,v)` | Costo de la ruta |
 |---|---|---|
-| `menor_tiempo` | `tiempo_estimado` | minutos |
-| `menor_distancia` | `distancia` | metros |
-| `menor_conexiones` | `1` | conexiones |
+| `menor_tiempo` | `arista.tiempo_estimado` (min) | Suma de minutos |
+| `menor_distancia` | `arista.distancia` (m) | Suma de metros |
+| `menor_conexiones` | `1` | Número de aristas |
 
-### 4.2 Heurística geográfica admisible
+El costo de búsqueda **no son pesos colombianos**. `construir_resultado` suma por separado `costo_total`, `distancia_total_m` y `tiempo_total_min`; así todos los motores presentan métricas comparables. `tiempo_ejecucion_ms` se mide en `AlgoritmoBusqueda.buscar()` mediante `time.perf_counter()` y representa procesamiento computacional, no duración del viaje.
 
-Sea `d(n, t)` la distancia haversine en línea recta entre el nodo `n` y el destino `t`.
+### 4.2 Origen del tiempo estimado base
 
-- **Distancia:** `h_dist(n) = d(n, t)`.
-- **Tiempo:** `h_tiempo(n) = d(n, t) / v_max`, con `v_max` la mayor velocidad efectiva de la red en m/s, calculada como `max(velocidad_promedio, distancia / (tiempo × 60))` sobre las aristas disponibles.
-- **Conexiones:** `h_conexiones(n) = 1` si `n ≠ t`, `0` en el destino.
+En `Grafo.desde_networkx`, la distancia se toma de `distancia` o de `length` de OSM (metros), y el tiempo inicial de `tiempo` o `travel_time` si se encuentra un valor positivo. Si no existe, se aplica:
 
-### 4.3 Admisibilidad
+`tiempo_base_min = (distancia_m / 1000) / velocidad_kmh × 60`.
 
-Una heurística es admisible si `h(n) ≤ costo real(n → t)` para todo `n`.
+En esa conversión la velocidad por defecto es **50 km/h**. Posteriormente, `RepositorioGrafo._enriquecer_desde_osm()` asigna la velocidad `maxspeed` o una velocidad típica por clase de vía, **pero no recalcula el tiempo base** al cambiar la velocidad almacenada. Por tanto, no se debe afirmar que el tiempo base siempre se deriva de la velocidad final enriquecida. Tampoco es correcto afirmar que proviene de sensores de tránsito. Si `travel_time` viniera de otra fuente, habría que validar antes su unidad, ya que la conversión actual lo toma directamente.
 
-- **Distancia:** la distancia en línea recta nunca supera la distancia recorrida por las vías (desigualdad triangular).
-- **Tiempo:** para cualquier camino, `tiempo = Σ distancia_e / v_e ≥ Σ distancia_e / v_max ≥ d(n,t) / v_max`. La cota usa los costos reales, por lo que sigue siendo válida aunque los datos de velocidad y tiempo no sean perfectamente coherentes.
-- **Conexiones:** si `n ≠ t`, cualquier camino necesita al menos una arista; `1` es una cota inferior.
+### 4.3 Tráfico sintético para cualquier HH:MM
 
-### 4.4 Consistencia (monotonía)
+`grafo_en_hora(grafo, hora_salida)` aplica:
 
-Para toda arista `(u, v)` se cumple `h(u) ≤ costo(u, v) + h(v)`:
+`factor = 1 + intensidad(hora) × peso_tipo_via × factor_espacial(arista_id)`
 
-- **Distancia:** `d(u,t) ≤ d(u,v) + d(v,t) ≤ longitud_vial(u,v) + d(v,t)`.
-- **Tiempo:** `d(u,t)/v_max ≤ d(u,v)/v_max + d(v,t)/v_max ≤ tiempo(u,v) + h(v)` porque `tiempo(u,v) ≥ distancia(u,v)/v_max`.
-- **Conexiones:** `1 ≤ 1 + h(v)` y `0 ≤ 1 + h(v)`.
+`tiempo_hora = tiempo_base × factor`  
+`velocidad_hora = velocidad_base / factor`.
 
-La consistencia evita reabrir nodos ya cerrados. Los tests `test_admisibles.py` verifican ambas propiedades en cada criterio: para cada nodo comparan `h(n)` con el costo real de UCS y, para cada arista, comprueban `h(u) ≤ costo(u,v) + h(v)`.
+El perfil de intensidad **hipotético** utiliza los puntos 06:00 (0,32), 08:00 (1,05), 12:00 (0,36), 17:00 (1,20), 19:00 (0,79), 22:00 (0,10), e interpola linealmente los minutos y el tramo nocturno hasta las 06:00 siguientes. Los pesos de vía incluyen, por ejemplo, primaria 1,24 y residencial 0,78. `factor_espacial` es estable por ID (SHA-256), con un rango aproximado de 0,85 a 1,15; **no se regenera al consultar otra hora**. La función produce una copia del grafo y conserva las distancias.
 
-### 4.5 Efecto medido
+La información es **simulación de un día hábil típico**, no tráfico en tiempo real, ni pronóstico meteorológico, ni observaciones de la Secretaría de Movilidad. Las rutas pueden cambiar cuando se optimiza tiempo; al optimizar distancia o conexiones, el cambio de hora no altera directamente el costo del criterio, aunque sí el tiempo reportado.
 
-En el escenario base, A* expande menos nodos que UCS manteniendo el mismo costo:
+### 4.4 Tarifa monetaria: otra operación
 
-| Criterio | Nodos UCS | Nodos A* | Reducción |
-|---|---:|---:|---:|
-| menor_tiempo | 495,5 | 249,5 | 49,6 % |
-| menor_distancia | 495,5 | 153,8 | 69,0 % |
-| menor_conexiones | 440,2 | 423,8 | 3,7 % |
+`calcular_tarifa_taximetro` usa distancia, segundos de espera declarados, banderazo, mínimo, recargos y tipo de redondeo. En el código actual:
 
-La heurística de conexiones es débil (`h ∈ {0,1}`), por eso la mejora es pequeña; sigue siendo admisible y correcta.
+`unidades_distancia = ceil(distancia_m / 100)`; `unidades_espera = ceil(espera_s / 24)`;  
+`unidades = max(28 + unidades_distancia + unidades_espera, 50)`;  
+`total = redondear_100(unidades × valor_unidad) + recargos`.
 
----
+El valor de unidad declarado es $159 o $172 con factor de excelencia. La **hora de salida modifica los tiempos simulados**, pero no configura automáticamente los segundos de espera ni activa por sí sola el recargo nocturno: esos son parámetros separados de la solicitud.
 
-## 5. Integración en el sistema
+## 5. Implementación de cada algoritmo
 
-- **API:** `POST /busqueda/buscar` ejecuta un algoritmo; `POST /busqueda/comparar` ejecuta todos los registrados sobre el mismo origen, destino y criterio y devuelve `mejor_algoritmo`, `mejor_costo` y `optimos`.
-- **Frontend:** el botón **Comparar algoritmos** muestra una tabla ordenada por costo, resalta los óptimos y reporta nodos explorados y milisegundos. La ruta del algoritmo seleccionado se dibuja sobre la geometría real de OSM (ver ADR-018).
-- **Agente:** `MotorDecision` ya no usa el greedy local: al iniciar planifica con A* (o el algoritmo indicado), sigue la ruta paso a paso y expone `ruta_planificada` y las métricas de planificación en `/agente/iniciar`, `/agente/paso` y `/agente/estado`. Si el agente queda fuera de la ruta, replanifica.
-- **Comparador:** `busqueda/comparador.py` es independiente de la API y se reutiliza en el benchmark y en los tests.
+| Algoritmo | Archivo | Frontera / selección | Heurística | Propiedad relevante |
+|---|---|---|---|---|
+| DFS | `dfs.py` | Pila LIFO, `pop`, conjunto `visitados`; almacena predecesor al extraer | Ninguna | Encuentra un camino, no minimiza costo |
+| BFS | `bfs.py` | Cola FIFO `deque`, conjunto `alcanzados`; detecta destino al generarlo | Ninguna | Menor número de conexiones en grafo no ponderado |
+| UCS | `ucs.py` | Min-heap por `g(n)` y relajación de vecinos | Ninguna (`h=0`) | Mínimo costo para costos no negativos |
+| A* | `a_estrella.py` | Min-heap por `f(n)=g(n)+h(n)`, conserva mejor `g` | Haversine adaptada al criterio | Óptimo con las condiciones de la heurística |
+| Voraz | `voraz.py` | Vecino con menor distancia a meta, con retroceso | Haversine al destino | No garantiza óptimo; usa costo de arista solo como desempate |
 
----
+### 5.1 DFS — implementación del equipo
 
-## 6. Metodología experimental
+Construye una estructura de adyacencia que filtra aristas no disponibles o marcadas con congestión `BLOQUEADA`, respeta el grafo dirigido, e inicia la pila como `[(origen, None, None)]`. Cada extracción (`pop`) descarta estados repetidos, marca el nodo como visitado, registra el predecesor de la arista real y comprueba si se alcanzó el objetivo. La enumeración de vecinos está invertida al apilarlos para que el primer vecino del listado original se procese primero. Un mapa de predecesores reconstruye la ruta al finalizar. El criterio se utiliza para **reportar** el costo de la ruta, no para orientar DFS.
 
-| Parámetro | Valor |
-|---|---|
-| Grafo | `backend/datos/dataset_osm.json` — 888 nodos, 1.741 aristas |
-| Pares origen/destino | 8, seleccionados con semilla 42, separación mínima 400 m |
-| Criterios | 3 (menor_tiempo, menor_distancia, menor_conexiones) |
-| Algoritmos | voraz, UCS y A* en la corrida base de 8 pares; BFS y DFS se comparan en el ADR-025 con 30 pares |
-| Escenario base | red completa |
-| Escenario de cierre | 10 % de aristas cerradas (174 de 1.741, semilla 42) |
-| Métricas | costo, distancia, tiempo, aristas, nodos explorados, ms y brecha frente al mejor costo |
+**Caso probado:** grafo de cuatro nodos A-B-C-D más conexión directa A-D: DFS encuentra `A→B→C→D`, con costo temporal 9 min, aunque existe `A→D` de 1 min. Un ejemplo contundente de ausencia de optimalidad.
 
-Cada par y criterio se ejecuta con los algoritmos de la corrida correspondiente sobre el mismo grafo. La **brecha** de un algoritmo es `(costo − mejor costo) / mejor costo × 100` para esa consulta. Los tiempos corresponden a una ejecución en Windows, Python 3.14.7, sin repeticiones; son indicativos y no una medición estadística rigurosa. La comparación de los cinco algoritmos, con 30 pares y semilla 7, está documentada en el ADR-025.
+### 5.2 BFS
 
-Comandos de reproducción (desde `backend/`):
+Empieza con `deque([origen])`, extrae de la izquierda (`popleft`), recorre vecinos salientes no repetidos y almacena los predecesores al descubrirlos. Comprueba el objetivo al generar el vecino. Por explorar por niveles devuelve el menor número de aristas, **no necesariamente la menor distancia ni el menor tiempo**. Ignora el criterio durante la elección y solo lo usa al calcular las métricas resultantes.
 
-```bash
+### 5.3 UCS
+
+Mantiene `costo_acumulado` (mejor `g` conocido), un `heapq` con prioridad `g`, `cerrados` y `predecesores`. Al explorar `u→v`, calcula `nuevo_costo = g(u) + costo_arista(u,v, criterio)` y actualiza a `v` si encuentra una alternativa más barata. Se detiene al extraer el destino del heap; con costos no negativos, el costo es mínimo.
+
+### 5.4 A*
+
+Comparte la relajación de UCS, pero usa `prioridad = nuevo_costo + estimar_costo_restante(vecino, destino)`. `preparar_contexto` fija el destino, el criterio y, si procede, una velocidad máxima efectiva. El algoritmo permite **inyectar** una heurística; `h(n)=0` lo hace equivalente a UCS para evaluar la optimalidad.
+
+### 5.5 Voraz (Greedy)
+
+La implementación **no** usa una cola global best-first: desde el nodo actual elige el vecino no visitado con mínimo `(distancia_geografica_a_destino, costo_arista_como_desempate)`. Si no tiene vecinos nuevos, retrocede (backtracking). Mantiene `visitados`, un camino provisional y un máximo de pasos. La elección es local; puede encontrar una ruta considerablemente más costosa que A* o UCS.
+
+## 6. Heurística utilizada, admisibilidad y consistencia
+
+`Coordenadas.distancia_a()` implementa matemáticamente **Haversine**, aunque su docstring la llame «euclidiana aproximada». No confundir un nombre descriptivo con la fórmula ejecutada.
+
+- **Menor distancia:** `h(n)=d_haversine(n,destino)` en metros.
+- **Menor tiempo:** `h(n)=d_haversine(n,destino)/vmax_ms/60` en minutos. `vmax_ms` se calcula a partir del máximo entre velocidades declaradas y velocidades implícitas `distancia/(tiempo×60)` de aristas disponibles, evitando sobreestimar por posibles incoherencias entre distancia y tiempo.
+- **Menor conexiones:** `h(n)=0` si `n` es destino, y `1` en cualquier otro nodo.
+
+**Admisibilidad:** `h(n) ≤ costo óptimo restante(n, destino)`. **Consistencia:** para cada arista `u→v`, `h(u) ≤ c(u,v) + h(v)`. Bajo los supuestos de distancias y tiempos válidos, Haversine es cota inferior a la distancia por vías y dividir entre una cota superior de velocidad produce una cota inferior de tiempo. Los tests comprueban las dos condiciones contra UCS y las aristas de grafos controlados. No sustituye una comprobación exhaustiva de calidad geográfica del dataset completo.
+
+## 7. Escenarios y comparación experimental
+
+### 7.1 Diseño reproducible
+
+Existe `backend/benchmark_busqueda.py`: elige pares origen-destino con una semilla fija, ejecuta todos los algoritmos registrados para cada criterio y exporta CSV, JSON y Markdown. El escenario de cierre desactiva un porcentaje de aristas en memoria. Para obtener **una comparación actualizada de cinco algoritmos** ejecutar desde `backend/`:
+
+```powershell
 python benchmark_busqueda.py --pares 8 --semilla 42
 python benchmark_busqueda.py --pares 8 --semilla 42 --bloquear-pct 10
 ```
 
-Salidas en `backend/datos/resultados/` (`benchmark_*.csv`, `resumen_*.json`, `benchmark_*.md`); el directorio está ignorado por git y se regenera con la misma semilla.
+**Matriz ejecutada:** 8 pares × 3 criterios × 5 algoritmos = **120 ejecuciones por escenario**, **240 ejecuciones totales**. El escenario base produjo **120 rutas encontradas**; el de cierres, **105 rutas encontradas y 15 consultas sin ruta**. Los archivos completos de cada corrida se generan en `backend/datos/resultados/`; las tablas aquí son resúmenes facilitados por el equipo, no las 240 filas individuales. Para comparar horarios, la API `/comparar` acepta `hora_salida`; el script anterior **no recibe un parámetro de hora** en la versión revisada.
 
----
+### 7.2 Resultados medidos: cinco algoritmos, escenario base (20/10/2026)
 
-## 7. Resultados
+**Medición proporcionada por el equipo:** ejecución local de `python benchmark_busqueda.py --pares 8 --semilla 42` a las **19:41:11**, Python 3.11, conjunto `datos/dataset_osm.json`. Grafo de **888 nodos y 1.741 aristas**, **sin cierres**, **sin parámetro `hora_salida`**. El script seleccionó 8 pares de nodos y aplicó los 3 criterios con los **cinco algoritmos**, para **120 ejecuciones**, todas con ruta encontrada.
 
-### 7.1 Caso de estudio
+**Tabla experimental completa (15 combinaciones = 5 algoritmos × 3 criterios; 8 ejecuciones por fila):**
 
-Ruta `253761879 → 253761882`, criterio `menor_tiempo`:
+| Algoritmo | Criterio | Ejecuciones | Costo prom. | Brecha prom. (%) | Nodos prom. | Aristas prom. | CPU prom. (ms) |
+|---|---|---:|---:|---:|---:|---:|---:|
+| A* | menor_conexiones | 8 | 22.500 | 0 | 423.800 | 22.500 | 73.971 |
+| A* | menor_distancia | 8 | 2071.688 | 0 | 153.800 | 26 | 30.830 |
+| A* | menor_tiempo | 8 | 2.486 | 0 | 249.500 | 26 | 65.626 |
+| BFS | menor_conexiones | 8 | 22.500 | 0 | 411.400 | 22.500 | 70.562 |
+| BFS | menor_distancia | 8 | 2184.049 | 4.920 | 411.400 | 22.500 | 76.084 |
+| BFS | menor_tiempo | 8 | 2.621 | 4.921 | 411.400 | 22.500 | 83.579 |
+| DFS | menor_conexiones | 8 | 185.625 | 859.837 | 424 | 185.600 | 2.177 |
+| DFS | menor_distancia | 8 | 13955.836 | 632.250 | 424 | 185.600 | 2.478 |
+| DFS | menor_tiempo | 8 | 16.747 | 632.242 | 424 | 185.600 | 2.731 |
+| UCS | menor_conexiones | 8 | 22.500 | 0 | 440.200 | 22.500 | 88.469 |
+| UCS | menor_distancia | 8 | 2071.688 | 0 | 495.500 | 26 | 91.180 |
+| UCS | menor_tiempo | 8 | 2.486 | 0 | 495.500 | 26 | 95.696 |
+| Voraz | menor_conexiones | 8 | 48.125 | 113.733 | 213.100 | 48.100 | 40.498 |
+| Voraz | menor_distancia | 8 | 4076.474 | 104.076 | 213.100 | 48.100 | 42.288 |
+| Voraz | menor_tiempo | 8 | 4.892 | 104.061 | 213.100 | 48.100 | 40.898 |
 
-| Algoritmo | Costo (min) | Distancia (m) | Aristas | Nodos explorados | Tiempo (ms) |
-|---|---:|---:|---:|---:|---:|
-| Voraz | 2,482 | 2.068,3 | 26 | 28 | 5,2 |
-| UCS | **1,520** | **1.266,5** | 18 | 124 | 22,2 |
-| A* | **1,520** | **1.266,5** | 18 | 51 | 10,6 |
+Las **unidades del costo** dependen del criterio: `menor_tiempo` en **minutos**, `menor_distancia` en **metros** y `menor_conexiones` en **cantidad de aristas**. «Nodos» es el promedio de nodos explorados; «Aristas» corresponde a la longitud en conexiones del camino encontrado. CPU (ms) mide **tiempo de cómputo del algoritmo**, no duración del viaje.
 
-Voraz llega por un camino un 63 % más costoso; A* obtiene el óptimo expandiendo un 59 % menos de nodos que UCS.
+**Interpretación de resultados:**
 
-### 7.2 Escenario base (promedios de 8 pares)
+- En **menor tiempo**, A* y UCS empatan en **2,486 min** de costo promedio; A* explora **249,5** nodos y UCS **495,5** (reducción de **49,6 %** de exploración en esta muestra). BFS da **2,621 min**, Voraz **4,892 min** y DFS **16,747 min**.
+- En **menor distancia**, A* y UCS empatan en **2.071,688 m**; BFS obtiene **2.184,049 m**, Voraz **4.076,474 m** y DFS **13.955,836 m**.
+- En **menor conexiones**, A*, UCS y BFS empatan en **22,5 aristas** de media. Voraz produce **48,125** y DFS **185,625**. Esto demuestra que BFS optimiza conexiones sin tener que optimizar distancia o tiempo.
+- DFS arroja un **tiempo de cómputo promedio de solo 2,731 ms** para menor tiempo, aunque su viaje promedio cuesta **16,747 min**. No es una contradicción: el algoritmo ejecuta rápidamente y encuentra un camino, pero no busca minimizar el costo. Además, **este código de DFS preconstruye adyacencia**, mientras que los demás llaman repetidamente a `obtener_vecinos`, que recorre las aristas del grafo. No debe atribuirse la diferencia de CPU únicamente a DFS como algoritmo abstracto.
+- Las **brechas promedio** de la tabla son el **promedio de los porcentajes por cada par** respecto al mejor resultado encontrado en ese par, y **no** la división entre promedios agregados. DFS registra **632,242 %** de brecha promedio en menor tiempo y **859,837 %** en menor conexiones; una cifra grande es compatible con su falta de optimalidad.
 
-| Algoritmo | Criterio | Costo prom. | Brecha prom. | Nodos prom. | Aristas prom. | ms prom. |
-|---|---|---:|---:|---:|---:|---:|
-| A* | menor_tiempo | 2,486 min | 0,0 % | 249,5 | 26,0 | 52,6 |
-| UCS | menor_tiempo | 2,486 min | 0,0 % | 495,5 | 26,0 | 99,6 |
-| Voraz | menor_tiempo | 4,892 min | 104,1 % | 213,1 | 48,1 | 48,9 |
-| A* | menor_distancia | 2.071,7 m | 0,0 % | 153,8 | 26,0 | 32,4 |
-| UCS | menor_distancia | 2.071,7 m | 0,0 % | 495,5 | 26,0 | 101,9 |
-| Voraz | menor_distancia | 4.076,5 m | 104,1 % | 213,1 | 48,1 | 42,5 |
-| A* | menor_conexiones | 22,5 | 0,0 % | 423,8 | 22,5 | 86,0 |
-| UCS | menor_conexiones | 22,5 | 0,0 % | 440,2 | 22,5 | 87,0 |
-| Voraz | menor_conexiones | 48,1 | 113,7 % | 213,1 | 48,1 | 46,1 |
+**Limitación metodológica:** los promedios de tiempo de CPU provienen de una corrida por consulta y dependen del hardware, entorno y orden de ejecución. No es válido asegurar que DFS o A* son universalmente los más rápidos usando solamente estos milisegundos. Para un estudio de rendimiento más sólido, repetir mediciones y usar mediana o dispersión.
 
-**Lectura:** UCS y A* empatan en el óptimo en los tres criterios. A* reduce la exploración entre 3,7 % (conexiones) y 69,0 % (distancia). El voraz, aunque explora menos nodos, entrega rutas ~104 % más costosas en tiempo/distancia y ~114 % en conexiones: explorar menos no implica decidir mejor.
+### 7.3 Evidencia histórica del informe anterior: solo A*, UCS y Voraz
 
-### 7.3 Escenario con 10 % de cierres
+Como antecedente, la corrida anterior mostró para la ruta `253761879 → 253761882`, criterio menor tiempo sin hora elegida, **1,520 min con UCS/A*** y **2,482 min con Voraz**. Ese caso particular es histórico y no reemplaza el experimento completo actualizado de cinco algoritmos de la sección 7.2.
 
-Se cerraron 174 aristas de forma determinista (semilla 42). Todos los pares siguieron siendo alcanzables.
+### 7.4 Resultados medidos: cinco algoritmos, 10 % de cierres (20/10/2026)
 
-| Algoritmo | Criterio | Costo prom. | Brecha prom. | Nodos prom. | ms prom. |
-|---|---|---:|---:|---:|---:|
-| A* | menor_tiempo | 2,929 min | 0,0 % | 263,9 | 56,3 |
-| UCS | menor_tiempo | 2,929 min | 0,0 % | 498,6 | 99,1 |
-| Voraz | menor_tiempo | 5,429 min | 91,3 % | 335,6 | 69,6 |
-| A* | menor_distancia | 2.441,2 m | 0,0 % | 184,7 | 37,2 |
-| UCS | menor_distancia | 2.441,2 m | 0,0 % | 498,6 | 98,6 |
-| Voraz | menor_distancia | 4.524,2 m | 91,3 % | 335,6 | 74,5 |
-| A* | menor_conexiones | 25,4 | 0,0 % | 396,1 | 75,6 |
-| UCS | menor_conexiones | 25,4 | 0,0 % | 405,3 | 78,8 |
-| Voraz | menor_conexiones | 54,7 | 111,0 % | 335,6 | 67,8 |
+**Segunda medición proporcionada por el equipo:** `python benchmark_busqueda.py --pares 8 --semilla 42 --bloquear-pct 10`, ejecutado desde `backend/` a las **19:47:17**, 20/10/2026. Mantiene `dataset_osm.json`, los mismos parámetros de selección (8 pares y semilla 42), tres criterios, cinco algoritmos y **no usa `hora_salida`**. Se marcaron **174 de 1.741 aristas** como `disponible=False`; quedaron **1.567 aristas disponibles**. Se intentaron **120 búsquedas**.
 
-**Lectura:** el cierre encarece las rutas óptimas ~17,8 % en tiempo y distancia, pero no rompe la optimalidad de UCS/A*; el voraz sigue ~91 % por encima del óptimo. La exploración de A* se mantiene muy por debajo de UCS.
+**Resultado de alcanzabilidad:** cada combinación algoritmo/criterio obtuvo **7 rutas de 8 intentos**, es decir, **105 resultados encontrados y 15 sin ruta** en el total de 120 consultas. En el escenario sin cierres fueron 120/120. **La tabla de promedios excluye las consultas sin ruta**; por tanto, los promedios con cierres se calculan sobre siete trayectos exitosos, frente a ocho en la línea base. El análisis de las filas del CSV `benchmark_dataset_osm_cierre_10pct.csv`, realizado por el equipo en PowerShell, identificó **un único par sin ruta**: **origen `314146484` → destino `13281957926`**. Aparece como `ruta_encontrada=False` para los cinco algoritmos y los tres criterios (**15 filas**). Los otros siete pares sí tuvieron solución en todas las combinaciones. Los identificadores son nodos OSM, no tiempos ni números de calles.
 
-![Tabla comparativa en el dashboard](capturas/comparacion_algoritmos.png)
+**Tabla experimental de las 15 combinaciones (costos: minutos, metros o número de aristas según criterio):**
 
----
+| Algoritmo | Criterio | Ejecuciones | Encontradas | Costo prom. | Brecha prom. (%) | Nodos prom. | Aristas prom. | CPU prom. (ms) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| A* | menor_conexiones | 8 | 7 | 25,429 | 0,000 | 396,100 | 25,400 | 40,660 |
+| A* | menor_distancia | 8 | 7 | 2441,164 | 0,000 | 184,700 | 26,300 | 19,816 |
+| A* | menor_tiempo | 8 | 7 | 2,929 | 0,000 | 263,900 | 26,300 | 29,236 |
+| BFS | menor_conexiones | 8 | 7 | 25,429 | 0,000 | 380,300 | 25,400 | 38,753 |
+| BFS | menor_distancia | 8 | 7 | 2582,257 | 7,915 | 380,300 | 25,400 | 37,844 |
+| BFS | menor_tiempo | 8 | 7 | 3,099 | 7,917 | 380,300 | 25,400 | 40,182 |
+| DFS | menor_conexiones | 8 | 7 | 109,714 | 328,707 | 432,600 | 109,700 | 1,373 |
+| DFS | menor_distancia | 8 | 7 | 9441,122 | 286,761 | 432,600 | 109,700 | 1,296 |
+| DFS | menor_tiempo | 8 | 7 | 11,329 | 286,760 | 432,600 | 109,700 | 1,398 |
+| UCS | menor_conexiones | 8 | 7 | 25,429 | 0,000 | 405,300 | 25,400 | 40,830 |
+| UCS | menor_distancia | 8 | 7 | 2441,164 | 0,000 | 498,600 | 26,300 | 50,293 |
+| UCS | menor_tiempo | 8 | 7 | 2,929 | 0,000 | 498,600 | 26,300 | 51,376 |
+| Voraz | menor_conexiones | 8 | 7 | 54,714 | 110,969 | 335,600 | 54,700 | 35,728 |
+| Voraz | menor_distancia | 8 | 7 | 4524,243 | 91,330 | 335,600 | 54,700 | 35,420 |
+| Voraz | menor_tiempo | 8 | 7 | 5,429 | 91,335 | 335,600 | 54,700 | 35,451 |
+
+**Vista resumida de `menor_tiempo`:**
+
+| Algoritmo | Sin cierres (8 encontrados) | Con cierres (7 encontrados) |
+|---|---:|---:|
+| A* | 2,486 min | 2,929 min |
+| UCS | 2,486 min | 2,929 min |
+| BFS | 2,621 min | 3,099 min |
+| Voraz | 4,892 min | 5,429 min |
+| DFS | 16,747 min | 11,329 min |
+
+
+**Interpretación técnica:**
+
+- **UCS y A*** coinciden en costo óptimo promedio (**2,929 min** en el criterio temporal). A* exploró **263,9 nodos promedio** y UCS **498,6**, en los siete trayectos alcanzables del escenario cerrado. No se debe deducir que A* siempre es más rápido en tiempo CPU.
+- **BFS** obtiene el mínimo de conexiones (**25,429**) empatando en costo con A* y UCS cuando todos usan el criterio `menor_conexiones`, pero para `menor_tiempo` entrega **3,099 min**: su cola FIFO no optimiza pesos temporales.
+- **DFS** devuelve **11,329 min** en los siete trayectos encontrados y mantiene su falta de garantía de optimalidad. Su brecha media de costo temporal es **286,760 %**; en conexiones llega a **328,707 %**. Cambiar calles o el orden de los vecinos puede cambiar profundamente el camino producido por DFS.
+- **La disminución aparente del promedio de DFS respecto a la base (16,747 → 11,329 min) no demuestra que cerrar calles lo mejore**: los promedios usan conjuntos de tamaños distintos (8 frente a 7), y también cambia la ruta resultante. Para una comparación emparejada hay que filtrar las filas base y cerradas al **mismo par** con éxito en ambos escenarios y mismo criterio.
+- Los cierres se modelan con `arista.disponible=False`. En `Grafo.obtener_vecinos()` las conexiones no disponibles se excluyen; DFS también las excluye al construir la adyacencia. Si el destino queda inalcanzable desde el origen, el comportamiento correcto es reportar `ruta_encontrada=False`, no inventar un recorrido.
+- **Tiempos CPU no concluyentes:** son una única medición por consulta en la ejecución local, susceptibles a carga, estructura de datos y tamaño efectivo del grafo. Los algoritmos no comparten necesariamente el mismo costo de acceder a vecinos.
+
+**Reproducibilidad y caso concreto:** el cierre selecciona las 174 aristas con semilla 42 y modifica el grafo **en memoria**, no el archivo OSM. En `benchmark_dataset_osm_cierre_10pct.csv`, el par `314146484 → 13281957926` devolvió `False` en las 15 combinaciones (cinco algoritmos × tres criterios). En los otros siete pares hubo ruta. Consultar también `benchmark_dataset_osm.csv` para comparar el mismo trayecto antes de cerrar aristas. La lista detallada de aristas responsables de la pérdida de alcanzabilidad **no se ha identificado**: para atribuirla a conexiones específicas hay que analizar el grafo dirigido resultante y las aristas cerradas; el CSV demuestra las respuestas obtenidas, no una prueba independiente de corte mínimo.
+
+### 7.5 Hora de salida: experimento independiente
+
+La ejecución del benchmark anterior no aplica `hora_salida` automáticamente, aunque la aplicación web y `POST /api/v1/busqueda/comparar` sí admiten ese parámetro. Para estudiar congestión de 17:00 frente a 22:00, se deben fijar origen, destino y criterio y repetir la comparación para **cada hora por separado**. La hora modifica **tiempos sintéticos**, no mediciones de tráfico real.
 
 ## 8. Pruebas y calidad
 
-- **209 tests** en `backend/tests/` (grafo, agente, búsqueda, heurísticas y tarifas), con **95,74 % de cobertura** (umbral exigido: 80 %).
-- Tests específicos del corte:
-  - `test_bfs.py`: ruta con menos aristas, independencia del criterio, igualdad con UCS en `menor_conexiones`, bloqueos, grafo inconexo, ciclos, orden por niveles y métricas.
-  - `test_dfs.py`: ruta no óptima, criterios, bloqueos, sentido de vía, origen igual a destino y sin ruta.
-  - `test_ucs.py`: ruta óptima, criterios, bloqueos, grafo inconexo, aristas paralelas.
-  - `test_a_estrella.py`: optimalidad, menos exploración que UCS, `h ≡ 0` ⇒ UCS, voraz vs A*.
-  - `test_admisibles.py`: admisibilidad y consistencia por criterio.
-  - `test_comparador.py`: comparación completa, empate de óptimos, sin ruta, registro vacío.
-  - `test_decision.py`: el agente planifica con A*, sigue la ruta y reporta SIN_RUTA cuando no hay camino.
-- **CI (GitHub Actions):** `ruff check`, `ruff format --check`, `pytest` con cobertura, `eslint --max-warnings 0`, `vue-tsc --noEmit` y `nuxt build` en cada push/PR a `main` y `dev`.
-- Hooks locales con `pre-commit` para aplicar ruff antes de cada commit.
+Después de integrar BFS, DFS y la congestión horaria, la ejecución local reportó **229 pruebas superadas** y **95,91 % de cobertura en los módulos incluidos en la configuración actual**. `ruff check .`, `ruff format --check .`, ESLint, `vue-tsc --noEmit` y `nuxt build` finalizaron correctamente. Los controles del commit `40a7757` (GitHub Actions backend y frontend) aprobaron y Vercel informó despliegue correcto.
 
----
+**Alcance de la cifra de cobertura:** `backend/pyproject.toml` todavía no incorpora `src/congestion` a las rutas medidas. Por tanto, **95,91 % no es la cobertura específica del nuevo simulador**, aunque sí existen pruebas en `tests/test_congestion/test_horarios.py`. Al ampliar la configuración deberán repetirse las pruebas y registrar el nuevo porcentaje real.
 
-## 9. Limitaciones y trabajo futuro
+## 9. Limitaciones y riesgos identificados en el código
 
-- **BFS y DFS** ya están implementados y registrados; la comparación de 30 pares está en el ADR-025. Uno de esos 30 pares está desconectado, por lo que los promedios se calculan sobre 29 rutas encontradas.
-- Los datos de **congestión y tiempos son sintéticos**; el benchmark mide el comportamiento de los algoritmos, no tráfico real de Bogotá.
-- El **escenario de cierre** es una simulación determinista del 10 % de aristas; no representa un plan de cierres real.
-- Los **tiempos de ejecución** son de una sola corrida; para el informe final conviene repetir cada medición (por ejemplo, 5 repeticiones y mediana).
-- La heurística de **conexiones** es débil; se podría mejorar con una cota basada en distancia máxima de arista.
-- El agente planifica al iniciar; si el ambiente cambia durante el recorrido, replanifica solo cuando queda fuera de la ruta. Integrar `Ambiente.conexiones_bloqueadas` dentro de la búsqueda es el siguiente paso natural.
-- **Corte 3:** regresión de tiempos, clasificación de congestión y agrupamiento de zonas con los datos sintéticos ya descritos en `documentacion/simulacion_congestion.md`.
-
----
+1. **Datos reales frente a simulados:** la geometría y topología son OSM; intensidad horaria, tiempos modificados y congestionamiento no son mediciones de tráfico real.
+2. **Velocidad enriquecida y tiempo inicial:** se actualiza la velocidad desde `maxspeed`/tipo de vía, pero el tiempo base no se recalcula automáticamente. La estimación temporal merece calibración.
+3. **Bloqueo inconsistente por etiqueta:** `Grafo.obtener_vecinos()` filtra `disponible`, mientras DFS además filtra `congestion == BLOQUEADA`. Si una arista está `BLOQUEADA` pero `disponible=True`, otros buscadores podrían recorrerla. Los cierres del benchmark sí ponen `disponible=False` y son filtrados. Recomendación: uniformar la regla de transitabilidad en una función compartida y testearla.
+4. **Voraz local:** la estrategia implementada con retroceso no es un best-first global con frontera ordenada; describirla con precisión.
+5. **Benchmarks:** ya se ejecutaron los dos escenarios con los cinco algoritmos; para comparar cambios de costo entre escenarios con rigor, filtrar los mismos pares alcanzables y repetir tiempos CPU para estimar dispersión.
+6. **Selección del horario y tarifa:** la hora no activa automáticamente recargos nocturnos ni estima esperas: estos se introducen como opciones separadas.
+7. **Tiempo de ejecución:** depende del equipo y la carga; no debe confundirse con tiempo de desplazamiento.
 
 ## 10. Conclusiones
 
-1. UCS y A* obtienen la ruta de costo mínimo en los tres criterios; A* lo hace explorando entre 3,7 % y 69 % menos nodos, gracias a una heurística geográfica admisible y consistente.
-2. BFS es óptimo para `menor_conexiones` y, para tiempo/distancia, queda a solo 2,7 % del óptimo medio; DFS y voraz son baselines no óptimos con excesos de costo mucho mayores.
-3. El voraz explora menos nodos, pero puede duplicar el costo de la ruta; no debe usarse como motor principal cuando el objetivo es optimizar.
-4. El comparador, el benchmark y la tabla en la interfaz convierten la comparación en una evidencia reproducible: 8 pares × 3 criterios para la corrida base con cierres, más 30 pares × 3 criterios × 5 algoritmos en el ADR-025.
-5. La integración con el agente demuestra que los algoritmos no son módulos aislados: el agente planifica, sigue la ruta y reporta sus métricas. La entrega queda lista para los modelos de aprendizaje automático del Corte 3.
+Los cinco algoritmos están implementados y conectados con la API y el frontend. UCS y A* buscan minimizar el costo del criterio; BFS optimiza el número de conexiones, mientras DFS y la estrategia voraz no garantizan óptimos generales. A* incorpora una heurística geográfica con análisis formal y tests de admisibilidad/consistencia. La simulación horaria permite estudiar sensibilidad del tiempo del recorrido, pero no predice tráfico en vivo. Las pruebas del proyecto y los pipelines fueron satisfactorios. **Ambos escenarios tienen comparación numérica de los cinco algoritmos (240 consultas, 225 con ruta y 15 sin ruta)**. Los cierres dejaron sin ruta al par `314146484 → 13281957926` en los cinco algoritmos y tres criterios según el CSV de esta ejecución. Aún conviene ensayar la demostración, comparar pares equivalentes en los CSV y considerar mejoras en transitabilidad y consistencia de tiempos base descritas arriba.
 
----
+## 11. Referencias y trazabilidad
 
-## 11. Referencias
-
-- `Proyecto_IA.pdf` — guía del proyecto integrador, secciones 5 (alcance) y 8 (organización por fases).
-- OpenStreetMap contributors. (2026). *OpenStreetMap*. <https://www.openstreetmap.org/>
-- Documentación interna: `documentacion/decisiones.md` (ADR-016 a ADR-025), `documentacion/formulacion.md`, `documentacion/peas.md`.
-- Repositorio: <https://github.com/JAGR1792/Proyecto-IA>
+- Guía oficial del curso: `Proyecto_IA.pdf`, sección 8, segundo corte, y sección 9, evaluación.
+- OpenStreetMap contributors, *OpenStreetMap*: https://www.openstreetmap.org/.
+- Implementación y pruebas: `backend/src/busqueda/`, `backend/src/heuristicas/`, `backend/src/congestion/`, `backend/tests/`.
+- Demostración: `documentacion/demo_corte2.md`.
+- Guía de estudio del código: `documentacion/guia_sustentacion_tecnica_corte2.md`.
