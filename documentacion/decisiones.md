@@ -428,7 +428,7 @@ ADR-016 dejó como único motor el voraz (greedy), que **no garantiza ruta ópti
   Las tres son **admisibles y consistentes** (verificado con tests de admisibilidad y monotonía).
 - **`busqueda/ucs.py`:** `BusquedaCostoUniforme` (Dijkstra) con cola de prioridad `(costo, contador, nodo)`, cierre de nodos expandidos y reconstrucción del camino.
 - **`busqueda/a_estrella.py`:** `BusquedaAEstrella` con `f = g + h`, cierre de nodos y heurística inyectable; `h ≡ 0` equivale a UCS (usado en tests para comparar).
-- **API (`rutas_busqueda.py`):** se registran `ucs` y `a_estrella`; `GET /busqueda/algoritmos` los marca como implementados (BFS/DFS siguen pendientes).
+- **API (`rutas_busqueda.py`):** se registran `ucs` y `a_estrella`; `GET /busqueda/algoritmos` los marca como implementados. En ese momento BFS/DFS seguían pendientes; se integraron después en ADR-025.
 - **Frontend (`app.vue`):** UCS y A* habilitados en el selector, etiqueta legible del algoritmo en el panel (`A*`, `UCS (Costo Uniforme)`) y fila "Costo (criterio)" para comparar motores.
 - **Tests:** 41 nuevos (`test_ucs.py`, `test_a_estrella.py`, `test_heuristicas/test_admisibles.py`) y fixtures compartidas en `tests/conftest.py`; se agrega `--cov=src/heuristicas` en `pyproject.toml`.
 
@@ -565,7 +565,7 @@ El PDF del Corte 2 exige implementar **y comparar** BFS, DFS, UCS, voraz y A*, c
 - **Frontend:** botón **Comparar algoritmos** y tabla a ancho completo bajo el mapa, ordenada por costo, con filas óptimas resaltadas y métricas de nodos/ms. La comparación se limpia al lanzar una búsqueda nueva o al usar “Limpiar Sesión”.
 - **Agente:** `MotorDecision` planifica con el algoritmo indicado (A* por defecto) al iniciar, sigue la ruta paso a paso y replanifica si queda fuera de ella. `POST /agente/iniciar` acepta `algoritmo`; las respuestas exponen `ruta_planificada`, `planificacion` y las métricas.
 - **Documentación:** `informe_corte2.md` (algoritmos, prueba de admisibilidad/consistencia, metodología, resultados, limitaciones) y `demo_corte2.md` (guion de 6 minutos); README y ADR sincronizados.
-- **BFS/DFS:** se dejan fuera de esta entrega por acuerdo del equipo; la UI las muestra como pendientes y el comparador las incorporará al registrarlas.
+- **BFS/DFS:** se dejaron fuera de esa entrega por acuerdo del equipo; se integraron después en ADR-025 y ya están disponibles en la UI, la API y el comparador.
 
 ### Consecuencias
 - ✅ Evidencia reproducible: escenario base 8 pares × 3 criterios × 3 algoritmos; UCS/A* empatan en el óptimo y A* explora 3,7 %–69 % menos nodos; voraz queda 104 %–114 % por encima del costo óptimo.
