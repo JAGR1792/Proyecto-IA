@@ -1,0 +1,40 @@
+{
+  "modelo": "LinearRegression ordinaria (sin RNA, sin Ridge)",
+  "sin_reentrenamiento": true,
+  "entrenamiento_final": {
+    "MSE_min2": 0.002094950807248361,
+    "MAE_min": 0.027492341216928007,
+    "RMSE_min": 0.04577063258518896,
+    "R2": 0.8363151165107029,
+    "error_medio_firmado_min": 0.0013508953953783693,
+    "error_absoluto_p95_min": 0.08469001194763184,
+    "predicciones_no_positivas": 0
+  },
+  "prueba": {
+    "MSE_min2": 0.0019577323358618533,
+    "MAE_min": 0.026812062116267167,
+    "RMSE_min": 0.044246269174494854,
+    "R2": 0.8669878404709817,
+    "error_medio_firmado_min": 0.0010762985918646476,
+    "error_absoluto_p95_min": 0.08632669611206052,
+    "predicciones_no_positivas": 0
+  },
+  "referencia_prueba": {
+    "MSE_min2": 0.0029829826624480204,
+    "MAE_min": 0.0367088877605457,
+    "RMSE_min": 0.054616688497637976,
+    "R2": 0.7973303303512324,
+    "error_medio_firmado_min": -0.008298592758384914,
+    "error_absoluto_p95_min": 0.10664988777979992,
+    "predicciones_no_positivas": 0
+  },
+  "n_aristas_prueba": 349,
+  "n_filas_prueba": 58632,
+  "predicciones_crudas_negativas": 2517,
+  "predicciones_crudas_no_positivas": 2517,
+  "predicciones_ajustadas_por_limites": 3942,
+  "version_sklearn_evaluacion": "1.5.1",
+  "posprocesamiento": "Limites operativos de velocidad 5-80 km/h, aplicados a cada arista",
+  "nota": "Los valores objetivo son tiempos DERIVADOS del dataset operacional, no duraciones de viajes observados directamente. El loss se reporta en min².",
+  "uso": "Diagnóstico en prueba por aristas; no evaluación empírica de tráfico real."
+}
