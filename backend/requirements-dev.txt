@@ -15,3 +15,4 @@ pre-commit==4.0.1
 scikit-learn==1.5.1
 scipy==1.13.1
 joblib==1.4.2
+matplotlib==3.9.2
