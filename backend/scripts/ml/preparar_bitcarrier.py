@@ -17,16 +17,24 @@ import json
 import math
 import statistics
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[3]
 ORIGEN = RAIZ / "backend/datos/ml/bitcarrier_mayo_2022_original"
 DESTINO = RAIZ / "backend/datos/ml/bitcarrier_mayo_2022_procesado"
 COLUMNAS = (
-    "objectid", "tid", "inicio_original", "dia_semana_original", "hora",
-    "distancia_original", "velocidad_original", "num_dispositivos",
-    "nombre_origen", "nombre_destino", "geometria_disponible",
+    "objectid",
+    "tid",
+    "inicio_original",
+    "dia_semana_original",
+    "hora",
+    "distancia_original",
+    "velocidad_original",
+    "num_dispositivos",
+    "nombre_origen",
+    "nombre_destino",
+    "geometria_disponible",
 )
 
 
@@ -56,11 +64,15 @@ def main():
     if not lotes:
         raise SystemExit(f"No se encontraron lotes en {ORIGEN}")
     if args.limite_lotes:
-        lotes = lotes[:args.limite_lotes]
+        lotes = lotes[: args.limite_lotes]
 
     DESTINO.mkdir(parents=True, exist_ok=True)
-    salida = DESTINO / ("muestra_limpia.csv.gz" if args.limite_lotes else "observaciones_limpias.csv.gz")
-    reporte_ruta = DESTINO / ("reporte_muestra.json" if args.limite_lotes else "reporte_calidad.json")
+    salida = DESTINO / (
+        "muestra_limpia.csv.gz" if args.limite_lotes else "observaciones_limpias.csv.gz"
+    )
+    reporte_ruta = DESTINO / (
+        "reporte_muestra.json" if args.limite_lotes else "reporte_calidad.json"
+    )
     temporal = salida.with_name(salida.name + ".tmp")
     conteo = Counter()
     razones_rechazo = Counter()
@@ -117,18 +129,21 @@ def main():
                         conteo["rechazados"] += 1
                         razones_rechazo.update(fallos)
                         continue
-                    writer.writerow({
-                        "objectid": objid, "tid": tid,
-                        "inicio_original": a.get("INICIO"),
-                        "dia_semana_original": dia,
-                        "hora": hora,
-                        "distancia_original": d,
-                        "velocidad_original": v,
-                        "num_dispositivos": ndev,
-                        "nombre_origen": a.get("NAME_FROM"),
-                        "nombre_destino": a.get("NAME_TO"),
-                        "geometria_disponible": 1,
-                    })
+                    writer.writerow(
+                        {
+                            "objectid": objid,
+                            "tid": tid,
+                            "inicio_original": a.get("INICIO"),
+                            "dia_semana_original": dia,
+                            "hora": hora,
+                            "distancia_original": d,
+                            "velocidad_original": v,
+                            "num_dispositivos": ndev,
+                            "nombre_origen": a.get("NAME_FROM"),
+                            "nombre_destino": a.get("NAME_TO"),
+                            "geometria_disponible": 1,
+                        }
+                    )
                     conteo["validos"] += 1
                     tids.add(str(tid))
                     horas[hora] += 1
@@ -138,7 +153,10 @@ def main():
                     dispositivos.append(ndev)
                     if len(inicio_ejemplos) < 5:
                         inicio_ejemplos.append(a.get("INICIO"))
-                print(f"[{i}/{len(lotes)}] {ruta.name} procesado; válidos: {conteo['validos']:,}", flush=True) if i % 25 == 0 or i == len(lotes) else None
+                print(
+                    f"[{i}/{len(lotes)}] {ruta.name} procesado; válidos: {conteo['validos']:,}",
+                    flush=True,
+                ) if i % 25 == 0 or i == len(lotes) else None
         temporal.replace(salida)
     finally:
         if temporal.exists():
@@ -151,12 +169,12 @@ def main():
         return {
             "minimo": ordenados[0],
             "mediana": statistics.median(ordenados),
-            "p95": ordenados[min(len(ordenados)-1, int(0.95*(len(ordenados)-1)))],
+            "p95": ordenados[min(len(ordenados) - 1, int(0.95 * (len(ordenados) - 1)))],
             "maximo": ordenados[-1],
         }
 
     reporte = {
-        "generado_utc": datetime.now(timezone.utc).isoformat(),
+        "generado_utc": datetime.now(UTC).isoformat(),
         "fuente": "Velocidades Bitcarrier Mayo 2022 (ArcGIS)",
         "lotes_procesados": len(lotes),
         "filas_leidas": conteo["leidos"],
@@ -181,8 +199,12 @@ def main():
     }
     reporte_ruta.write_text(json.dumps(reporte, ensure_ascii=False, indent=2), encoding="utf-8")
     print("\nRESUMEN")
-    print(f"Leídos: {conteo['leidos']:,}; válidos: {conteo['validos']:,}; rechazados: {conteo['rechazados']:,}")
-    print(f"TID distintos: {len(tids):,}; horas con datos: {sum(bool(horas[h]) for h in range(24))}/24")
+    print(
+        f"Leídos: {conteo['leidos']:,}; válidos: {conteo['validos']:,}; rechazados: {conteo['rechazados']:,}"
+    )
+    print(
+        f"TID distintos: {len(tids):,}; horas con datos: {sum(bool(horas[h]) for h in range(24))}/24"
+    )
     print(f"CSV: {salida}")
     print(f"Reporte: {reporte_ruta}")
     print("PENDIENTE: verificar unidades, fechas, y correspondencia con OSM.")

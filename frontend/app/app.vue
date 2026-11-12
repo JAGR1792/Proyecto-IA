@@ -489,7 +489,8 @@ onMounted(() => {
         </div>
       </div>
       <div class="tx-header-actions">
-        <button type="button" class="tx-button tx-button-secondary"
+        <button
+type="button" class="tx-button tx-button-secondary"
           @click="seccionActiva = seccionActiva === 'rutas' ? 'eda' : 'rutas'">
           {{ seccionActiva === 'rutas' ? 'Análisis de movilidad' : 'Volver a rutas' }}
         </button>

@@ -27,7 +27,8 @@ const actual = computed(() => modulos.find(m => m.id === activo.value)!)
     <div class="txml-layout">
       <nav class="txml-sidebar" aria-label="Secciones de análisis">
         <p class="txml-nav-heading">EXPLORAR MÓDULOS</p>
-        <button v-for="modulo in modulos" :key="modulo.id" type="button"
+        <button
+v-for="modulo in modulos" :key="modulo.id" type="button"
           class="txml-nav-item" :class="{ 'txml-nav-item--active': activo === modulo.id }"
           :aria-current="activo === modulo.id ? 'page' : undefined" @click="activo = modulo.id">
           <span class="txml-nav-num">{{ modulo.numero }}</span>

@@ -21,7 +21,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 BASE = (
@@ -33,8 +33,17 @@ NODOS = RAIZ / "backend/datos/grafo_osm_nodos.csv"
 SALIDA = RAIZ / "backend/datos/ml/bitcarrier_mayo_2022_original"
 AGENTE = "Taxi-IA-Chapinero-academico/1.0"
 CAMPOS_CLAVE = (
-    "OBJECTID", "TID", "VEL_PROMEDIO", "VEL_MEDIA_MIXTO", "DISTANCE",
-    "HORA", "INICIO", "DIA_SEMANA", "NUMDISPOSITIVOS", "NAME_FROM", "NAME_TO",
+    "OBJECTID",
+    "TID",
+    "VEL_PROMEDIO",
+    "VEL_MEDIA_MIXTO",
+    "DISTANCE",
+    "HORA",
+    "INICIO",
+    "DIA_SEMANA",
+    "NUMDISPOSITIVOS",
+    "NAME_FROM",
+    "NAME_TO",
 )
 
 
@@ -87,7 +96,9 @@ def solicitar(endpoint, parametros, intentos=5):
         except (TimeoutError, urllib.error.URLError, json.JSONDecodeError) as exc:
             error = exc
         if intento == intentos - 1:
-            raise RuntimeError(f"No se pudo consultar ArcGIS tras {intentos} intentos: {error}") from error
+            raise RuntimeError(
+                f"No se pudo consultar ArcGIS tras {intentos} intentos: {error}"
+            ) from error
         pausa = min(30, 2**intento) + random.random()
         print(f"   Reintentando solicitud en {pausa:.1f}s: {error}", flush=True)
         time.sleep(pausa)
@@ -109,10 +120,15 @@ def limites_grafo():
 def parametros_espaciales(bbox):
     return {
         "where": "1=1",
-        "geometry": json.dumps({
-            "xmin": bbox[0], "ymin": bbox[1], "xmax": bbox[2], "ymax": bbox[3],
-            "spatialReference": {"wkid": 4326},
-        }),
+        "geometry": json.dumps(
+            {
+                "xmin": bbox[0],
+                "ymin": bbox[1],
+                "xmax": bbox[2],
+                "ymax": bbox[3],
+                "spatialReference": {"wkid": 4326},
+            }
+        ),
         "geometryType": "esriGeometryEnvelope",
         "inSR": 4326,
         "spatialRel": "esriSpatialRelIntersects",
@@ -170,7 +186,7 @@ def resumen(ruta_salida):
             geometria = elemento.get("geometry") or {}
             tipos_geom["paths" if geometria.get("paths") else "sin_paths"] += 1
     reporte = {
-        "generado_utc": datetime.now(timezone.utc).isoformat(),
+        "generado_utc": datetime.now(UTC).isoformat(),
         "observaciones_descargadas": total,
         "ids_unicos": len(ids),
         "ids_duplicados": duplicados,
@@ -193,9 +209,21 @@ def resumen(ruta_salida):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--limite", type=int, default=0, help="Máximo de observaciones seleccionadas; 0=todas (predeterminado)")
-    parser.add_argument("--lote", type=int, default=500, help="Registros por solicitud (1 a 2000; predeterminado 500)")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--limite",
+        type=int,
+        default=0,
+        help="Máximo de observaciones seleccionadas; 0=todas (predeterminado)",
+    )
+    parser.add_argument(
+        "--lote",
+        type=int,
+        default=500,
+        help="Registros por solicitud (1 a 2000; predeterminado 500)",
+    )
     parser.add_argument("--resumen", action="store_true", help="Solo auditar los lotes descargados")
     args = parser.parse_args()
     if args.limite < 0 or not 1 <= args.lote <= 2000:
@@ -221,15 +249,21 @@ def main():
             "no descargaremos datos potencialmente incompletos."
         )
     if args.limite:
-        identificadores = identificadores[:args.limite]
+        identificadores = identificadores[: args.limite]
     print(f"Registros seleccionados: {len(identificadores):,}")
 
     SALIDA.mkdir(parents=True, exist_ok=True)
     ruta_manifest = SALIDA / "manifiesto.json"
-    config = {"servicio": BASE, "bbox_wgs84": bbox, "nodos_osm": total_nodos,
-              "total_intersecciones_bbox": cantidad, "limite": args.limite, "lote": args.lote,
-              "object_id_field": meta.get("objectIdField", "OBJECTID"),
-              "criterio": "esriSpatialRelIntersects con rectángulo de nodos OSM"}
+    config = {
+        "servicio": BASE,
+        "bbox_wgs84": bbox,
+        "nodos_osm": total_nodos,
+        "total_intersecciones_bbox": cantidad,
+        "limite": args.limite,
+        "lote": args.lote,
+        "object_id_field": meta.get("objectIdField", "OBJECTID"),
+        "criterio": "esriSpatialRelIntersects con rectángulo de nodos OSM",
+    }
     if ruta_manifest.exists():
         anterior = json.loads(ruta_manifest.read_text(encoding="utf-8"))
         if any(anterior.get(k) != config[k] for k in ("servicio", "bbox_wgs84", "limite", "lote")):
@@ -242,19 +276,29 @@ def main():
 
     numero_lotes = (len(identificadores) + args.lote - 1) // args.lote
     for n, inicio in enumerate(range(0, len(identificadores), args.lote), 1):
-        subset = identificadores[inicio:inicio + args.lote]
+        subset = identificadores[inicio : inicio + args.lote]
         destino = SALIDA / f"lote_{n:05d}.json.gz"
         if destino.exists():
             data = cargar_lote(destino)
-            almacenados = {f.get("attributes", {}).get("OBJECTID") for f in data.get("features", [])}
+            almacenados = {
+                f.get("attributes", {}).get("OBJECTID") for f in data.get("features", [])
+            }
             if almacenados == set(subset):
                 print(f"[{n}/{numero_lotes}] Ya existe y está verificado: {destino.name}")
                 continue
-            raise SystemExit(f"El lote {destino.name} no coincide con los IDs esperados. No se sobrescribe.")
-        datos = solicitar("/query", {
-            "objectIds": ",".join(map(str, subset)), "outFields": "*",
-            "returnGeometry": "true", "outSR": 4326, "f": "json",
-        })
+            raise SystemExit(
+                f"El lote {destino.name} no coincide con los IDs esperados. No se sobrescribe."
+            )
+        datos = solicitar(
+            "/query",
+            {
+                "objectIds": ",".join(map(str, subset)),
+                "outFields": "*",
+                "returnGeometry": "true",
+                "outSR": 4326,
+                "f": "json",
+            },
+        )
         feats = datos.get("features") or []
         recibidos = {f.get("attributes", {}).get("OBJECTID") for f in feats}
         if recibidos != set(subset) or datos.get("exceededTransferLimit"):

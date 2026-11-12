@@ -7,6 +7,7 @@ Desde la raíz de Proyecto-IA:
 No altera grafo ni datos fuente. Produce candidatos geométricos para revisión,
 NO un matching validado de sentido vial. Las observaciones se leen por lotes.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -74,8 +75,13 @@ def leer_tramos():
             tid = str(tid)
             firma = geom.wkb_hex
             if tid not in datos:
-                datos[tid] = {"geoms": Counter(), "representantes": {}, "n": 0,
-                              "origen": str(a.get("NAME_FROM", "")), "destino": str(a.get("NAME_TO", ""))}
+                datos[tid] = {
+                    "geoms": Counter(),
+                    "representantes": {},
+                    "n": 0,
+                    "origen": str(a.get("NAME_FROM", "")),
+                    "destino": str(a.get("NAME_TO", "")),
+                }
             d = datos[tid]
             d["n"] += 1
             d["geoms"][firma] += 1
@@ -86,10 +92,18 @@ def leer_tramos():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--buffer-m", type=float, default=15.0,
-                        help="Tolerancia espacial en metros (por defecto 15)")
-    parser.add_argument("--min-cobertura", type=float, default=0.50,
-                        help="Cobertura mínima de una arista OSM para listarla")
+    parser.add_argument(
+        "--buffer-m",
+        type=float,
+        default=15.0,
+        help="Tolerancia espacial en metros (por defecto 15)",
+    )
+    parser.add_argument(
+        "--min-cobertura",
+        type=float,
+        default=0.50,
+        help="Cobertura mínima de una arista OSM para listarla",
+    )
     args = parser.parse_args()
     if not 0 < args.buffer_m <= 100 or not 0 < args.min_cobertura <= 1:
         parser.error("buffer-m debe ser (0,100] y min-cobertura (0,1]")
@@ -103,7 +117,9 @@ def main():
         raise SystemExit("GeoJSON OSM sin CRS declarado: no se puede medir en metros")
     calles = calles.to_crs(CRS_METRICO)
     calles = calles.loc[calles.geometry.notna() & ~calles.geometry.is_empty].reset_index(drop=True)
-    calles = calles.loc[calles.geometry.geom_type.isin(["LineString", "MultiLineString"])].reset_index(drop=True)
+    calles = calles.loc[
+        calles.geometry.geom_type.isin(["LineString", "MultiLineString"])
+    ].reset_index(drop=True)
     if calles.empty:
         raise SystemExit("GeoJSON OSM sin líneas válidas")
     aristas_idx = calles.sindex
@@ -133,9 +149,15 @@ def main():
             ang = angulo_orientado(geom, osm)
             # La geometría dirigida puede contener múltiples curvas.
             # El ángulo de extremos es SOLO un indicador, no prueba circulación.
-            orientacion = ("indeterminada" if ang is None else
-                           "compatible" if ang <= 60 else
-                           "inversa" if ang >= 120 else "ambigua")
+            orientacion = (
+                "indeterminada"
+                if ang is None
+                else "compatible"
+                if ang <= 60
+                else "inversa"
+                if ang >= 120
+                else "ambigua"
+            )
             fila = {
                 "tid_bitcarrier": tid,
                 "indice_osm": idx,
@@ -157,29 +179,46 @@ def main():
                 inversas.append(osm)
         # Unión de corredores de múltiples aristas: no exige que una sola
         # arista OSM cubra toda la geometría Bitcarrier.
-        cobertura_total = (geom.intersection(unary_union([g.buffer(args.buffer_m) for g in contribuciones])).length / longitud
-                           if contribuciones else 0.0)
-        cobertura_comp = (geom.intersection(unary_union([g.buffer(args.buffer_m) for g in compatibles])).length / longitud
-                          if compatibles else 0.0)
-        salida_resumen.append({
-            "tid_bitcarrier": tid,
-            "nombre_origen": info["origen"], "nombre_destino": info["destino"],
-            "observaciones": info["n"], "geometrias_distintas": len(info["geoms"]),
-            "frecuencia_geometria_representativa": round(ocurrencias / info["n"], 4),
-            "longitud_bitcarrier_geom_m": round(longitud, 2),
-            "aristas_osm_candidatas": len(contribuciones),
-            "aristas_orientacion_compatible": len(compatibles),
-            "aristas_orientacion_inversa": len(inversas),
-            "cobertura_espacial_total": round(cobertura_total, 4),
-            "cobertura_orientacion_compatible": round(cobertura_comp, 4),
-            "estado": "REVISION_MANUAL",  # Nunca aceptar automáticamente el sentido
-        })
-        print(f"[{i}/{len(datos)}] TID={tid}: {len(contribuciones)} aristas candidatas; "
-              f"cobertura={cobertura_total:.1%}; orientacion compatible={cobertura_comp:.1%}", flush=True)
+        cobertura_total = (
+            geom.intersection(unary_union([g.buffer(args.buffer_m) for g in contribuciones])).length
+            / longitud
+            if contribuciones
+            else 0.0
+        )
+        cobertura_comp = (
+            geom.intersection(unary_union([g.buffer(args.buffer_m) for g in compatibles])).length
+            / longitud
+            if compatibles
+            else 0.0
+        )
+        salida_resumen.append(
+            {
+                "tid_bitcarrier": tid,
+                "nombre_origen": info["origen"],
+                "nombre_destino": info["destino"],
+                "observaciones": info["n"],
+                "geometrias_distintas": len(info["geoms"]),
+                "frecuencia_geometria_representativa": round(ocurrencias / info["n"], 4),
+                "longitud_bitcarrier_geom_m": round(longitud, 2),
+                "aristas_osm_candidatas": len(contribuciones),
+                "aristas_orientacion_compatible": len(compatibles),
+                "aristas_orientacion_inversa": len(inversas),
+                "cobertura_espacial_total": round(cobertura_total, 4),
+                "cobertura_orientacion_compatible": round(cobertura_comp, 4),
+                "estado": "REVISION_MANUAL",  # Nunca aceptar automáticamente el sentido
+            }
+        )
+        print(
+            f"[{i}/{len(datos)}] TID={tid}: {len(contribuciones)} aristas candidatas; "
+            f"cobertura={cobertura_total:.1%}; orientacion compatible={cobertura_comp:.1%}",
+            flush=True,
+        )
 
     SALIDA.mkdir(parents=True, exist_ok=True)
-    archivos = [(SALIDA / "candidatos_bitcarrier_osm.csv", salida_detalle),
-                (SALIDA / "resumen_cruce_bitcarrier_osm.csv", salida_resumen)]
+    archivos = [
+        (SALIDA / "candidatos_bitcarrier_osm.csv", salida_detalle),
+        (SALIDA / "resumen_cruce_bitcarrier_osm.csv", salida_resumen),
+    ]
     for path, filas in archivos:
         if not filas:
             print(f"Sin filas para {path.name}")
@@ -192,7 +231,9 @@ def main():
         temporal.replace(path)
         print(f"Escrito: {path} ({len(filas):,} filas)")
     print("\nIMPORTANTE: Son CANDIDATOS geométricos, NO correspondencias verificadas.")
-    print("Revisar visualmente tramos, sentidos, geometrías y unidades antes de crear el dataset maestro.")
+    print(
+        "Revisar visualmente tramos, sentidos, geometrías y unidades antes de crear el dataset maestro."
+    )
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ No guarda datos ni modifica archivos. Usa muestras espaciadas del servicio, no
 una descarga completa. La coincidencia espacial NO acredita sentido vial ni
 correspondencia exacta de los segmentos.
 """
+
 import json
 import urllib.parse
 import urllib.request
@@ -49,19 +50,51 @@ def main():
     if not NODOS.exists() or not ARISTAS.exists():
         raise SystemExit("Ejecuta desde la carpeta raíz Proyecto-IA (faltan archivos OSM).")
     import csv
+
     with NODOS.open(encoding="utf-8-sig", newline="") as f:
         filas = list(csv.DictReader(f))
     xs = [float(n["longitud"]) for n in filas]
     ys = [float(n["latitud"]) for n in filas]
-    envelope = json.dumps({"xmin": min(xs), "ymin": min(ys), "xmax": max(xs), "ymax": max(ys), "spatialReference": {"wkid": 4326}})
-    parametros = {"where": "1=1", "geometry": envelope, "geometryType": "esriGeometryEnvelope", "inSR": 4326, "spatialRel": "esriSpatialRelIntersects", "f": "json"}
+    envelope = json.dumps(
+        {
+            "xmin": min(xs),
+            "ymin": min(ys),
+            "xmax": max(xs),
+            "ymax": max(ys),
+            "spatialReference": {"wkid": 4326},
+        }
+    )
+    parametros = {
+        "where": "1=1",
+        "geometry": envelope,
+        "geometryType": "esriGeometryEnvelope",
+        "inSR": 4326,
+        "spatialRel": "esriSpatialRelIntersects",
+        "f": "json",
+    }
     cantidad = consultar("/query", dict(parametros, returnCountOnly="true"))["count"]
     print(f"Registros que intersectan el rectángulo: {cantidad:,}")
     print("Nota: son observaciones, no necesariamente tramos únicos.")
-    offsets = sorted(set(max(0, min(cantidad - TAMANO, round((cantidad - TAMANO) * f))) for f in (0.05, 0.5, 0.95)))
+    offsets = sorted(
+        set(
+            max(0, min(cantidad - TAMANO, round((cantidad - TAMANO) * f)))
+            for f in (0.05, 0.5, 0.95)
+        )
+    )
     observaciones = []
     for offset in offsets:
-        datos = consultar("/query", dict(parametros, outFields="*", returnGeometry="true", outSR=4326, orderByFields="OBJECTID ASC", resultOffset=str(offset), resultRecordCount=str(TAMANO)))
+        datos = consultar(
+            "/query",
+            dict(
+                parametros,
+                outFields="*",
+                returnGeometry="true",
+                outSR=4326,
+                orderByFields="OBJECTID ASC",
+                resultOffset=str(offset),
+                resultRecordCount=str(TAMANO),
+            ),
+        )
         features = datos.get("features", [])
         print(f"Muestra desde offset {offset:,}: {len(features)} registros")
         for feat in features:
@@ -71,7 +104,9 @@ def main():
     if not observaciones:
         raise SystemExit("Sin geometrías en la muestra; comprobar respuesta ArcGIS.")
 
-    muestra = gpd.GeoDataFrame(observaciones, geometry="geometry", crs="EPSG:4326").to_crs("EPSG:32618")
+    muestra = gpd.GeoDataFrame(observaciones, geometry="geometry", crs="EPSG:4326").to_crs(
+        "EPSG:32618"
+    )
     calles = gpd.read_file(ARISTAS).to_crs("EPSG:32618")
     calles = calles.loc[calles.geometry.notna() & ~calles.geometry.is_empty].copy()
     idx = calles.sindex
@@ -82,25 +117,53 @@ def main():
         if geom.geom_type not in ("LineString", "MultiLineString") or geom.length <= 0:
             continue
         candidatos = list(idx.query(geom.buffer(MARGEN_METROS), predicate="intersects"))
-        puntuacion = max((geom.intersection(calles.geometry.iloc[int(i)].buffer(MARGEN_METROS)).length / geom.length for i in candidatos), default=0.0)
+        puntuacion = max(
+            (
+                geom.intersection(calles.geometry.iloc[int(i)].buffer(MARGEN_METROS)).length
+                / geom.length
+                for i in candidatos
+            ),
+            default=0.0,
+        )
         mejores.append(puntuacion)
         if puntuacion >= 0.50:
             encontrados += 1
         if puntuacion >= 0.80:
             solapes_altos += 1
     import pandas as pd
+
     print(f"Muestra con geometría: {len(muestra)}; aristas OSM geométricas: {len(calles)}")
-    print(f"Coincidencias geométricas preliminares (>=50 % en corredor de 25 m): {encontrados}/{len(mejores)}")
+    print(
+        f"Coincidencias geométricas preliminares (>=50 % en corredor de 25 m): {encontrados}/{len(mejores)}"
+    )
     print(f"Coincidencias geométricas fuertes (>=80 %): {solapes_altos}/{len(mejores)}")
     print("ADVERTENCIA: proximidad NO valida dirección, identificación ni granularidad del tramo.")
-    for campo in ["VEL_PROMEDIO", "VEL_MEDIA_MIXTO", "DISTANCE", "HORA", "INICIO", "DIA_SEMANA", "NUMDISPOSITIVOS", "TID"]:
+    for campo in [
+        "VEL_PROMEDIO",
+        "VEL_MEDIA_MIXTO",
+        "DISTANCE",
+        "HORA",
+        "INICIO",
+        "DIA_SEMANA",
+        "NUMDISPOSITIVOS",
+        "TID",
+    ]:
         if campo in muestra:
-            valores = pd.to_numeric(muestra[campo], errors="coerce") if campo in ("VEL_PROMEDIO", "VEL_MEDIA_MIXTO", "DISTANCE", "NUMDISPOSITIVOS") else muestra[campo]
+            valores = (
+                pd.to_numeric(muestra[campo], errors="coerce")
+                if campo in ("VEL_PROMEDIO", "VEL_MEDIA_MIXTO", "DISTANCE", "NUMDISPOSITIVOS")
+                else muestra[campo]
+            )
             print(f"  {campo}: {int(valores.notna().sum())}/{len(muestra)} no nulos", end="")
             if campo in ("VEL_PROMEDIO", "DISTANCE"):
-                print(f"; >0: {int((valores > 0).sum())}; min/mediana/max: {valores.min():.2f}/{valores.median():.2f}/{valores.max():.2f}", end="")
+                print(
+                    f"; >0: {int((valores > 0).sum())}; min/mediana/max: {valores.min():.2f}/{valores.median():.2f}/{valores.max():.2f}",
+                    end="",
+                )
             print()
-    print("Conclusión: la muestra permite decidir si vale la pena descargar el dataset completo y hacer matching espacial/direccional reproducible.")
+    print(
+        "Conclusión: la muestra permite decidir si vale la pena descargar el dataset completo y hacer matching espacial/direccional reproducible."
+    )
 
 
 if __name__ == "__main__":
