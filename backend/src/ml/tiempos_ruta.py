@@ -14,9 +14,9 @@ import joblib
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[3]
-MODELO = ROOT / "backend/datos/ml/modelos_regresion_osm/modelo_regresion_osm.joblib"
-DATASET = ROOT / "backend/datos/ml/red_osm_auditada/dataset_red_osm_operativo_auditado.csv.gz"
+ROOT = Path(__file__).resolve().parents[2]
+MODELO = ROOT / "datos/ml/modelos_regresion_osm/modelo_regresion_osm.joblib"
+DATASET = ROOT / "datos/ml/red_osm_auditada/dataset_red_osm_operativo_auditado.csv.gz"
 COLUMNAS = ["id_arista_osm", "origen", "destino", "distancia_m", "tipo_via", "dia_semana", "hora"]
 
 
