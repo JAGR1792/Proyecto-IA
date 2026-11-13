@@ -9,6 +9,7 @@ from src.api.rutas_agente import router as agente_router
 from src.api.rutas_busqueda import router as busqueda_router
 from src.api.rutas_grafo import router as grafo_router
 from src.api.rutas_mapa import router as mapa_router
+from src.api.rutas_ml import router as ml_router
 from src.utilidades.logging import configurar_logging
 
 # Configurar logging al inicio
@@ -51,6 +52,7 @@ app.include_router(grafo_router, prefix="/api/v1/grafo", tags=["Grafo"])
 app.include_router(agente_router, prefix="/api/v1/agente", tags=["Agente"])
 app.include_router(busqueda_router, prefix="/api/v1/busqueda", tags=["Busqueda"])
 app.include_router(mapa_router, prefix="/api/v1/mapa", tags=["Mapa"])
+app.include_router(ml_router, prefix="/api/v1/ml", tags=["Machine Learning"])
 
 
 # Health check

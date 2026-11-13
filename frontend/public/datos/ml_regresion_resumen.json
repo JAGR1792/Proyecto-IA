@@ -1,0 +1,4338 @@
+{
+  "schema_version": 1,
+  "modelo": "Regresion lineal multiple ordinaria (LinearRegression)",
+  "fecha_generacion": "2026-11-12T21:45:05.075927+00:00",
+  "metricas": {
+    "regresion": {
+      "Loss_MSE_min2": 0.001957732,
+      "MAE_min": 0.026812,
+      "RMSE_min": 0.044246,
+      "R2": 0.866988
+    },
+    "referencia": {
+      "Loss_MSE_min2": 0.002982983,
+      "MAE_min": 0.036709,
+      "RMSE_min": 0.054617,
+      "R2": 0.79733
+    },
+    "entrenamiento": {
+      "Loss_MSE_min2": 0.002094951,
+      "MAE_min": 0.027492,
+      "RMSE_min": 0.045771,
+      "R2": 0.836315
+    }
+  },
+  "totales": {
+    "filas_prueba": 58632,
+    "predicciones_crudas_no_positivas": 2517,
+    "predicciones_ajustadas": 3942
+  },
+  "muestra": [
+    {
+      "real": 0.080677,
+      "predicho": 0.144979,
+      "residuo": -0.064302
+    },
+    {
+      "real": 0.127543,
+      "predicho": 0.161524,
+      "residuo": -0.033981
+    },
+    {
+      "real": 0.145872,
+      "predicho": 0.173494,
+      "residuo": -0.027622
+    },
+    {
+      "real": 0.173591,
+      "predicho": 0.185477,
+      "residuo": -0.011886
+    },
+    {
+      "real": 0.141186,
+      "predicho": 0.141297,
+      "residuo": -0.000111
+    },
+    {
+      "real": 0.136116,
+      "predicho": 0.138068,
+      "residuo": -0.001952
+    },
+    {
+      "real": 0.111344,
+      "predicho": 0.115699,
+      "residuo": -0.004355
+    },
+    {
+      "real": 0.220707,
+      "predicho": 0.114278,
+      "residuo": 0.106429
+    },
+    {
+      "real": 0.210578,
+      "predicho": 0.211224,
+      "residuo": -0.000646
+    },
+    {
+      "real": 0.300646,
+      "predicho": 0.30133,
+      "residuo": -0.000684
+    },
+    {
+      "real": 0.283529,
+      "predicho": 0.261537,
+      "residuo": 0.021992
+    },
+    {
+      "real": 0.19621,
+      "predicho": 0.147968,
+      "residuo": 0.048242
+    },
+    {
+      "real": 0.023966,
+      "predicho": 0.012133,
+      "residuo": 0.011833
+    },
+    {
+      "real": 0.148139,
+      "predicho": 0.129543,
+      "residuo": 0.018596
+    },
+    {
+      "real": 0.228191,
+      "predicho": 0.255164,
+      "residuo": -0.026973
+    },
+    {
+      "real": 0.205255,
+      "predicho": 0.208204,
+      "residuo": -0.002949
+    },
+    {
+      "real": 0.074849,
+      "predicho": 0.042952,
+      "residuo": 0.031897
+    },
+    {
+      "real": 0.101953,
+      "predicho": 0.071969,
+      "residuo": 0.029984
+    },
+    {
+      "real": 0.139599,
+      "predicho": 0.170635,
+      "residuo": -0.031036
+    },
+    {
+      "real": 0.218719,
+      "predicho": 0.163646,
+      "residuo": 0.055073
+    },
+    {
+      "real": 0.009987,
+      "predicho": 0.007658,
+      "residuo": 0.002329
+    },
+    {
+      "real": 0.232049,
+      "predicho": 0.249346,
+      "residuo": -0.017297
+    },
+    {
+      "real": 0.257469,
+      "predicho": 0.304107,
+      "residuo": -0.046638
+    },
+    {
+      "real": 0.378961,
+      "predicho": 0.334872,
+      "residuo": 0.044089
+    },
+    {
+      "real": 0.097764,
+      "predicho": 0.096232,
+      "residuo": 0.001532
+    },
+    {
+      "real": 0.302816,
+      "predicho": 0.27358,
+      "residuo": 0.029236
+    },
+    {
+      "real": 0.020713,
+      "predicho": 0.020713,
+      "residuo": -1e-06
+    },
+    {
+      "real": 0.013886,
+      "predicho": 0.056491,
+      "residuo": -0.042605
+    },
+    {
+      "real": 0.12641,
+      "predicho": 0.137951,
+      "residuo": -0.011541
+    },
+    {
+      "real": 0.240644,
+      "predicho": 0.183533,
+      "residuo": 0.057111
+    },
+    {
+      "real": 0.065029,
+      "predicho": 0.104145,
+      "residuo": -0.039116
+    },
+    {
+      "real": 0.192214,
+      "predicho": 0.199078,
+      "residuo": -0.006864
+    },
+    {
+      "real": 0.112607,
+      "predicho": 0.126999,
+      "residuo": -0.014392
+    },
+    {
+      "real": 0.143117,
+      "predicho": 0.168797,
+      "residuo": -0.02568
+    },
+    {
+      "real": 0.14211,
+      "predicho": 0.165389,
+      "residuo": -0.023279
+    },
+    {
+      "real": 0.138057,
+      "predicho": 0.167855,
+      "residuo": -0.029798
+    },
+    {
+      "real": 0.158178,
+      "predicho": 0.147936,
+      "residuo": 0.010242
+    },
+    {
+      "real": 0.212813,
+      "predicho": 0.20562,
+      "residuo": 0.007193
+    },
+    {
+      "real": 0.127572,
+      "predicho": 0.149471,
+      "residuo": -0.021899
+    },
+    {
+      "real": 0.10212,
+      "predicho": 0.090274,
+      "residuo": 0.011846
+    },
+    {
+      "real": 0.189415,
+      "predicho": 0.164469,
+      "residuo": 0.024946
+    },
+    {
+      "real": 0.159729,
+      "predicho": 0.174501,
+      "residuo": -0.014772
+    },
+    {
+      "real": 0.018634,
+      "predicho": 0.015722,
+      "residuo": 0.002912
+    },
+    {
+      "real": 0.095631,
+      "predicho": 0.066776,
+      "residuo": 0.028855
+    },
+    {
+      "real": 0.284645,
+      "predicho": 0.296763,
+      "residuo": -0.012118
+    },
+    {
+      "real": 0.097749,
+      "predicho": 0.090281,
+      "residuo": 0.007468
+    },
+    {
+      "real": 0.272067,
+      "predicho": 0.251358,
+      "residuo": 0.020709
+    },
+    {
+      "real": 0.153356,
+      "predicho": 0.163791,
+      "residuo": -0.010435
+    },
+    {
+      "real": 0.121901,
+      "predicho": 0.135492,
+      "residuo": -0.013591
+    },
+    {
+      "real": 0.087695,
+      "predicho": 0.096597,
+      "residuo": -0.008902
+    },
+    {
+      "real": 0.175644,
+      "predicho": 0.179897,
+      "residuo": -0.004253
+    },
+    {
+      "real": 0.114912,
+      "predicho": 0.204822,
+      "residuo": -0.08991
+    },
+    {
+      "real": 0.113413,
+      "predicho": 0.147347,
+      "residuo": -0.033934
+    },
+    {
+      "real": 0.108938,
+      "predicho": 0.115083,
+      "residuo": -0.006145
+    },
+    {
+      "real": 0.066473,
+      "predicho": 0.070458,
+      "residuo": -0.003985
+    },
+    {
+      "real": 0.012108,
+      "predicho": 0.006259,
+      "residuo": 0.005849
+    },
+    {
+      "real": 0.236841,
+      "predicho": 0.217573,
+      "residuo": 0.019268
+    },
+    {
+      "real": 0.149067,
+      "predicho": 0.129172,
+      "residuo": 0.019895
+    },
+    {
+      "real": 0.036411,
+      "predicho": 0.062934,
+      "residuo": -0.026523
+    },
+    {
+      "real": 0.272833,
+      "predicho": 0.261771,
+      "residuo": 0.011062
+    },
+    {
+      "real": 0.197915,
+      "predicho": 0.200865,
+      "residuo": -0.00295
+    },
+    {
+      "real": 0.141453,
+      "predicho": 0.181034,
+      "residuo": -0.039581
+    },
+    {
+      "real": 0.059548,
+      "predicho": 0.053638,
+      "residuo": 0.00591
+    },
+    {
+      "real": 0.169284,
+      "predicho": 0.171098,
+      "residuo": -0.001814
+    },
+    {
+      "real": 0.21909,
+      "predicho": 0.221317,
+      "residuo": -0.002227
+    },
+    {
+      "real": 0.055555,
+      "predicho": 0.050261,
+      "residuo": 0.005294
+    },
+    {
+      "real": 0.119439,
+      "predicho": 0.113276,
+      "residuo": 0.006163
+    },
+    {
+      "real": 0.098945,
+      "predicho": 0.078691,
+      "residuo": 0.020254
+    },
+    {
+      "real": 0.114224,
+      "predicho": 0.171816,
+      "residuo": -0.057592
+    },
+    {
+      "real": 0.130898,
+      "predicho": 0.110396,
+      "residuo": 0.020502
+    },
+    {
+      "real": 0.100059,
+      "predicho": 0.10545,
+      "residuo": -0.005391
+    },
+    {
+      "real": 0.137767,
+      "predicho": 0.12411,
+      "residuo": 0.013657
+    },
+    {
+      "real": 0.154854,
+      "predicho": 0.119425,
+      "residuo": 0.035429
+    },
+    {
+      "real": 0.02111,
+      "predicho": 0.010687,
+      "residuo": 0.010423
+    },
+    {
+      "real": 0.087171,
+      "predicho": 0.086311,
+      "residuo": 0.00086
+    },
+    {
+      "real": 0.033686,
+      "predicho": 0.02558,
+      "residuo": 0.008106
+    },
+    {
+      "real": 0.126936,
+      "predicho": 0.152408,
+      "residuo": -0.025472
+    },
+    {
+      "real": 0.032562,
+      "predicho": 0.025404,
+      "residuo": 0.007158
+    },
+    {
+      "real": 0.092783,
+      "predicho": 0.091458,
+      "residuo": 0.001325
+    },
+    {
+      "real": 0.175205,
+      "predicho": 0.200083,
+      "residuo": -0.024878
+    },
+    {
+      "real": 0.105978,
+      "predicho": 0.199286,
+      "residuo": -0.093308
+    },
+    {
+      "real": 0.182737,
+      "predicho": 0.198456,
+      "residuo": -0.015719
+    },
+    {
+      "real": 0.077085,
+      "predicho": 0.122307,
+      "residuo": -0.045222
+    },
+    {
+      "real": 0.24058,
+      "predicho": 0.265845,
+      "residuo": -0.025265
+    },
+    {
+      "real": 0.168682,
+      "predicho": 0.186612,
+      "residuo": -0.01793
+    },
+    {
+      "real": 0.134484,
+      "predicho": 0.136749,
+      "residuo": -0.002265
+    },
+    {
+      "real": 0.400946,
+      "predicho": 0.27325,
+      "residuo": 0.127696
+    },
+    {
+      "real": 0.176864,
+      "predicho": 0.177757,
+      "residuo": -0.000893
+    },
+    {
+      "real": 0.178839,
+      "predicho": 0.178279,
+      "residuo": 0.00056
+    },
+    {
+      "real": 0.067103,
+      "predicho": 0.04046,
+      "residuo": 0.026643
+    },
+    {
+      "real": 0.192261,
+      "predicho": 0.180488,
+      "residuo": 0.011773
+    },
+    {
+      "real": 0.349274,
+      "predicho": 0.287795,
+      "residuo": 0.061479
+    },
+    {
+      "real": 0.052882,
+      "predicho": 0.073497,
+      "residuo": -0.020615
+    },
+    {
+      "real": 0.22115,
+      "predicho": 0.219457,
+      "residuo": 0.001693
+    },
+    {
+      "real": 0.249671,
+      "predicho": 0.24954,
+      "residuo": 0.000131
+    },
+    {
+      "real": 0.086967,
+      "predicho": 0.132188,
+      "residuo": -0.045221
+    },
+    {
+      "real": 0.160915,
+      "predicho": 0.173563,
+      "residuo": -0.012648
+    },
+    {
+      "real": 0.028372,
+      "predicho": 0.014363,
+      "residuo": 0.014009
+    },
+    {
+      "real": 0.203453,
+      "predicho": 0.201307,
+      "residuo": 0.002146
+    },
+    {
+      "real": 0.066883,
+      "predicho": 0.115536,
+      "residuo": -0.048653
+    },
+    {
+      "real": 0.090599,
+      "predicho": 0.128932,
+      "residuo": -0.038333
+    },
+    {
+      "real": 0.245437,
+      "predicho": 0.412649,
+      "residuo": -0.167212
+    },
+    {
+      "real": 0.254337,
+      "predicho": 0.24635,
+      "residuo": 0.007987
+    },
+    {
+      "real": 0.020666,
+      "predicho": 0.009962,
+      "residuo": 0.010704
+    },
+    {
+      "real": 0.159493,
+      "predicho": 0.127868,
+      "residuo": 0.031625
+    },
+    {
+      "real": 0.197418,
+      "predicho": 0.136254,
+      "residuo": 0.061164
+    },
+    {
+      "real": 0.136521,
+      "predicho": 0.15592,
+      "residuo": -0.019399
+    },
+    {
+      "real": 0.163318,
+      "predicho": 0.188693,
+      "residuo": -0.025375
+    },
+    {
+      "real": 0.207827,
+      "predicho": 0.233086,
+      "residuo": -0.025259
+    },
+    {
+      "real": 0.055555,
+      "predicho": 0.054288,
+      "residuo": 0.001267
+    },
+    {
+      "real": 0.196218,
+      "predicho": 0.212625,
+      "residuo": -0.016407
+    },
+    {
+      "real": 0.127776,
+      "predicho": 0.12241,
+      "residuo": 0.005366
+    },
+    {
+      "real": 0.196521,
+      "predicho": 0.19531,
+      "residuo": 0.001211
+    },
+    {
+      "real": 0.098421,
+      "predicho": 0.085736,
+      "residuo": 0.012685
+    },
+    {
+      "real": 0.19545,
+      "predicho": 0.233958,
+      "residuo": -0.038508
+    },
+    {
+      "real": 0.122019,
+      "predicho": 0.118327,
+      "residuo": 0.003692
+    },
+    {
+      "real": 0.10075,
+      "predicho": 0.109439,
+      "residuo": -0.008689
+    },
+    {
+      "real": 0.252376,
+      "predicho": 0.259467,
+      "residuo": -0.007091
+    },
+    {
+      "real": 0.082987,
+      "predicho": 0.067796,
+      "residuo": 0.015191
+    },
+    {
+      "real": 0.128621,
+      "predicho": 0.098675,
+      "residuo": 0.029946
+    },
+    {
+      "real": 0.028159,
+      "predicho": 0.042307,
+      "residuo": -0.014148
+    },
+    {
+      "real": 0.081079,
+      "predicho": 0.057073,
+      "residuo": 0.024006
+    },
+    {
+      "real": 0.231612,
+      "predicho": 0.198169,
+      "residuo": 0.033443
+    },
+    {
+      "real": 0.057323,
+      "predicho": 0.074775,
+      "residuo": -0.017452
+    },
+    {
+      "real": 0.023847,
+      "predicho": 0.058679,
+      "residuo": -0.034832
+    },
+    {
+      "real": 0.116849,
+      "predicho": 0.154383,
+      "residuo": -0.037534
+    },
+    {
+      "real": 0.084982,
+      "predicho": 0.056434,
+      "residuo": 0.028548
+    },
+    {
+      "real": 0.125593,
+      "predicho": 0.149477,
+      "residuo": -0.023884
+    },
+    {
+      "real": 0.0983,
+      "predicho": 0.132183,
+      "residuo": -0.033883
+    },
+    {
+      "real": 0.143942,
+      "predicho": 0.169478,
+      "residuo": -0.025536
+    },
+    {
+      "real": 0.298213,
+      "predicho": 0.367364,
+      "residuo": -0.069151
+    },
+    {
+      "real": 0.150237,
+      "predicho": 0.171773,
+      "residuo": -0.021536
+    },
+    {
+      "real": 0.074876,
+      "predicho": 0.087152,
+      "residuo": -0.012276
+    },
+    {
+      "real": 0.223821,
+      "predicho": 0.188092,
+      "residuo": 0.035729
+    },
+    {
+      "real": 0.009076,
+      "predicho": 0.007658,
+      "residuo": 0.001419
+    },
+    {
+      "real": 0.151925,
+      "predicho": 0.174237,
+      "residuo": -0.022312
+    },
+    {
+      "real": 0.251023,
+      "predicho": 0.221728,
+      "residuo": 0.029295
+    },
+    {
+      "real": 0.087695,
+      "predicho": 0.089107,
+      "residuo": -0.001412
+    },
+    {
+      "real": 0.143024,
+      "predicho": 0.142945,
+      "residuo": 7.9e-05
+    },
+    {
+      "real": 0.209027,
+      "predicho": 0.217752,
+      "residuo": -0.008725
+    },
+    {
+      "real": 0.128597,
+      "predicho": 0.112861,
+      "residuo": 0.015736
+    },
+    {
+      "real": 0.16715,
+      "predicho": 0.18226,
+      "residuo": -0.01511
+    },
+    {
+      "real": 0.141787,
+      "predicho": 0.157741,
+      "residuo": -0.015954
+    },
+    {
+      "real": 0.057013,
+      "predicho": 0.058201,
+      "residuo": -0.001188
+    },
+    {
+      "real": 0.03543,
+      "predicho": 0.015325,
+      "residuo": 0.020105
+    },
+    {
+      "real": 0.232511,
+      "predicho": 0.122252,
+      "residuo": 0.110259
+    },
+    {
+      "real": 0.206221,
+      "predicho": 0.322746,
+      "residuo": -0.116525
+    },
+    {
+      "real": 0.126421,
+      "predicho": 0.130408,
+      "residuo": -0.003987
+    },
+    {
+      "real": 0.097811,
+      "predicho": 0.104055,
+      "residuo": -0.006244
+    },
+    {
+      "real": 0.179828,
+      "predicho": 0.185424,
+      "residuo": -0.005596
+    },
+    {
+      "real": 0.176978,
+      "predicho": 0.163292,
+      "residuo": 0.013686
+    },
+    {
+      "real": 0.197975,
+      "predicho": 0.200375,
+      "residuo": -0.0024
+    },
+    {
+      "real": 0.034821,
+      "predicho": 0.013741,
+      "residuo": 0.02108
+    },
+    {
+      "real": 0.023212,
+      "predicho": 0.047668,
+      "residuo": -0.024456
+    },
+    {
+      "real": 0.244507,
+      "predicho": 0.208968,
+      "residuo": 0.035539
+    },
+    {
+      "real": 0.159614,
+      "predicho": 0.184609,
+      "residuo": -0.024995
+    },
+    {
+      "real": 0.060623,
+      "predicho": 0.064462,
+      "residuo": -0.003839
+    },
+    {
+      "real": 0.43811,
+      "predicho": 0.33905,
+      "residuo": 0.09906
+    },
+    {
+      "real": 0.014629,
+      "predicho": 0.059462,
+      "residuo": -0.044833
+    },
+    {
+      "real": 0.084894,
+      "predicho": 0.042977,
+      "residuo": 0.041917
+    },
+    {
+      "real": 0.020489,
+      "predicho": 0.015559,
+      "residuo": 0.00493
+    },
+    {
+      "real": 0.024842,
+      "predicho": 0.041641,
+      "residuo": -0.016799
+    },
+    {
+      "real": 0.014639,
+      "predicho": 0.007411,
+      "residuo": 0.007228
+    },
+    {
+      "real": 0.113976,
+      "predicho": 0.134831,
+      "residuo": -0.020855
+    },
+    {
+      "real": 0.012356,
+      "predicho": 0.0232,
+      "residuo": -0.010844
+    },
+    {
+      "real": 0.048014,
+      "predicho": 0.045904,
+      "residuo": 0.00211
+    },
+    {
+      "real": 0.145872,
+      "predicho": 0.166177,
+      "residuo": -0.020305
+    },
+    {
+      "real": 0.127123,
+      "predicho": 0.120972,
+      "residuo": 0.006151
+    },
+    {
+      "real": 0.05644,
+      "predicho": 0.057775,
+      "residuo": -0.001335
+    },
+    {
+      "real": 0.00954,
+      "predicho": 0.007445,
+      "residuo": 0.002095
+    },
+    {
+      "real": 0.023661,
+      "predicho": 0.03499,
+      "residuo": -0.011329
+    },
+    {
+      "real": 0.060999,
+      "predicho": 0.044003,
+      "residuo": 0.016996
+    },
+    {
+      "real": 0.140078,
+      "predicho": 0.143978,
+      "residuo": -0.0039
+    },
+    {
+      "real": 0.440853,
+      "predicho": 0.386417,
+      "residuo": 0.054436
+    },
+    {
+      "real": 0.127814,
+      "predicho": 0.142377,
+      "residuo": -0.014563
+    },
+    {
+      "real": 0.209645,
+      "predicho": 0.183162,
+      "residuo": 0.026483
+    },
+    {
+      "real": 0.048452,
+      "predicho": 0.040871,
+      "residuo": 0.007581
+    },
+    {
+      "real": 0.207755,
+      "predicho": 0.217376,
+      "residuo": -0.009621
+    },
+    {
+      "real": 0.201858,
+      "predicho": 0.215207,
+      "residuo": -0.013349
+    },
+    {
+      "real": 0.054205,
+      "predicho": 0.051743,
+      "residuo": 0.002462
+    },
+    {
+      "real": 0.196607,
+      "predicho": 0.127446,
+      "residuo": 0.069161
+    },
+    {
+      "real": 0.062457,
+      "predicho": 0.077589,
+      "residuo": -0.015132
+    },
+    {
+      "real": 0.134992,
+      "predicho": 0.152878,
+      "residuo": -0.017886
+    },
+    {
+      "real": 0.251189,
+      "predicho": 0.218271,
+      "residuo": 0.032918
+    },
+    {
+      "real": 0.06551,
+      "predicho": 0.04046,
+      "residuo": 0.02505
+    },
+    {
+      "real": 0.161498,
+      "predicho": 0.153434,
+      "residuo": 0.008064
+    },
+    {
+      "real": 0.090481,
+      "predicho": 0.098561,
+      "residuo": -0.00808
+    },
+    {
+      "real": 0.15142,
+      "predicho": 0.171235,
+      "residuo": -0.019815
+    },
+    {
+      "real": 0.18118,
+      "predicho": 0.175417,
+      "residuo": 0.005763
+    },
+    {
+      "real": 0.445342,
+      "predicho": 0.349272,
+      "residuo": 0.09607
+    },
+    {
+      "real": 0.245224,
+      "predicho": 0.246323,
+      "residuo": -0.001099
+    },
+    {
+      "real": 0.154607,
+      "predicho": 0.158581,
+      "residuo": -0.003974
+    },
+    {
+      "real": 0.02435,
+      "predicho": 0.059987,
+      "residuo": -0.035637
+    },
+    {
+      "real": 0.123751,
+      "predicho": 0.137182,
+      "residuo": -0.013431
+    },
+    {
+      "real": 0.106543,
+      "predicho": 0.152262,
+      "residuo": -0.045719
+    },
+    {
+      "real": 0.016877,
+      "predicho": 0.054009,
+      "residuo": -0.037132
+    },
+    {
+      "real": 0.613665,
+      "predicho": 0.726461,
+      "residuo": -0.112796
+    },
+    {
+      "real": 0.142829,
+      "predicho": 0.167002,
+      "residuo": -0.024173
+    },
+    {
+      "real": 0.114531,
+      "predicho": 0.135309,
+      "residuo": -0.020778
+    },
+    {
+      "real": 0.145275,
+      "predicho": 0.14034,
+      "residuo": 0.004935
+    },
+    {
+      "real": 0.56939,
+      "predicho": 0.722497,
+      "residuo": -0.153107
+    },
+    {
+      "real": 0.24161,
+      "predicho": 0.236876,
+      "residuo": 0.004734
+    },
+    {
+      "real": 0.350939,
+      "predicho": 0.172101,
+      "residuo": 0.178838
+    },
+    {
+      "real": 0.133589,
+      "predicho": 0.135321,
+      "residuo": -0.001732
+    },
+    {
+      "real": 0.171518,
+      "predicho": 0.186166,
+      "residuo": -0.014648
+    },
+    {
+      "real": 0.053366,
+      "predicho": 0.036663,
+      "residuo": 0.016703
+    },
+    {
+      "real": 0.307837,
+      "predicho": 0.318347,
+      "residuo": -0.01051
+    },
+    {
+      "real": 0.162397,
+      "predicho": 0.176636,
+      "residuo": -0.014239
+    },
+    {
+      "real": 0.029961,
+      "predicho": 0.050782,
+      "residuo": -0.020821
+    },
+    {
+      "real": 0.393855,
+      "predicho": 0.491677,
+      "residuo": -0.097822
+    },
+    {
+      "real": 0.037633,
+      "predicho": 0.018142,
+      "residuo": 0.019491
+    },
+    {
+      "real": 0.05644,
+      "predicho": 0.098084,
+      "residuo": -0.041644
+    },
+    {
+      "real": 0.108529,
+      "predicho": 0.169826,
+      "residuo": -0.061297
+    },
+    {
+      "real": 0.095631,
+      "predicho": 0.090195,
+      "residuo": 0.005436
+    },
+    {
+      "real": 0.316033,
+      "predicho": 0.392448,
+      "residuo": -0.076415
+    },
+    {
+      "real": 0.106145,
+      "predicho": 0.103517,
+      "residuo": 0.002628
+    },
+    {
+      "real": 0.031983,
+      "predicho": 0.021589,
+      "residuo": 0.010394
+    },
+    {
+      "real": 0.140938,
+      "predicho": 0.0925,
+      "residuo": 0.048438
+    },
+    {
+      "real": 0.06096,
+      "predicho": 0.051435,
+      "residuo": 0.009525
+    },
+    {
+      "real": 0.123703,
+      "predicho": 0.121382,
+      "residuo": 0.002321
+    },
+    {
+      "real": 0.114995,
+      "predicho": 0.139027,
+      "residuo": -0.024032
+    },
+    {
+      "real": 0.095165,
+      "predicho": 0.096877,
+      "residuo": -0.001712
+    },
+    {
+      "real": 0.241359,
+      "predicho": 0.166137,
+      "residuo": 0.075222
+    },
+    {
+      "real": 0.15942,
+      "predicho": 0.181049,
+      "residuo": -0.021629
+    },
+    {
+      "real": 0.646715,
+      "predicho": 0.446714,
+      "residuo": 0.200001
+    },
+    {
+      "real": 0.09611,
+      "predicho": 0.092409,
+      "residuo": 0.003701
+    },
+    {
+      "real": 0.088762,
+      "predicho": 0.12683,
+      "residuo": -0.038068
+    },
+    {
+      "real": 0.152225,
+      "predicho": 0.168217,
+      "residuo": -0.015992
+    },
+    {
+      "real": 0.010638,
+      "predicho": 0.005248,
+      "residuo": 0.00539
+    },
+    {
+      "real": 0.155252,
+      "predicho": 0.145545,
+      "residuo": 0.009707
+    },
+    {
+      "real": 0.030272,
+      "predicho": 0.015325,
+      "residuo": 0.014947
+    },
+    {
+      "real": 0.128294,
+      "predicho": 0.208138,
+      "residuo": -0.079844
+    },
+    {
+      "real": 0.162832,
+      "predicho": 0.161878,
+      "residuo": 0.000954
+    },
+    {
+      "real": 0.259383,
+      "predicho": 0.263927,
+      "residuo": -0.004544
+    },
+    {
+      "real": 0.163227,
+      "predicho": 0.182666,
+      "residuo": -0.019439
+    },
+    {
+      "real": 0.242139,
+      "predicho": 0.23172,
+      "residuo": 0.010419
+    },
+    {
+      "real": 0.121496,
+      "predicho": 0.191764,
+      "residuo": -0.070268
+    },
+    {
+      "real": 0.173973,
+      "predicho": 0.196803,
+      "residuo": -0.02283
+    },
+    {
+      "real": 0.219361,
+      "predicho": 0.230462,
+      "residuo": -0.011101
+    },
+    {
+      "real": 0.090113,
+      "predicho": 0.092612,
+      "residuo": -0.002499
+    },
+    {
+      "real": 0.103861,
+      "predicho": 0.118021,
+      "residuo": -0.01416
+    },
+    {
+      "real": 0.238846,
+      "predicho": 0.206333,
+      "residuo": 0.032513
+    },
+    {
+      "real": 0.189323,
+      "predicho": 0.173233,
+      "residuo": 0.01609
+    },
+    {
+      "real": 0.094636,
+      "predicho": 0.070869,
+      "residuo": 0.023767
+    },
+    {
+      "real": 0.0376,
+      "predicho": 0.031724,
+      "residuo": 0.005876
+    },
+    {
+      "real": 0.099521,
+      "predicho": 0.094619,
+      "residuo": 0.004902
+    },
+    {
+      "real": 0.114833,
+      "predicho": 0.125704,
+      "residuo": -0.010871
+    },
+    {
+      "real": 0.035213,
+      "predicho": 0.014836,
+      "residuo": 0.020377
+    },
+    {
+      "real": 0.152392,
+      "predicho": 0.145208,
+      "residuo": 0.007184
+    },
+    {
+      "real": 0.277706,
+      "predicho": 0.265722,
+      "residuo": 0.011984
+    },
+    {
+      "real": 0.12483,
+      "predicho": 0.12807,
+      "residuo": -0.00324
+    },
+    {
+      "real": 0.191357,
+      "predicho": 0.189995,
+      "residuo": 0.001362
+    },
+    {
+      "real": 0.109305,
+      "predicho": 0.100677,
+      "residuo": 0.008628
+    },
+    {
+      "real": 0.320217,
+      "predicho": 0.167268,
+      "residuo": 0.152949
+    },
+    {
+      "real": 0.115156,
+      "predicho": 0.092584,
+      "residuo": 0.022572
+    },
+    {
+      "real": 0.200791,
+      "predicho": 0.193731,
+      "residuo": 0.00706
+    },
+    {
+      "real": 0.117996,
+      "predicho": 0.106064,
+      "residuo": 0.011932
+    },
+    {
+      "real": 0.118066,
+      "predicho": 0.175871,
+      "residuo": -0.057805
+    },
+    {
+      "real": 0.299156,
+      "predicho": 0.231399,
+      "residuo": 0.067757
+    },
+    {
+      "real": 0.112466,
+      "predicho": 0.102447,
+      "residuo": 0.010019
+    },
+    {
+      "real": 0.237916,
+      "predicho": 0.125337,
+      "residuo": 0.112579
+    },
+    {
+      "real": 0.352789,
+      "predicho": 0.36484,
+      "residuo": -0.012051
+    },
+    {
+      "real": 0.196989,
+      "predicho": 0.201578,
+      "residuo": -0.004589
+    },
+    {
+      "real": 0.117349,
+      "predicho": 0.178385,
+      "residuo": -0.061036
+    },
+    {
+      "real": 0.292307,
+      "predicho": 0.229514,
+      "residuo": 0.062793
+    },
+    {
+      "real": 0.156237,
+      "predicho": 0.166773,
+      "residuo": -0.010536
+    },
+    {
+      "real": 0.156726,
+      "predicho": 0.142032,
+      "residuo": 0.014694
+    },
+    {
+      "real": 0.060408,
+      "predicho": 0.053544,
+      "residuo": 0.006864
+    },
+    {
+      "real": 0.187012,
+      "predicho": 0.184907,
+      "residuo": 0.002105
+    },
+    {
+      "real": 0.200614,
+      "predicho": 0.192406,
+      "residuo": 0.008208
+    },
+    {
+      "real": 0.157493,
+      "predicho": 0.180644,
+      "residuo": -0.023151
+    },
+    {
+      "real": 0.094608,
+      "predicho": 0.08637,
+      "residuo": 0.008238
+    },
+    {
+      "real": 0.101421,
+      "predicho": 0.137945,
+      "residuo": -0.036524
+    },
+    {
+      "real": 0.193744,
+      "predicho": 0.160512,
+      "residuo": 0.033232
+    },
+    {
+      "real": 0.208342,
+      "predicho": 0.210994,
+      "residuo": -0.002652
+    },
+    {
+      "real": 0.125758,
+      "predicho": 0.134373,
+      "residuo": -0.008615
+    },
+    {
+      "real": 0.248585,
+      "predicho": 0.141741,
+      "residuo": 0.106844
+    },
+    {
+      "real": 0.070029,
+      "predicho": 0.045439,
+      "residuo": 0.02459
+    },
+    {
+      "real": 0.066038,
+      "predicho": 0.085603,
+      "residuo": -0.019565
+    },
+    {
+      "real": 0.223997,
+      "predicho": 0.259147,
+      "residuo": -0.03515
+    },
+    {
+      "real": 0.125695,
+      "predicho": 0.176143,
+      "residuo": -0.050448
+    },
+    {
+      "real": 0.031012,
+      "predicho": 0.069664,
+      "residuo": -0.038652
+    },
+    {
+      "real": 0.194619,
+      "predicho": 0.158988,
+      "residuo": 0.035631
+    },
+    {
+      "real": 0.104096,
+      "predicho": 0.101235,
+      "residuo": 0.002861
+    },
+    {
+      "real": 0.04917,
+      "predicho": 0.047033,
+      "residuo": 0.002137
+    },
+    {
+      "real": 0.079025,
+      "predicho": 0.086182,
+      "residuo": -0.007157
+    },
+    {
+      "real": 0.023129,
+      "predicho": 0.010687,
+      "residuo": 0.012442
+    },
+    {
+      "real": 0.265664,
+      "predicho": 0.244488,
+      "residuo": 0.021176
+    },
+    {
+      "real": 0.200964,
+      "predicho": 0.226121,
+      "residuo": -0.025157
+    },
+    {
+      "real": 0.030192,
+      "predicho": 0.067759,
+      "residuo": -0.037567
+    },
+    {
+      "real": 0.244676,
+      "predicho": 0.239116,
+      "residuo": 0.00556
+    },
+    {
+      "real": 0.519095,
+      "predicho": 0.545821,
+      "residuo": -0.026726
+    },
+    {
+      "real": 0.155581,
+      "predicho": 0.138031,
+      "residuo": 0.01755
+    },
+    {
+      "real": 0.129427,
+      "predicho": 0.12626,
+      "residuo": 0.003167
+    },
+    {
+      "real": 0.122437,
+      "predicho": 0.116713,
+      "residuo": 0.005724
+    },
+    {
+      "real": 0.298213,
+      "predicho": 0.354831,
+      "residuo": -0.056618
+    },
+    {
+      "real": 0.158572,
+      "predicho": 0.151978,
+      "residuo": 0.006594
+    },
+    {
+      "real": 0.033866,
+      "predicho": 0.058697,
+      "residuo": -0.024831
+    },
+    {
+      "real": 0.148505,
+      "predicho": 0.142169,
+      "residuo": 0.006336
+    },
+    {
+      "real": 0.303762,
+      "predicho": 0.289139,
+      "residuo": 0.014623
+    },
+    {
+      "real": 0.1133,
+      "predicho": 0.126584,
+      "residuo": -0.013284
+    },
+    {
+      "real": 0.156482,
+      "predicho": 0.11896,
+      "residuo": 0.037522
+    },
+    {
+      "real": 0.152656,
+      "predicho": 0.129958,
+      "residuo": 0.022698
+    },
+    {
+      "real": 0.347788,
+      "predicho": 0.265633,
+      "residuo": 0.082155
+    },
+    {
+      "real": 0.121949,
+      "predicho": 0.143307,
+      "residuo": -0.021358
+    },
+    {
+      "real": 0.586281,
+      "predicho": 0.556781,
+      "residuo": 0.0295
+    },
+    {
+      "real": 0.100117,
+      "predicho": 0.110871,
+      "residuo": -0.010754
+    },
+    {
+      "real": 0.184643,
+      "predicho": 0.188227,
+      "residuo": -0.003584
+    },
+    {
+      "real": 0.060999,
+      "predicho": 0.053821,
+      "residuo": 0.007178
+    },
+    {
+      "real": 0.197989,
+      "predicho": 0.191076,
+      "residuo": 0.006913
+    },
+    {
+      "real": 0.201017,
+      "predicho": 0.21806,
+      "residuo": -0.017043
+    },
+    {
+      "real": 0.085784,
+      "predicho": 0.05981,
+      "residuo": 0.025974
+    },
+    {
+      "real": 0.010327,
+      "predicho": 0.007445,
+      "residuo": 0.002882
+    },
+    {
+      "real": 0.31716,
+      "predicho": 0.30503,
+      "residuo": 0.01213
+    },
+    {
+      "real": 0.192509,
+      "predicho": 0.189955,
+      "residuo": 0.002554
+    },
+    {
+      "real": 0.249096,
+      "predicho": 0.260854,
+      "residuo": -0.011758
+    },
+    {
+      "real": 0.133835,
+      "predicho": 0.136196,
+      "residuo": -0.002361
+    },
+    {
+      "real": 0.14464,
+      "predicho": 0.155499,
+      "residuo": -0.010859
+    },
+    {
+      "real": 0.372269,
+      "predicho": 0.359841,
+      "residuo": 0.012428
+    },
+    {
+      "real": 0.090068,
+      "predicho": 0.111057,
+      "residuo": -0.020989
+    },
+    {
+      "real": 0.159214,
+      "predicho": 0.131707,
+      "residuo": 0.027507
+    },
+    {
+      "real": 0.101086,
+      "predicho": 0.104704,
+      "residuo": -0.003618
+    },
+    {
+      "real": 0.157493,
+      "predicho": 0.181362,
+      "residuo": -0.023869
+    },
+    {
+      "real": 0.15949,
+      "predicho": 0.136543,
+      "residuo": 0.022947
+    },
+    {
+      "real": 0.132438,
+      "predicho": 0.153793,
+      "residuo": -0.021355
+    },
+    {
+      "real": 0.027018,
+      "predicho": 0.042432,
+      "residuo": -0.015414
+    },
+    {
+      "real": 0.159729,
+      "predicho": 0.178135,
+      "residuo": -0.018406
+    },
+    {
+      "real": 0.030463,
+      "predicho": 0.020713,
+      "residuo": 0.00975
+    },
+    {
+      "real": 0.121259,
+      "predicho": 0.111106,
+      "residuo": 0.010153
+    },
+    {
+      "real": 0.155581,
+      "predicho": 0.138031,
+      "residuo": 0.01755
+    },
+    {
+      "real": 0.159779,
+      "predicho": 0.168729,
+      "residuo": -0.00895
+    },
+    {
+      "real": 0.160227,
+      "predicho": 0.158036,
+      "residuo": 0.002191
+    },
+    {
+      "real": 0.12287,
+      "predicho": 0.116574,
+      "residuo": 0.006296
+    },
+    {
+      "real": 0.162312,
+      "predicho": 0.187014,
+      "residuo": -0.024702
+    },
+    {
+      "real": 0.234984,
+      "predicho": 0.178587,
+      "residuo": 0.056397
+    },
+    {
+      "real": 0.176446,
+      "predicho": 0.188063,
+      "residuo": -0.011617
+    },
+    {
+      "real": 0.022467,
+      "predicho": 0.011374,
+      "residuo": 0.011093
+    },
+    {
+      "real": 0.099708,
+      "predicho": 0.075136,
+      "residuo": 0.024572
+    },
+    {
+      "real": 0.060926,
+      "predicho": 0.051747,
+      "residuo": 0.009179
+    },
+    {
+      "real": 0.095941,
+      "predicho": 0.081654,
+      "residuo": 0.014287
+    },
+    {
+      "real": 0.117247,
+      "predicho": 0.135804,
+      "residuo": -0.018557
+    },
+    {
+      "real": 0.146446,
+      "predicho": 0.133942,
+      "residuo": 0.012504
+    },
+    {
+      "real": 0.15828,
+      "predicho": 0.144796,
+      "residuo": 0.013484
+    },
+    {
+      "real": 0.123993,
+      "predicho": 0.174593,
+      "residuo": -0.0506
+    },
+    {
+      "real": 0.19571,
+      "predicho": 0.165567,
+      "residuo": 0.030143
+    },
+    {
+      "real": 0.190301,
+      "predicho": 0.205032,
+      "residuo": -0.014731
+    },
+    {
+      "real": 0.123641,
+      "predicho": 0.1359,
+      "residuo": -0.012259
+    },
+    {
+      "real": 0.316033,
+      "predicho": 0.390917,
+      "residuo": -0.074884
+    },
+    {
+      "real": 0.046667,
+      "predicho": 0.031724,
+      "residuo": 0.014943
+    },
+    {
+      "real": 0.630736,
+      "predicho": 0.571259,
+      "residuo": 0.059477
+    },
+    {
+      "real": 0.295288,
+      "predicho": 0.266244,
+      "residuo": 0.029044
+    },
+    {
+      "real": 0.070693,
+      "predicho": 0.121609,
+      "residuo": -0.050916
+    },
+    {
+      "real": 0.188416,
+      "predicho": 0.15796,
+      "residuo": 0.030456
+    },
+    {
+      "real": 0.02788,
+      "predicho": 0.014114,
+      "residuo": 0.013766
+    },
+    {
+      "real": 0.154412,
+      "predicho": 0.175378,
+      "residuo": -0.020966
+    },
+    {
+      "real": 0.099685,
+      "predicho": 0.086802,
+      "residuo": 0.012883
+    },
+    {
+      "real": 0.070693,
+      "predicho": 0.112593,
+      "residuo": -0.0419
+    },
+    {
+      "real": 0.190012,
+      "predicho": 0.164934,
+      "residuo": 0.025078
+    },
+    {
+      "real": 0.179576,
+      "predicho": 0.311715,
+      "residuo": -0.132139
+    },
+    {
+      "real": 0.151439,
+      "predicho": 0.24472,
+      "residuo": -0.093281
+    },
+    {
+      "real": 0.113042,
+      "predicho": 0.129459,
+      "residuo": -0.016417
+    },
+    {
+      "real": 0.070693,
+      "predicho": 0.121276,
+      "residuo": -0.050583
+    },
+    {
+      "real": 0.226235,
+      "predicho": 0.259693,
+      "residuo": -0.033458
+    },
+    {
+      "real": 0.087171,
+      "predicho": 0.086084,
+      "residuo": 0.001087
+    },
+    {
+      "real": 0.07248,
+      "predicho": 0.079719,
+      "residuo": -0.007239
+    },
+    {
+      "real": 0.016109,
+      "predicho": 0.009961,
+      "residuo": 0.006148
+    },
+    {
+      "real": 0.015145,
+      "predicho": 0.04731,
+      "residuo": -0.032165
+    },
+    {
+      "real": 0.073911,
+      "predicho": 0.073223,
+      "residuo": 0.000688
+    },
+    {
+      "real": 0.083192,
+      "predicho": 0.09535,
+      "residuo": -0.012158
+    },
+    {
+      "real": 0.141391,
+      "predicho": 0.158963,
+      "residuo": -0.017572
+    },
+    {
+      "real": 0.119012,
+      "predicho": 0.130236,
+      "residuo": -0.011224
+    },
+    {
+      "real": 0.297009,
+      "predicho": 0.263386,
+      "residuo": 0.033623
+    },
+    {
+      "real": 0.26301,
+      "predicho": 0.231595,
+      "residuo": 0.031415
+    },
+    {
+      "real": 0.099506,
+      "predicho": 0.078969,
+      "residuo": 0.020537
+    },
+    {
+      "real": 0.158152,
+      "predicho": 0.172341,
+      "residuo": -0.014189
+    },
+    {
+      "real": 0.109367,
+      "predicho": 0.120337,
+      "residuo": -0.01097
+    },
+    {
+      "real": 0.076378,
+      "predicho": 0.057098,
+      "residuo": 0.01928
+    },
+    {
+      "real": 0.238156,
+      "predicho": 0.261368,
+      "residuo": -0.023212
+    },
+    {
+      "real": 0.357076,
+      "predicho": 0.223942,
+      "residuo": 0.133134
+    },
+    {
+      "real": 0.197886,
+      "predicho": 0.216823,
+      "residuo": -0.018937
+    },
+    {
+      "real": 0.141238,
+      "predicho": 0.213808,
+      "residuo": -0.07257
+    },
+    {
+      "real": 0.172889,
+      "predicho": 0.144361,
+      "residuo": 0.028528
+    },
+    {
+      "real": 0.042724,
+      "predicho": 0.05194,
+      "residuo": -0.009216
+    },
+    {
+      "real": 0.23865,
+      "predicho": 0.217728,
+      "residuo": 0.020922
+    },
+    {
+      "real": 0.424515,
+      "predicho": 0.366863,
+      "residuo": 0.057652
+    },
+    {
+      "real": 0.185171,
+      "predicho": 0.202275,
+      "residuo": -0.017104
+    },
+    {
+      "real": 0.094655,
+      "predicho": 0.047919,
+      "residuo": 0.046736
+    },
+    {
+      "real": 0.206061,
+      "predicho": 0.249366,
+      "residuo": -0.043305
+    },
+    {
+      "real": 0.103148,
+      "predicho": 0.076295,
+      "residuo": 0.026853
+    },
+    {
+      "real": 0.129642,
+      "predicho": 0.104796,
+      "residuo": 0.024846
+    },
+    {
+      "real": 0.146446,
+      "predicho": 0.168294,
+      "residuo": -0.021848
+    },
+    {
+      "real": 0.151704,
+      "predicho": 0.143735,
+      "residuo": 0.007969
+    },
+    {
+      "real": 0.161065,
+      "predicho": 0.160569,
+      "residuo": 0.000496
+    },
+    {
+      "real": 0.092235,
+      "predicho": 0.054946,
+      "residuo": 0.037289
+    },
+    {
+      "real": 0.241495,
+      "predicho": 0.237252,
+      "residuo": 0.004243
+    },
+    {
+      "real": 0.190318,
+      "predicho": 0.209911,
+      "residuo": -0.019593
+    },
+    {
+      "real": 0.181025,
+      "predicho": 0.17799,
+      "residuo": 0.003035
+    },
+    {
+      "real": 0.296494,
+      "predicho": 0.260915,
+      "residuo": 0.035579
+    },
+    {
+      "real": 0.161818,
+      "predicho": 0.161332,
+      "residuo": 0.000486
+    },
+    {
+      "real": 0.193867,
+      "predicho": 0.2115,
+      "residuo": -0.017633
+    },
+    {
+      "real": 0.121959,
+      "predicho": 0.135184,
+      "residuo": -0.013225
+    },
+    {
+      "real": 0.088313,
+      "predicho": 0.132416,
+      "residuo": -0.044103
+    },
+    {
+      "real": 0.223075,
+      "predicho": 0.198542,
+      "residuo": 0.024533
+    },
+    {
+      "real": 0.172072,
+      "predicho": 0.176205,
+      "residuo": -0.004133
+    },
+    {
+      "real": 0.051736,
+      "predicho": 0.052524,
+      "residuo": -0.000788
+    },
+    {
+      "real": 0.122915,
+      "predicho": 0.116908,
+      "residuo": 0.006007
+    },
+    {
+      "real": 0.027692,
+      "predicho": 0.01777,
+      "residuo": 0.009922
+    },
+    {
+      "real": 0.049783,
+      "predicho": 0.037804,
+      "residuo": 0.011979
+    },
+    {
+      "real": 0.156897,
+      "predicho": 0.179481,
+      "residuo": -0.022584
+    },
+    {
+      "real": 0.344428,
+      "predicho": 0.37509,
+      "residuo": -0.030662
+    },
+    {
+      "real": 0.163715,
+      "predicho": 0.172007,
+      "residuo": -0.008292
+    },
+    {
+      "real": 0.247519,
+      "predicho": 0.23306,
+      "residuo": 0.014459
+    },
+    {
+      "real": 0.151311,
+      "predicho": 0.170877,
+      "residuo": -0.019566
+    },
+    {
+      "real": 0.237709,
+      "predicho": 0.228191,
+      "residuo": 0.009518
+    },
+    {
+      "real": 0.065204,
+      "predicho": 0.10782,
+      "residuo": -0.042616
+    },
+    {
+      "real": 0.481997,
+      "predicho": 0.304748,
+      "residuo": 0.177249
+    },
+    {
+      "real": 0.203455,
+      "predicho": 0.164088,
+      "residuo": 0.039367
+    },
+    {
+      "real": 0.094531,
+      "predicho": 0.101017,
+      "residuo": -0.006486
+    },
+    {
+      "real": 0.053622,
+      "predicho": 0.044244,
+      "residuo": 0.009378
+    },
+    {
+      "real": 0.107393,
+      "predicho": 0.131677,
+      "residuo": -0.024284
+    },
+    {
+      "real": 0.082307,
+      "predicho": 0.098031,
+      "residuo": -0.015724
+    },
+    {
+      "real": 0.117214,
+      "predicho": 0.128296,
+      "residuo": -0.011082
+    },
+    {
+      "real": 0.179576,
+      "predicho": 0.306639,
+      "residuo": -0.127063
+    },
+    {
+      "real": 0.024513,
+      "predicho": 0.072104,
+      "residuo": -0.047591
+    },
+    {
+      "real": 0.211823,
+      "predicho": 0.20758,
+      "residuo": 0.004243
+    },
+    {
+      "real": 0.153772,
+      "predicho": 0.139117,
+      "residuo": 0.014655
+    },
+    {
+      "real": 0.083721,
+      "predicho": 0.048559,
+      "residuo": 0.035162
+    },
+    {
+      "real": 0.058539,
+      "predicho": 0.048677,
+      "residuo": 0.009862
+    },
+    {
+      "real": 0.097444,
+      "predicho": 0.098863,
+      "residuo": -0.001419
+    },
+    {
+      "real": 0.070029,
+      "predicho": 0.050344,
+      "residuo": 0.019685
+    },
+    {
+      "real": 0.011419,
+      "predicho": 0.006445,
+      "residuo": 0.004974
+    },
+    {
+      "real": 0.154663,
+      "predicho": 0.164468,
+      "residuo": -0.009805
+    },
+    {
+      "real": 0.155608,
+      "predicho": 0.232232,
+      "residuo": -0.076624
+    },
+    {
+      "real": 0.362302,
+      "predicho": 0.349706,
+      "residuo": 0.012596
+    },
+    {
+      "real": 0.27502,
+      "predicho": 0.304891,
+      "residuo": -0.029871
+    },
+    {
+      "real": 0.297039,
+      "predicho": 0.289104,
+      "residuo": 0.007935
+    },
+    {
+      "real": 0.03768,
+      "predicho": 0.018142,
+      "residuo": 0.019537
+    },
+    {
+      "real": 0.112043,
+      "predicho": 0.163368,
+      "residuo": -0.051325
+    },
+    {
+      "real": 0.209216,
+      "predicho": 0.362382,
+      "residuo": -0.153166
+    },
+    {
+      "real": 0.23054,
+      "predicho": 0.252645,
+      "residuo": -0.022105
+    },
+    {
+      "real": 0.176329,
+      "predicho": 0.176766,
+      "residuo": -0.000437
+    },
+    {
+      "real": 0.175859,
+      "predicho": 0.189449,
+      "residuo": -0.01359
+    },
+    {
+      "real": 0.126824,
+      "predicho": 0.120561,
+      "residuo": 0.006263
+    },
+    {
+      "real": 0.087115,
+      "predicho": 0.159895,
+      "residuo": -0.07278
+    },
+    {
+      "real": 0.130623,
+      "predicho": 0.147515,
+      "residuo": -0.016892
+    },
+    {
+      "real": 0.14616,
+      "predicho": 0.161341,
+      "residuo": -0.015181
+    },
+    {
+      "real": 0.110735,
+      "predicho": 0.107775,
+      "residuo": 0.00296
+    },
+    {
+      "real": 0.192468,
+      "predicho": 0.171833,
+      "residuo": 0.020635
+    },
+    {
+      "real": 0.126568,
+      "predicho": 0.186101,
+      "residuo": -0.059533
+    },
+    {
+      "real": 0.236698,
+      "predicho": 0.274383,
+      "residuo": -0.037685
+    },
+    {
+      "real": 0.146446,
+      "predicho": 0.171121,
+      "residuo": -0.024675
+    },
+    {
+      "real": 0.193228,
+      "predicho": 0.185239,
+      "residuo": 0.007989
+    },
+    {
+      "real": 0.171287,
+      "predicho": 0.166777,
+      "residuo": 0.00451
+    },
+    {
+      "real": 0.018038,
+      "predicho": 0.01013,
+      "residuo": 0.007908
+    },
+    {
+      "real": 0.4794,
+      "predicho": 0.605165,
+      "residuo": -0.125765
+    },
+    {
+      "real": 0.398003,
+      "predicho": 0.477699,
+      "residuo": -0.079696
+    },
+    {
+      "real": 0.077799,
+      "predicho": 0.135962,
+      "residuo": -0.058163
+    },
+    {
+      "real": 0.260968,
+      "predicho": 0.253846,
+      "residuo": 0.007122
+    },
+    {
+      "real": 0.264582,
+      "predicho": 0.23964,
+      "residuo": 0.024942
+    },
+    {
+      "real": 0.142833,
+      "predicho": 0.167138,
+      "residuo": -0.024305
+    },
+    {
+      "real": 0.112002,
+      "predicho": 0.121739,
+      "residuo": -0.009737
+    },
+    {
+      "real": 0.099506,
+      "predicho": 0.109076,
+      "residuo": -0.00957
+    },
+    {
+      "real": 0.039325,
+      "predicho": 0.028046,
+      "residuo": 0.011279
+    },
+    {
+      "real": 0.114627,
+      "predicho": 0.126633,
+      "residuo": -0.012006
+    },
+    {
+      "real": 0.262704,
+      "predicho": 0.192081,
+      "residuo": 0.070623
+    },
+    {
+      "real": 0.470593,
+      "predicho": 0.437312,
+      "residuo": 0.033281
+    },
+    {
+      "real": 0.18914,
+      "predicho": 0.196611,
+      "residuo": -0.007471
+    },
+    {
+      "real": 0.277101,
+      "predicho": 0.30186,
+      "residuo": -0.024759
+    },
+    {
+      "real": 0.1447,
+      "predicho": 0.107867,
+      "residuo": 0.036833
+    },
+    {
+      "real": 0.029594,
+      "predicho": 0.038507,
+      "residuo": -0.008913
+    },
+    {
+      "real": 0.09815,
+      "predicho": 0.070106,
+      "residuo": 0.028044
+    },
+    {
+      "real": 0.149122,
+      "predicho": 0.169978,
+      "residuo": -0.020856
+    },
+    {
+      "real": 0.205049,
+      "predicho": 0.217568,
+      "residuo": -0.012519
+    },
+    {
+      "real": 0.016209,
+      "predicho": 0.008324,
+      "residuo": 0.007885
+    },
+    {
+      "real": 0.110595,
+      "predicho": 0.109221,
+      "residuo": 0.001374
+    },
+    {
+      "real": 0.274654,
+      "predicho": 0.277362,
+      "residuo": -0.002708
+    },
+    {
+      "real": 0.208961,
+      "predicho": 0.218325,
+      "residuo": -0.009364
+    },
+    {
+      "real": 0.197994,
+      "predicho": 0.16737,
+      "residuo": 0.030624
+    },
+    {
+      "real": 0.019679,
+      "predicho": 0.009962,
+      "residuo": 0.009717
+    },
+    {
+      "real": 0.162312,
+      "predicho": 0.177612,
+      "residuo": -0.0153
+    },
+    {
+      "real": 0.044875,
+      "predicho": 0.037895,
+      "residuo": 0.00698
+    },
+    {
+      "real": 0.628564,
+      "predicho": 0.480116,
+      "residuo": 0.148448
+    },
+    {
+      "real": 0.183593,
+      "predicho": 0.212118,
+      "residuo": -0.028525
+    },
+    {
+      "real": 0.055204,
+      "predicho": 0.100195,
+      "residuo": -0.044991
+    },
+    {
+      "real": 0.231955,
+      "predicho": 0.239851,
+      "residuo": -0.007896
+    },
+    {
+      "real": 0.040698,
+      "predicho": 0.015325,
+      "residuo": 0.025373
+    },
+    {
+      "real": 0.127019,
+      "predicho": 0.158331,
+      "residuo": -0.031312
+    },
+    {
+      "real": 0.039426,
+      "predicho": 0.02558,
+      "residuo": 0.013846
+    },
+    {
+      "real": 0.4794,
+      "predicho": 0.607441,
+      "residuo": -0.128041
+    },
+    {
+      "real": 0.060757,
+      "predicho": 0.059408,
+      "residuo": 0.001349
+    },
+    {
+      "real": 0.148892,
+      "predicho": 0.111117,
+      "residuo": 0.037775
+    },
+    {
+      "real": 0.165912,
+      "predicho": 0.161668,
+      "residuo": 0.004244
+    },
+    {
+      "real": 0.099506,
+      "predicho": 0.10713,
+      "residuo": -0.007624
+    },
+    {
+      "real": 0.138265,
+      "predicho": 0.149518,
+      "residuo": -0.011253
+    },
+    {
+      "real": 0.132198,
+      "predicho": 0.162948,
+      "residuo": -0.03075
+    },
+    {
+      "real": 0.106334,
+      "predicho": 0.103567,
+      "residuo": 0.002767
+    },
+    {
+      "real": 0.135959,
+      "predicho": 0.095848,
+      "residuo": 0.040111
+    },
+    {
+      "real": 0.147296,
+      "predicho": 0.172247,
+      "residuo": -0.024951
+    },
+    {
+      "real": 0.349973,
+      "predicho": 0.400522,
+      "residuo": -0.050549
+    },
+    {
+      "real": 0.126549,
+      "predicho": 0.11666,
+      "residuo": 0.009889
+    },
+    {
+      "real": 0.064821,
+      "predicho": 0.059365,
+      "residuo": 0.005456
+    },
+    {
+      "real": 0.022048,
+      "predicho": 0.020713,
+      "residuo": 0.001335
+    },
+    {
+      "real": 0.065672,
+      "predicho": 0.04812,
+      "residuo": 0.017552
+    },
+    {
+      "real": 0.076734,
+      "predicho": 0.101409,
+      "residuo": -0.024675
+    },
+    {
+      "real": 0.210325,
+      "predicho": 0.195699,
+      "residuo": 0.014626
+    },
+    {
+      "real": 0.268191,
+      "predicho": 0.288535,
+      "residuo": -0.020344
+    },
+    {
+      "real": 0.134346,
+      "predicho": 0.128469,
+      "residuo": 0.005877
+    },
+    {
+      "real": 0.030817,
+      "predicho": 0.038299,
+      "residuo": -0.007482
+    },
+    {
+      "real": 0.231207,
+      "predicho": 0.151164,
+      "residuo": 0.080043
+    },
+    {
+      "real": 0.010337,
+      "predicho": 0.005248,
+      "residuo": 0.005089
+    },
+    {
+      "real": 0.080991,
+      "predicho": 0.049936,
+      "residuo": 0.031055
+    },
+    {
+      "real": 0.225486,
+      "predicho": 0.241364,
+      "residuo": -0.015878
+    },
+    {
+      "real": 0.154237,
+      "predicho": 0.150736,
+      "residuo": 0.003501
+    },
+    {
+      "real": 0.743507,
+      "predicho": 0.552881,
+      "residuo": 0.190626
+    },
+    {
+      "real": 0.256951,
+      "predicho": 0.2065,
+      "residuo": 0.050451
+    },
+    {
+      "real": 0.098766,
+      "predicho": 0.076029,
+      "residuo": 0.022737
+    },
+    {
+      "real": 0.070885,
+      "predicho": 0.065996,
+      "residuo": 0.004889
+    },
+    {
+      "real": 0.086564,
+      "predicho": 0.077795,
+      "residuo": 0.008769
+    },
+    {
+      "real": 0.251061,
+      "predicho": 0.249447,
+      "residuo": 0.001614
+    },
+    {
+      "real": 0.492225,
+      "predicho": 0.396205,
+      "residuo": 0.09602
+    },
+    {
+      "real": 0.310738,
+      "predicho": 0.272549,
+      "residuo": 0.038189
+    },
+    {
+      "real": 0.162637,
+      "predicho": 0.189695,
+      "residuo": -0.027058
+    },
+    {
+      "real": 0.118367,
+      "predicho": 0.109867,
+      "residuo": 0.0085
+    },
+    {
+      "real": 0.1133,
+      "predicho": 0.092125,
+      "residuo": 0.021175
+    },
+    {
+      "real": 0.208365,
+      "predicho": 0.263577,
+      "residuo": -0.055212
+    },
+    {
+      "real": 0.150289,
+      "predicho": 0.172152,
+      "residuo": -0.021863
+    },
+    {
+      "real": 0.104763,
+      "predicho": 0.092617,
+      "residuo": 0.012146
+    },
+    {
+      "real": 0.171504,
+      "predicho": 0.187767,
+      "residuo": -0.016263
+    },
+    {
+      "real": 0.255,
+      "predicho": 0.261141,
+      "residuo": -0.006141
+    },
+    {
+      "real": 0.664064,
+      "predicho": 0.575958,
+      "residuo": 0.088106
+    },
+    {
+      "real": 0.136275,
+      "predicho": 0.130288,
+      "residuo": 0.005987
+    },
+    {
+      "real": 0.285021,
+      "predicho": 0.368803,
+      "residuo": -0.083782
+    },
+    {
+      "real": 0.147753,
+      "predicho": 0.156373,
+      "residuo": -0.00862
+    },
+    {
+      "real": 0.20608,
+      "predicho": 0.166636,
+      "residuo": 0.039444
+    },
+    {
+      "real": 0.251661,
+      "predicho": 0.258942,
+      "residuo": -0.007281
+    },
+    {
+      "real": 0.084327,
+      "predicho": 0.09258,
+      "residuo": -0.008253
+    },
+    {
+      "real": 0.141891,
+      "predicho": 0.143687,
+      "residuo": -0.001796
+    },
+    {
+      "real": 0.072794,
+      "predicho": 0.07614,
+      "residuo": -0.003346
+    },
+    {
+      "real": 0.057146,
+      "predicho": 0.049403,
+      "residuo": 0.007743
+    },
+    {
+      "real": 0.091658,
+      "predicho": 0.15599,
+      "residuo": -0.064332
+    },
+    {
+      "real": 0.508414,
+      "predicho": 0.450142,
+      "residuo": 0.058272
+    },
+    {
+      "real": 0.192084,
+      "predicho": 0.199209,
+      "residuo": -0.007125
+    },
+    {
+      "real": 0.13019,
+      "predicho": 0.14052,
+      "residuo": -0.01033
+    },
+    {
+      "real": 0.122532,
+      "predicho": 0.116505,
+      "residuo": 0.006027
+    },
+    {
+      "real": 0.27697,
+      "predicho": 0.251816,
+      "residuo": 0.025154
+    },
+    {
+      "real": 0.55115,
+      "predicho": 0.466076,
+      "residuo": 0.085074
+    },
+    {
+      "real": 0.015158,
+      "predicho": 0.04013,
+      "residuo": -0.024972
+    },
+    {
+      "real": 0.046279,
+      "predicho": 0.052857,
+      "residuo": -0.006578
+    },
+    {
+      "real": 0.115547,
+      "predicho": 0.122243,
+      "residuo": -0.006696
+    },
+    {
+      "real": 0.16584,
+      "predicho": 0.190615,
+      "residuo": -0.024775
+    },
+    {
+      "real": 0.203479,
+      "predicho": 0.201591,
+      "residuo": 0.001888
+    },
+    {
+      "real": 0.309964,
+      "predicho": 0.375613,
+      "residuo": -0.065649
+    },
+    {
+      "real": 0.073843,
+      "predicho": 0.077588,
+      "residuo": -0.003745
+    },
+    {
+      "real": 0.088491,
+      "predicho": 0.059336,
+      "residuo": 0.029155
+    },
+    {
+      "real": 0.235677,
+      "predicho": 0.237253,
+      "residuo": -0.001576
+    },
+    {
+      "real": 0.104514,
+      "predicho": 0.097811,
+      "residuo": 0.006703
+    },
+    {
+      "real": 0.150289,
+      "predicho": 0.169513,
+      "residuo": -0.019224
+    },
+    {
+      "real": 0.208962,
+      "predicho": 0.195395,
+      "residuo": 0.013567
+    },
+    {
+      "real": 0.174188,
+      "predicho": 0.184063,
+      "residuo": -0.009875
+    },
+    {
+      "real": 0.375863,
+      "predicho": 0.382793,
+      "residuo": -0.00693
+    },
+    {
+      "real": 0.174476,
+      "predicho": 0.152796,
+      "residuo": 0.02168
+    },
+    {
+      "real": 0.070452,
+      "predicho": 0.051173,
+      "residuo": 0.019279
+    },
+    {
+      "real": 0.076822,
+      "predicho": 0.089772,
+      "residuo": -0.01295
+    },
+    {
+      "real": 0.204865,
+      "predicho": 0.216125,
+      "residuo": -0.01126
+    },
+    {
+      "real": 0.152576,
+      "predicho": 0.150367,
+      "residuo": 0.002209
+    },
+    {
+      "real": 0.1201,
+      "predicho": 0.115256,
+      "residuo": 0.004844
+    },
+    {
+      "real": 0.160908,
+      "predicho": 0.100777,
+      "residuo": 0.060131
+    },
+    {
+      "real": 0.052815,
+      "predicho": 0.076425,
+      "residuo": -0.02361
+    },
+    {
+      "real": 0.202486,
+      "predicho": 0.212741,
+      "residuo": -0.010255
+    },
+    {
+      "real": 0.298132,
+      "predicho": 0.2114,
+      "residuo": 0.086732
+    },
+    {
+      "real": 0.20076,
+      "predicho": 0.193833,
+      "residuo": 0.006927
+    },
+    {
+      "real": 0.261132,
+      "predicho": 0.197661,
+      "residuo": 0.063471
+    },
+    {
+      "real": 0.10217,
+      "predicho": 0.088144,
+      "residuo": 0.014026
+    },
+    {
+      "real": 0.14616,
+      "predicho": 0.17177,
+      "residuo": -0.02561
+    },
+    {
+      "real": 0.010406,
+      "predicho": 0.005268,
+      "residuo": 0.005138
+    },
+    {
+      "real": 0.088409,
+      "predicho": 0.1422,
+      "residuo": -0.053791
+    },
+    {
+      "real": 0.099506,
+      "predicho": 0.097311,
+      "residuo": 0.002195
+    },
+    {
+      "real": 0.973724,
+      "predicho": 0.785719,
+      "residuo": 0.188005
+    },
+    {
+      "real": 0.018522,
+      "predicho": 0.018521,
+      "residuo": 1e-06
+    },
+    {
+      "real": 0.104931,
+      "predicho": 0.112305,
+      "residuo": -0.007374
+    },
+    {
+      "real": 0.088633,
+      "predicho": 0.076459,
+      "residuo": 0.012174
+    },
+    {
+      "real": 0.03762,
+      "predicho": 0.027369,
+      "residuo": 0.010251
+    },
+    {
+      "real": 0.118163,
+      "predicho": 0.10096,
+      "residuo": 0.017203
+    },
+    {
+      "real": 0.329564,
+      "predicho": 0.253768,
+      "residuo": 0.075796
+    },
+    {
+      "real": 0.075819,
+      "predicho": 0.086782,
+      "residuo": -0.010963
+    },
+    {
+      "real": 0.029045,
+      "predicho": 0.072529,
+      "residuo": -0.043484
+    },
+    {
+      "real": 0.21639,
+      "predicho": 0.254992,
+      "residuo": -0.038602
+    },
+    {
+      "real": 0.105676,
+      "predicho": 0.127041,
+      "residuo": -0.021365
+    },
+    {
+      "real": 0.121721,
+      "predicho": 0.117589,
+      "residuo": 0.004132
+    },
+    {
+      "real": 0.070693,
+      "predicho": 0.091169,
+      "residuo": -0.020476
+    },
+    {
+      "real": 0.080897,
+      "predicho": 0.061769,
+      "residuo": 0.019128
+    },
+    {
+      "real": 0.123988,
+      "predicho": 0.097944,
+      "residuo": 0.026044
+    },
+    {
+      "real": 0.199473,
+      "predicho": 0.183846,
+      "residuo": 0.015627
+    },
+    {
+      "real": 0.186462,
+      "predicho": 0.213883,
+      "residuo": -0.027421
+    },
+    {
+      "real": 0.128022,
+      "predicho": 0.136577,
+      "residuo": -0.008555
+    },
+    {
+      "real": 0.127363,
+      "predicho": 0.135641,
+      "residuo": -0.008278
+    },
+    {
+      "real": 0.384631,
+      "predicho": 0.467087,
+      "residuo": -0.082456
+    },
+    {
+      "real": 0.193368,
+      "predicho": 0.20896,
+      "residuo": -0.015592
+    },
+    {
+      "real": 0.363448,
+      "predicho": 0.325054,
+      "residuo": 0.038394
+    },
+    {
+      "real": 0.055328,
+      "predicho": 0.02801,
+      "residuo": 0.027318
+    },
+    {
+      "real": 0.085465,
+      "predicho": 0.128148,
+      "residuo": -0.042683
+    },
+    {
+      "real": 0.145629,
+      "predicho": 0.162085,
+      "residuo": -0.016456
+    },
+    {
+      "real": 0.122026,
+      "predicho": 0.093229,
+      "residuo": 0.028797
+    },
+    {
+      "real": 0.136196,
+      "predicho": 0.089152,
+      "residuo": 0.047044
+    },
+    {
+      "real": 0.015728,
+      "predicho": 0.011943,
+      "residuo": 0.003785
+    },
+    {
+      "real": 0.135299,
+      "predicho": 0.144461,
+      "residuo": -0.009162
+    },
+    {
+      "real": 0.09335,
+      "predicho": 0.070964,
+      "residuo": 0.022386
+    },
+    {
+      "real": 0.061543,
+      "predicho": 0.045139,
+      "residuo": 0.016404
+    },
+    {
+      "real": 0.259798,
+      "predicho": 0.24326,
+      "residuo": 0.016538
+    },
+    {
+      "real": 0.402698,
+      "predicho": 0.505972,
+      "residuo": -0.103274
+    },
+    {
+      "real": 0.089936,
+      "predicho": 0.131187,
+      "residuo": -0.041251
+    },
+    {
+      "real": 0.205589,
+      "predicho": 0.212771,
+      "residuo": -0.007182
+    },
+    {
+      "real": 0.081262,
+      "predicho": 0.146363,
+      "residuo": -0.065101
+    },
+    {
+      "real": 0.058171,
+      "predicho": 0.069258,
+      "residuo": -0.011087
+    },
+    {
+      "real": 0.336598,
+      "predicho": 0.177554,
+      "residuo": 0.159044
+    },
+    {
+      "real": 0.237417,
+      "predicho": 0.224105,
+      "residuo": 0.013312
+    },
+    {
+      "real": 0.151487,
+      "predicho": 0.15342,
+      "residuo": -0.001933
+    },
+    {
+      "real": 0.372019,
+      "predicho": 0.444427,
+      "residuo": -0.072408
+    },
+    {
+      "real": 0.109367,
+      "predicho": 0.125242,
+      "residuo": -0.015875
+    },
+    {
+      "real": 0.204472,
+      "predicho": 0.200972,
+      "residuo": 0.0035
+    },
+    {
+      "real": 0.08942,
+      "predicho": 0.092919,
+      "residuo": -0.003499
+    },
+    {
+      "real": 0.213514,
+      "predicho": 0.242179,
+      "residuo": -0.028665
+    },
+    {
+      "real": 0.012921,
+      "predicho": 0.058904,
+      "residuo": -0.045983
+    },
+    {
+      "real": 0.227554,
+      "predicho": 0.183526,
+      "residuo": 0.044028
+    },
+    {
+      "real": 0.271947,
+      "predicho": 0.21844,
+      "residuo": 0.053507
+    },
+    {
+      "real": 0.15901,
+      "predicho": 0.182771,
+      "residuo": -0.023761
+    },
+    {
+      "real": 0.126298,
+      "predicho": 0.129147,
+      "residuo": -0.002849
+    },
+    {
+      "real": 0.268572,
+      "predicho": 0.285583,
+      "residuo": -0.017011
+    },
+    {
+      "real": 0.504433,
+      "predicho": 0.410627,
+      "residuo": 0.093806
+    },
+    {
+      "real": 0.122482,
+      "predicho": 0.131956,
+      "residuo": -0.009474
+    },
+    {
+      "real": 0.095197,
+      "predicho": 0.1235,
+      "residuo": -0.028303
+    },
+    {
+      "real": 0.222063,
+      "predicho": 0.183789,
+      "residuo": 0.038274
+    },
+    {
+      "real": 0.133634,
+      "predicho": 0.136731,
+      "residuo": -0.003097
+    },
+    {
+      "real": 0.150237,
+      "predicho": 0.161955,
+      "residuo": -0.011718
+    },
+    {
+      "real": 0.173851,
+      "predicho": 0.204399,
+      "residuo": -0.030548
+    },
+    {
+      "real": 0.101818,
+      "predicho": 0.092833,
+      "residuo": 0.008985
+    },
+    {
+      "real": 0.11921,
+      "predicho": 0.087218,
+      "residuo": 0.031992
+    },
+    {
+      "real": 0.101791,
+      "predicho": 0.114878,
+      "residuo": -0.013087
+    },
+    {
+      "real": 0.119511,
+      "predicho": 0.113346,
+      "residuo": 0.006165
+    },
+    {
+      "real": 0.402057,
+      "predicho": 0.464811,
+      "residuo": -0.062754
+    },
+    {
+      "real": 0.235002,
+      "predicho": 0.258522,
+      "residuo": -0.02352
+    },
+    {
+      "real": 0.167693,
+      "predicho": 0.180956,
+      "residuo": -0.013263
+    },
+    {
+      "real": 0.122026,
+      "predicho": 0.109253,
+      "residuo": 0.012773
+    },
+    {
+      "real": 0.148653,
+      "predicho": 0.177505,
+      "residuo": -0.028852
+    },
+    {
+      "real": 0.088535,
+      "predicho": 0.072594,
+      "residuo": 0.015941
+    },
+    {
+      "real": 0.257469,
+      "predicho": 0.307323,
+      "residuo": -0.049854
+    },
+    {
+      "real": 0.111166,
+      "predicho": 0.123854,
+      "residuo": -0.012688
+    },
+    {
+      "real": 0.120436,
+      "predicho": 0.114261,
+      "residuo": 0.006175
+    },
+    {
+      "real": 0.120346,
+      "predicho": 0.121941,
+      "residuo": -0.001595
+    },
+    {
+      "real": 0.179649,
+      "predicho": 0.158081,
+      "residuo": 0.021568
+    },
+    {
+      "real": 0.244991,
+      "predicho": 0.249862,
+      "residuo": -0.004871
+    },
+    {
+      "real": 0.191866,
+      "predicho": 0.172877,
+      "residuo": 0.018989
+    },
+    {
+      "real": 0.142301,
+      "predicho": 0.10954,
+      "residuo": 0.032761
+    },
+    {
+      "real": 0.31217,
+      "predicho": 0.273717,
+      "residuo": 0.038453
+    },
+    {
+      "real": 0.111626,
+      "predicho": 0.153131,
+      "residuo": -0.041505
+    },
+    {
+      "real": 0.07391,
+      "predicho": 0.109259,
+      "residuo": -0.035349
+    },
+    {
+      "real": 0.215402,
+      "predicho": 0.228046,
+      "residuo": -0.012644
+    },
+    {
+      "real": 0.233898,
+      "predicho": 0.257524,
+      "residuo": -0.023626
+    },
+    {
+      "real": 0.197282,
+      "predicho": 0.177843,
+      "residuo": 0.019439
+    },
+    {
+      "real": 0.135689,
+      "predicho": 0.134192,
+      "residuo": 0.001497
+    },
+    {
+      "real": 0.116146,
+      "predicho": 0.121414,
+      "residuo": -0.005268
+    },
+    {
+      "real": 0.041854,
+      "predicho": 0.036454,
+      "residuo": 0.0054
+    },
+    {
+      "real": 0.435604,
+      "predicho": 0.317083,
+      "residuo": 0.118521
+    },
+    {
+      "real": 0.10459,
+      "predicho": 0.138521,
+      "residuo": -0.033931
+    },
+    {
+      "real": 0.174611,
+      "predicho": 0.182862,
+      "residuo": -0.008251
+    },
+    {
+      "real": 0.134314,
+      "predicho": 0.122454,
+      "residuo": 0.01186
+    },
+    {
+      "real": 0.129695,
+      "predicho": 0.16075,
+      "residuo": -0.031055
+    },
+    {
+      "real": 0.243147,
+      "predicho": 0.242642,
+      "residuo": 0.000505
+    },
+    {
+      "real": 0.204072,
+      "predicho": 0.211595,
+      "residuo": -0.007523
+    },
+    {
+      "real": 0.119298,
+      "predicho": 0.116511,
+      "residuo": 0.002787
+    },
+    {
+      "real": 0.119842,
+      "predicho": 0.125976,
+      "residuo": -0.006134
+    },
+    {
+      "real": 0.070029,
+      "predicho": 0.043271,
+      "residuo": 0.026758
+    },
+    {
+      "real": 0.134715,
+      "predicho": 0.151052,
+      "residuo": -0.016337
+    },
+    {
+      "real": 0.31944,
+      "predicho": 0.303631,
+      "residuo": 0.015809
+    },
+    {
+      "real": 0.202081,
+      "predicho": 0.212536,
+      "residuo": -0.010455
+    },
+    {
+      "real": 0.13969,
+      "predicho": 0.143313,
+      "residuo": -0.003623
+    },
+    {
+      "real": 0.032298,
+      "predicho": 0.055292,
+      "residuo": -0.022994
+    },
+    {
+      "real": 0.148567,
+      "predicho": 0.137492,
+      "residuo": 0.011075
+    },
+    {
+      "real": 0.117464,
+      "predicho": 0.145525,
+      "residuo": -0.028061
+    },
+    {
+      "real": 0.319091,
+      "predicho": 0.399392,
+      "residuo": -0.080301
+    },
+    {
+      "real": 0.187021,
+      "predicho": 0.175081,
+      "residuo": 0.01194
+    },
+    {
+      "real": 0.452933,
+      "predicho": 0.304488,
+      "residuo": 0.148445
+    },
+    {
+      "real": 0.227594,
+      "predicho": 0.264204,
+      "residuo": -0.03661
+    },
+    {
+      "real": 0.223684,
+      "predicho": 0.222832,
+      "residuo": 0.000852
+    },
+    {
+      "real": 0.229629,
+      "predicho": 0.226233,
+      "residuo": 0.003396
+    },
+    {
+      "real": 0.110197,
+      "predicho": 0.047125,
+      "residuo": 0.063072
+    },
+    {
+      "real": 0.423555,
+      "predicho": 0.384647,
+      "residuo": 0.038908
+    },
+    {
+      "real": 0.105281,
+      "predicho": 0.115231,
+      "residuo": -0.00995
+    },
+    {
+      "real": 0.095631,
+      "predicho": 0.089779,
+      "residuo": 0.005852
+    },
+    {
+      "real": 0.148153,
+      "predicho": 0.151097,
+      "residuo": -0.002944
+    },
+    {
+      "real": 0.159493,
+      "predicho": 0.163517,
+      "residuo": -0.004024
+    },
+    {
+      "real": 0.242314,
+      "predicho": 0.240148,
+      "residuo": 0.002166
+    },
+    {
+      "real": 0.180514,
+      "predicho": 0.214135,
+      "residuo": -0.033621
+    },
+    {
+      "real": 0.174406,
+      "predicho": 0.190968,
+      "residuo": -0.016562
+    },
+    {
+      "real": 0.246192,
+      "predicho": 0.230334,
+      "residuo": 0.015858
+    },
+    {
+      "real": 0.048403,
+      "predicho": 0.057024,
+      "residuo": -0.008621
+    },
+    {
+      "real": 0.105473,
+      "predicho": 0.11037,
+      "residuo": -0.004897
+    },
+    {
+      "real": 0.069627,
+      "predicho": 0.063332,
+      "residuo": 0.006295
+    },
+    {
+      "real": 0.144207,
+      "predicho": 0.117897,
+      "residuo": 0.02631
+    },
+    {
+      "real": 0.047073,
+      "predicho": 0.028008,
+      "residuo": 0.019065
+    },
+    {
+      "real": 0.144654,
+      "predicho": 0.124655,
+      "residuo": 0.019999
+    },
+    {
+      "real": 0.074831,
+      "predicho": 0.078103,
+      "residuo": -0.003272
+    },
+    {
+      "real": 0.118269,
+      "predicho": 0.112119,
+      "residuo": 0.00615
+    },
+    {
+      "real": 0.203572,
+      "predicho": 0.197433,
+      "residuo": 0.006139
+    },
+    {
+      "real": 0.046719,
+      "predicho": 0.037875,
+      "residuo": 0.008844
+    },
+    {
+      "real": 0.102015,
+      "predicho": 0.083002,
+      "residuo": 0.019013
+    },
+    {
+      "real": 0.031983,
+      "predicho": 0.030121,
+      "residuo": 0.001862
+    },
+    {
+      "real": 0.172395,
+      "predicho": 0.143879,
+      "residuo": 0.028516
+    },
+    {
+      "real": 0.159493,
+      "predicho": 0.161608,
+      "residuo": -0.002115
+    },
+    {
+      "real": 0.199903,
+      "predicho": 0.303229,
+      "residuo": -0.103326
+    },
+    {
+      "real": 0.021221,
+      "predicho": 0.009079,
+      "residuo": 0.012142
+    },
+    {
+      "real": 0.007418,
+      "predicho": 0.006259,
+      "residuo": 0.001159
+    },
+    {
+      "real": 0.060222,
+      "predicho": 0.083271,
+      "residuo": -0.023049
+    },
+    {
+      "real": 0.064499,
+      "predicho": 0.055437,
+      "residuo": 0.009062
+    },
+    {
+      "real": 0.162725,
+      "predicho": 0.160866,
+      "residuo": 0.001859
+    },
+    {
+      "real": 0.018288,
+      "predicho": 0.041467,
+      "residuo": -0.023179
+    },
+    {
+      "real": 0.099506,
+      "predicho": 0.105308,
+      "residuo": -0.005802
+    },
+    {
+      "real": 0.168407,
+      "predicho": 0.133889,
+      "residuo": 0.034518
+    },
+    {
+      "real": 0.013037,
+      "predicho": 0.006259,
+      "residuo": 0.006778
+    },
+    {
+      "real": 0.067213,
+      "predicho": 0.092642,
+      "residuo": -0.025429
+    },
+    {
+      "real": 0.212219,
+      "predicho": 0.229935,
+      "residuo": -0.017716
+    },
+    {
+      "real": 0.149124,
+      "predicho": 0.242554,
+      "residuo": -0.09343
+    },
+    {
+      "real": 0.409689,
+      "predicho": 0.33934,
+      "residuo": 0.070349
+    },
+    {
+      "real": 0.127466,
+      "predicho": 0.158319,
+      "residuo": -0.030853
+    },
+    {
+      "real": 0.081169,
+      "predicho": 0.10827,
+      "residuo": -0.027101
+    },
+    {
+      "real": 0.132914,
+      "predicho": 0.123581,
+      "residuo": 0.009333
+    },
+    {
+      "real": 0.556771,
+      "predicho": 0.55162,
+      "residuo": 0.005151
+    },
+    {
+      "real": 0.175101,
+      "predicho": 0.172945,
+      "residuo": 0.002156
+    },
+    {
+      "real": 0.165,
+      "predicho": 0.174211,
+      "residuo": -0.009211
+    },
+    {
+      "real": 0.114833,
+      "predicho": 0.087218,
+      "residuo": 0.027615
+    },
+    {
+      "real": 0.097749,
+      "predicho": 0.102986,
+      "residuo": -0.005237
+    },
+    {
+      "real": 0.233399,
+      "predicho": 0.244201,
+      "residuo": -0.010802
+    },
+    {
+      "real": 0.331888,
+      "predicho": 0.353861,
+      "residuo": -0.021973
+    },
+    {
+      "real": 0.258481,
+      "predicho": 0.268073,
+      "residuo": -0.009592
+    },
+    {
+      "real": 0.203828,
+      "predicho": 0.184158,
+      "residuo": 0.01967
+    },
+    {
+      "real": 0.244647,
+      "predicho": 0.218563,
+      "residuo": 0.026084
+    },
+    {
+      "real": 0.12027,
+      "predicho": 0.144553,
+      "residuo": -0.024283
+    },
+    {
+      "real": 0.06183,
+      "predicho": 0.072771,
+      "residuo": -0.010941
+    },
+    {
+      "real": 0.125046,
+      "predicho": 0.136495,
+      "residuo": -0.011449
+    },
+    {
+      "real": 0.121935,
+      "predicho": 0.194391,
+      "residuo": -0.072456
+    },
+    {
+      "real": 0.229356,
+      "predicho": 0.250276,
+      "residuo": -0.02092
+    },
+    {
+      "real": 0.08573,
+      "predicho": 0.05113,
+      "residuo": 0.0346
+    },
+    {
+      "real": 0.222606,
+      "predicho": 0.224435,
+      "residuo": -0.001829
+    },
+    {
+      "real": 0.119824,
+      "predicho": 0.184733,
+      "residuo": -0.064909
+    },
+    {
+      "real": 0.153647,
+      "predicho": 0.162124,
+      "residuo": -0.008477
+    },
+    {
+      "real": 0.033686,
+      "predicho": 0.02558,
+      "residuo": 0.008106
+    },
+    {
+      "real": 0.119457,
+      "predicho": 0.134894,
+      "residuo": -0.015437
+    },
+    {
+      "real": 0.208973,
+      "predicho": 0.212267,
+      "residuo": -0.003294
+    },
+    {
+      "real": 0.118562,
+      "predicho": 0.13512,
+      "residuo": -0.016558
+    },
+    {
+      "real": 0.098939,
+      "predicho": 0.074932,
+      "residuo": 0.024007
+    },
+    {
+      "real": 0.123751,
+      "predicho": 0.136938,
+      "residuo": -0.013187
+    },
+    {
+      "real": 0.226727,
+      "predicho": 0.208317,
+      "residuo": 0.01841
+    },
+    {
+      "real": 0.112173,
+      "predicho": 0.119504,
+      "residuo": -0.007331
+    },
+    {
+      "real": 0.206152,
+      "predicho": 0.203834,
+      "residuo": 0.002318
+    },
+    {
+      "real": 0.187844,
+      "predicho": 0.163818,
+      "residuo": 0.024026
+    },
+    {
+      "real": 0.253495,
+      "predicho": 0.21488,
+      "residuo": 0.038615
+    },
+    {
+      "real": 0.255838,
+      "predicho": 0.240996,
+      "residuo": 0.014842
+    },
+    {
+      "real": 0.225949,
+      "predicho": 0.236411,
+      "residuo": -0.010462
+    },
+    {
+      "real": 0.204796,
+      "predicho": 0.192657,
+      "residuo": 0.012139
+    },
+    {
+      "real": 0.03307,
+      "predicho": 0.034515,
+      "residuo": -0.001445
+    },
+    {
+      "real": 0.206179,
+      "predicho": 0.238271,
+      "residuo": -0.032092
+    },
+    {
+      "real": 0.145985,
+      "predicho": 0.157242,
+      "residuo": -0.011257
+    },
+    {
+      "real": 0.281266,
+      "predicho": 0.271973,
+      "residuo": 0.009293
+    },
+    {
+      "real": 0.101573,
+      "predicho": 0.098528,
+      "residuo": 0.003045
+    },
+    {
+      "real": 0.12843,
+      "predicho": 0.132498,
+      "residuo": -0.004068
+    },
+    {
+      "real": 0.382656,
+      "predicho": 0.435169,
+      "residuo": -0.052513
+    },
+    {
+      "real": 0.023634,
+      "predicho": 0.074295,
+      "residuo": -0.050661
+    },
+    {
+      "real": 0.142252,
+      "predicho": 0.239423,
+      "residuo": -0.097171
+    },
+    {
+      "real": 0.471315,
+      "predicho": 0.506722,
+      "residuo": -0.035407
+    },
+    {
+      "real": 0.122526,
+      "predicho": 0.135145,
+      "residuo": -0.012619
+    },
+    {
+      "real": 0.174642,
+      "predicho": 0.194621,
+      "residuo": -0.019979
+    },
+    {
+      "real": 0.172562,
+      "predicho": 0.196677,
+      "residuo": -0.024115
+    },
+    {
+      "real": 0.071633,
+      "predicho": 0.068291,
+      "residuo": 0.003342
+    },
+    {
+      "real": 0.189937,
+      "predicho": 0.205894,
+      "residuo": -0.015957
+    },
+    {
+      "real": 0.11473,
+      "predicho": 0.130228,
+      "residuo": -0.015498
+    },
+    {
+      "real": 0.087099,
+      "predicho": 0.057495,
+      "residuo": 0.029604
+    },
+    {
+      "real": 0.204816,
+      "predicho": 0.220654,
+      "residuo": -0.015838
+    },
+    {
+      "real": 0.006221,
+      "predicho": 0.005248,
+      "residuo": 0.000973
+    },
+    {
+      "real": 0.285004,
+      "predicho": 0.270651,
+      "residuo": 0.014353
+    },
+    {
+      "real": 0.0376,
+      "predicho": 0.031724,
+      "residuo": 0.005876
+    },
+    {
+      "real": 0.148666,
+      "predicho": 0.149379,
+      "residuo": -0.000713
+    },
+    {
+      "real": 0.387878,
+      "predicho": 0.282603,
+      "residuo": 0.105275
+    },
+    {
+      "real": 0.20217,
+      "predicho": 0.153696,
+      "residuo": 0.048474
+    },
+    {
+      "real": 0.291373,
+      "predicho": 0.362116,
+      "residuo": -0.070743
+    },
+    {
+      "real": 0.135403,
+      "predicho": 0.152583,
+      "residuo": -0.01718
+    },
+    {
+      "real": 0.024053,
+      "predicho": 0.056489,
+      "residuo": -0.032436
+    },
+    {
+      "real": 0.218794,
+      "predicho": 0.217944,
+      "residuo": 0.00085
+    },
+    {
+      "real": 0.233227,
+      "predicho": 0.195026,
+      "residuo": 0.038201
+    },
+    {
+      "real": 0.16181,
+      "predicho": 0.176518,
+      "residuo": -0.014708
+    },
+    {
+      "real": 0.223416,
+      "predicho": 0.193199,
+      "residuo": 0.030217
+    },
+    {
+      "real": 0.085548,
+      "predicho": 0.089095,
+      "residuo": -0.003547
+    },
+    {
+      "real": 0.225589,
+      "predicho": 0.202997,
+      "residuo": 0.022592
+    },
+    {
+      "real": 0.333649,
+      "predicho": 0.291263,
+      "residuo": 0.042386
+    },
+    {
+      "real": 0.270151,
+      "predicho": 0.59014,
+      "residuo": -0.319989
+    },
+    {
+      "real": 0.014563,
+      "predicho": 0.029854,
+      "residuo": -0.015291
+    },
+    {
+      "real": 0.32352,
+      "predicho": 0.350648,
+      "residuo": -0.027128
+    },
+    {
+      "real": 0.20872,
+      "predicho": 0.234798,
+      "residuo": -0.026078
+    },
+    {
+      "real": 0.133824,
+      "predicho": 0.149947,
+      "residuo": -0.016123
+    },
+    {
+      "real": 0.160814,
+      "predicho": 0.18365,
+      "residuo": -0.022836
+    },
+    {
+      "real": 0.44956,
+      "predicho": 0.660192,
+      "residuo": -0.210632
+    }
+  ],
+  "histograma_residuos": [
+    {
+      "desde": -0.319989,
+      "hasta": -0.294135,
+      "n": 2
+    },
+    {
+      "desde": -0.294135,
+      "hasta": -0.268281,
+      "n": 0
+    },
+    {
+      "desde": -0.268281,
+      "hasta": -0.242427,
+      "n": 1
+    },
+    {
+      "desde": -0.242427,
+      "hasta": -0.216573,
+      "n": 0
+    },
+    {
+      "desde": -0.216573,
+      "hasta": -0.190719,
+      "n": 1
+    },
+    {
+      "desde": -0.190719,
+      "hasta": -0.164865,
+      "n": 2
+    },
+    {
+      "desde": -0.164865,
+      "hasta": -0.139011,
+      "n": 5
+    },
+    {
+      "desde": -0.139011,
+      "hasta": -0.113158,
+      "n": 14
+    },
+    {
+      "desde": -0.113158,
+      "hasta": -0.087304,
+      "n": 18
+    },
+    {
+      "desde": -0.087304,
+      "hasta": -0.06145,
+      "n": 37
+    },
+    {
+      "desde": -0.06145,
+      "hasta": -0.035596,
+      "n": 95
+    },
+    {
+      "desde": -0.035596,
+      "hasta": -0.009742,
+      "n": 382
+    },
+    {
+      "desde": -0.009742,
+      "hasta": 0.016112,
+      "n": 597
+    },
+    {
+      "desde": 0.016112,
+      "hasta": 0.041966,
+      "n": 229
+    },
+    {
+      "desde": 0.041966,
+      "hasta": 0.06782,
+      "n": 50
+    },
+    {
+      "desde": 0.06782,
+      "hasta": 0.093674,
+      "n": 29
+    },
+    {
+      "desde": 0.093674,
+      "hasta": 0.119528,
+      "n": 20
+    },
+    {
+      "desde": 0.119528,
+      "hasta": 0.145382,
+      "n": 3
+    },
+    {
+      "desde": 0.145382,
+      "hasta": 0.171236,
+      "n": 6
+    },
+    {
+      "desde": 0.171236,
+      "hasta": 0.19709,
+      "n": 4
+    },
+    {
+      "desde": 0.19709,
+      "hasta": 0.222944,
+      "n": 3
+    },
+    {
+      "desde": 0.222944,
+      "hasta": 0.248798,
+      "n": 0
+    },
+    {
+      "desde": 0.248798,
+      "hasta": 0.274652,
+      "n": 1
+    },
+    {
+      "desde": 0.274652,
+      "hasta": 0.300506,
+      "n": 1
+    }
+  ],
+  "por_hora": [
+    {
+      "etiqueta": "0.0",
+      "n": 2443,
+      "mae": 0.0233678897135699,
+      "mse": 0.0014807163313873
+    },
+    {
+      "etiqueta": "1.0",
+      "n": 2443,
+      "mae": 0.0227563529094956,
+      "mse": 0.001427145379995
+    },
+    {
+      "etiqueta": "2.0",
+      "n": 2443,
+      "mae": 0.0226898389925806,
+      "mse": 0.0014231847788918
+    },
+    {
+      "etiqueta": "3.0",
+      "n": 2443,
+      "mae": 0.0231679132328665,
+      "mse": 0.0014686498332117
+    },
+    {
+      "etiqueta": "4.0",
+      "n": 2443,
+      "mae": 0.0245316344533288,
+      "mse": 0.0015952204729497
+    },
+    {
+      "etiqueta": "5.0",
+      "n": 2443,
+      "mae": 0.0227897227769961,
+      "mse": 0.0014305269623562
+    },
+    {
+      "etiqueta": "6.0",
+      "n": 2443,
+      "mae": 0.0177225922494795,
+      "mse": 0.001096651552811
+    },
+    {
+      "etiqueta": "7.0",
+      "n": 2443,
+      "mae": 0.0330542544243867,
+      "mse": 0.0023384181352104
+    },
+    {
+      "etiqueta": "8.0",
+      "n": 2443,
+      "mae": 0.0302946941806388,
+      "mse": 0.0022677764477081
+    },
+    {
+      "etiqueta": "9.0",
+      "n": 2443,
+      "mae": 0.0259988240208042,
+      "mse": 0.0019344983904423
+    },
+    {
+      "etiqueta": "10.0",
+      "n": 2443,
+      "mae": 0.0256001380923283,
+      "mse": 0.0018243267535582
+    },
+    {
+      "etiqueta": "11.0",
+      "n": 2443,
+      "mae": 0.0268055355505426,
+      "mse": 0.0018561201363032
+    },
+    {
+      "etiqueta": "12.0",
+      "n": 2443,
+      "mae": 0.0278310436067834,
+      "mse": 0.0019196023233655
+    },
+    {
+      "etiqueta": "13.0",
+      "n": 2443,
+      "mae": 0.0304709423060376,
+      "mse": 0.0021202425201718
+    },
+    {
+      "etiqueta": "14.0",
+      "n": 2443,
+      "mae": 0.0316708276020663,
+      "mse": 0.0020545802287004
+    },
+    {
+      "etiqueta": "15.0",
+      "n": 2443,
+      "mae": 0.0301840683176522,
+      "mse": 0.001978494584436
+    },
+    {
+      "etiqueta": "16.0",
+      "n": 2443,
+      "mae": 0.0297879326471679,
+      "mse": 0.0022146097383755
+    },
+    {
+      "etiqueta": "17.0",
+      "n": 2443,
+      "mae": 0.0404067919146131,
+      "mse": 0.0039633122386792
+    },
+    {
+      "etiqueta": "18.0",
+      "n": 2443,
+      "mae": 0.0473694619142623,
+      "mse": 0.0054886261781871
+    },
+    {
+      "etiqueta": "19.0",
+      "n": 2443,
+      "mae": 0.0265746298255249,
+      "mse": 0.0020215765682902
+    },
+    {
+      "etiqueta": "20.0",
+      "n": 2443,
+      "mae": 0.0182144454486611,
+      "mse": 0.0011770092867843
+    },
+    {
+      "etiqueta": "21.0",
+      "n": 2443,
+      "mae": 0.0186834435532984,
+      "mse": 0.0011770307892858
+    },
+    {
+      "etiqueta": "22.0",
+      "n": 2443,
+      "mae": 0.0209313247460807,
+      "mse": 0.0013069219043958
+    },
+    {
+      "etiqueta": "23.0",
+      "n": 2443,
+      "mae": 0.0225851883112454,
+      "mse": 0.0014203345251867
+    }
+  ],
+  "por_tipo_via": [
+    {
+      "etiqueta": "otro",
+      "n": 1344,
+      "mae": 0.083738233031727,
+      "mse": 0.0136634105416777
+    },
+    {
+      "etiqueta": "troncal",
+      "n": 840,
+      "mae": 0.0709144740236554,
+      "mse": 0.0188202060734709
+    },
+    {
+      "etiqueta": "secundaria",
+      "n": 7560,
+      "mae": 0.0388192012470144,
+      "mse": 0.0030048124640312
+    },
+    {
+      "etiqueta": "terciaria",
+      "n": 10248,
+      "mae": 0.0309719857288631,
+      "mse": 0.0019920224415533
+    },
+    {
+      "etiqueta": "residencial",
+      "n": 37296,
+      "mae": 0.0205753044004616,
+      "mse": 0.0009826185827827
+    },
+    {
+      "etiqueta": "primaria",
+      "n": 1344,
+      "mae": 0.0161323352157956,
+      "mse": 0.0006211269151354
+    }
+  ]
+}

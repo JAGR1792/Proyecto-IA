@@ -1,0 +1,2016 @@
+{
+  "schema_version": 1,
+  "fuente": "Velocidades Bitcarrier Mayo 2022 (Secretaría Distrital de Movilidad / servicio ArcGIS)",
+  "tipo": "historico_observado",
+  "periodo": {
+    "inicio_epoch_utc": "2022-05-01T00:00:00+00:00",
+    "fin_epoch_utc": "2022-05-31T23:45:00+00:00",
+    "dias_distintos_utc": 31,
+    "intervalos_distintos": 2976
+  },
+  "resumen": {
+    "observaciones": 134538,
+    "tids": 46,
+    "horas": 24,
+    "objectids_unicos": 134538,
+    "duplicados_objectid": 0,
+    "hora_coincide_epoch_utc": 134538,
+    "validos_vel_dist": 134538
+  },
+  "faltantes": {
+    "objectid": 0,
+    "tid": 0,
+    "inicio_original": 0,
+    "dia_semana_original": 0,
+    "hora": 0,
+    "distancia_original": 0,
+    "velocidad_original": 0,
+    "num_dispositivos": 0,
+    "nombre_origen": 0,
+    "nombre_destino": 0
+  },
+  "estadisticas": {
+    "velocidad_original": {
+      "min": 4.01,
+      "p25": 15.44,
+      "mediana": 22.5,
+      "media": 25.832,
+      "p75": 32.22,
+      "p95": 54.603,
+      "max": 174.22
+    },
+    "distancia_original": {
+      "min": 380.0,
+      "p25": 455.0,
+      "mediana": 684.0,
+      "media": 781.576,
+      "p75": 911.0,
+      "p95": 1588.0,
+      "max": 1744.0
+    },
+    "dispositivos": {
+      "min": 1.0,
+      "p25": 3.0,
+      "mediana": 4.0,
+      "media": 9.434,
+      "p75": 10.0,
+      "p95": 36.0,
+      "max": 205.0
+    },
+    "tiempo_derivado_min": {
+      "min": 0.171,
+      "p25": 1.285,
+      "mediana": 1.944,
+      "media": 2.273,
+      "p75": 2.795,
+      "p95": 4.837,
+      "max": 23.895
+    }
+  },
+  "atipicos": {
+    "velocidad_mayor_100": 219,
+    "velocidad_mayor_120": 40,
+    "limite_superior_iqr": 57.39,
+    "atipicos_superiores_iqr": 5363,
+    "dispositivos_igual_1": 435
+  },
+  "advertencias": [
+    "Serie histórica de mayo de 2022; no representa tránsito actual.",
+    "Las 46 geometrías TID NO están validadas como aristas del grafo OSM.",
+    "INICIO coincide con HORA si se interpreta como UTC; zona horaria original sin confirmación documental.",
+    "El tiempo derivado se calcula suponiendo metros y km/h; validar unidades con la fuente.",
+    "El tiempo derivado no es una medición directa del recorrido de taxi.",
+    "Los perfiles presentados son DESCRIPTIVOS de todo el mes: no utilizarlos directamente como features en evaluación temporal.",
+    "Los datos simulados para OSM NO forman parte de este resumen."
+  ],
+  "histograma_velocidad": [
+    {
+      "desde": 0.0,
+      "hasta": 5.0,
+      "cantidad": 297
+    },
+    {
+      "desde": 5.0,
+      "hasta": 10.0,
+      "cantidad": 12003
+    },
+    {
+      "desde": 10.0,
+      "hasta": 15.0,
+      "cantidad": 19382
+    },
+    {
+      "desde": 15.0,
+      "hasta": 20.0,
+      "cantidad": 23089
+    },
+    {
+      "desde": 20.0,
+      "hasta": 25.0,
+      "cantidad": 23564
+    },
+    {
+      "desde": 25.0,
+      "hasta": 30.0,
+      "cantidad": 17190
+    },
+    {
+      "desde": 30.0,
+      "hasta": 40.0,
+      "cantidad": 18606
+    },
+    {
+      "desde": 40.0,
+      "hasta": 50.0,
+      "cantidad": 10640
+    },
+    {
+      "desde": 50.0,
+      "hasta": 60.0,
+      "cantidad": 5445
+    },
+    {
+      "desde": 60.0,
+      "hasta": 80.0,
+      "cantidad": 3255
+    },
+    {
+      "desde": 80.0,
+      "hasta": 100.0,
+      "cantidad": 847
+    },
+    {
+      "desde": 100.0,
+      "hasta": 120.0,
+      "cantidad": 180
+    },
+    {
+      "desde": 120.0,
+      "hasta": 180.0,
+      "cantidad": 40
+    }
+  ],
+  "por_hora": [
+    {
+      "hora": 0,
+      "n": 5567,
+      "mediana": 30.71,
+      "media": 34.856
+    },
+    {
+      "hora": 1,
+      "n": 5528,
+      "mediana": 31.45,
+      "media": 35.716
+    },
+    {
+      "hora": 2,
+      "n": 5479,
+      "mediana": 32.64,
+      "media": 36.412
+    },
+    {
+      "hora": 3,
+      "n": 5438,
+      "mediana": 33.785,
+      "media": 37.232
+    },
+    {
+      "hora": 4,
+      "n": 5471,
+      "mediana": 32.07,
+      "media": 36.089
+    },
+    {
+      "hora": 5,
+      "n": 5556,
+      "mediana": 27.653,
+      "media": 31.112
+    },
+    {
+      "hora": 6,
+      "n": 5588,
+      "mediana": 23.345,
+      "media": 25.752
+    },
+    {
+      "hora": 7,
+      "n": 5650,
+      "mediana": 20.097,
+      "media": 22.126
+    },
+    {
+      "hora": 8,
+      "n": 5656,
+      "mediana": 18.74,
+      "media": 20.864
+    },
+    {
+      "hora": 9,
+      "n": 5657,
+      "mediana": 18.96,
+      "media": 20.939
+    },
+    {
+      "hora": 10,
+      "n": 5654,
+      "mediana": 18.727,
+      "media": 21.015
+    },
+    {
+      "hora": 11,
+      "n": 5662,
+      "mediana": 18.232,
+      "media": 20.631
+    },
+    {
+      "hora": 12,
+      "n": 5652,
+      "mediana": 17.772,
+      "media": 20.188
+    },
+    {
+      "hora": 13,
+      "n": 5654,
+      "mediana": 18.2,
+      "media": 20.394
+    },
+    {
+      "hora": 14,
+      "n": 5654,
+      "mediana": 18.86,
+      "media": 21.118
+    },
+    {
+      "hora": 15,
+      "n": 5659,
+      "mediana": 18.9,
+      "media": 21.311
+    },
+    {
+      "hora": 16,
+      "n": 5642,
+      "mediana": 18.26,
+      "media": 20.656
+    },
+    {
+      "hora": 17,
+      "n": 5649,
+      "mediana": 17.097,
+      "media": 19.242
+    },
+    {
+      "hora": 18,
+      "n": 5644,
+      "mediana": 16.153,
+      "media": 18.316
+    },
+    {
+      "hora": 19,
+      "n": 5646,
+      "mediana": 19.515,
+      "media": 21.195
+    },
+    {
+      "hora": 20,
+      "n": 5643,
+      "mediana": 23.335,
+      "media": 25.617
+    },
+    {
+      "hora": 21,
+      "n": 5604,
+      "mediana": 25.143,
+      "media": 28.038
+    },
+    {
+      "hora": 22,
+      "n": 5600,
+      "mediana": 26.798,
+      "media": 30.09
+    },
+    {
+      "hora": 23,
+      "n": 5585,
+      "mediana": 28.72,
+      "media": 32.713
+    }
+  ],
+  "por_dia": [
+    {
+      "dia": "Lunes",
+      "n": 21676,
+      "mediana": 23.293
+    },
+    {
+      "dia": "Martes",
+      "n": 21661,
+      "mediana": 21.687
+    },
+    {
+      "dia": "Miercoles",
+      "n": 17308,
+      "mediana": 21.363
+    },
+    {
+      "dia": "Jueves",
+      "n": 17388,
+      "mediana": 21.243
+    },
+    {
+      "dia": "Viernes",
+      "n": 17431,
+      "mediana": 20.723
+    },
+    {
+      "dia": "Sabado",
+      "n": 17389,
+      "mediana": 22.623
+    },
+    {
+      "dia": "Domingo",
+      "n": 21685,
+      "mediana": 25.645
+    }
+  ],
+  "mapa_calor": [
+    {
+      "dia": "Lunes",
+      "hora": 0,
+      "n": 899,
+      "mediana": 33.07
+    },
+    {
+      "dia": "Lunes",
+      "hora": 1,
+      "n": 897,
+      "mediana": 33.13
+    },
+    {
+      "dia": "Lunes",
+      "hora": 2,
+      "n": 880,
+      "mediana": 34.536
+    },
+    {
+      "dia": "Lunes",
+      "hora": 3,
+      "n": 881,
+      "mediana": 33.16
+    },
+    {
+      "dia": "Lunes",
+      "hora": 4,
+      "n": 883,
+      "mediana": 32.95
+    },
+    {
+      "dia": "Lunes",
+      "hora": 5,
+      "n": 890,
+      "mediana": 28.08
+    },
+    {
+      "dia": "Lunes",
+      "hora": 6,
+      "n": 899,
+      "mediana": 23.34
+    },
+    {
+      "dia": "Lunes",
+      "hora": 7,
+      "n": 913,
+      "mediana": 19.393
+    },
+    {
+      "dia": "Lunes",
+      "hora": 8,
+      "n": 915,
+      "mediana": 18.32
+    },
+    {
+      "dia": "Lunes",
+      "hora": 9,
+      "n": 913,
+      "mediana": 18.883
+    },
+    {
+      "dia": "Lunes",
+      "hora": 10,
+      "n": 912,
+      "mediana": 18.722
+    },
+    {
+      "dia": "Lunes",
+      "hora": 11,
+      "n": 910,
+      "mediana": 19.688
+    },
+    {
+      "dia": "Lunes",
+      "hora": 12,
+      "n": 904,
+      "mediana": 19.437
+    },
+    {
+      "dia": "Lunes",
+      "hora": 13,
+      "n": 910,
+      "mediana": 19.94
+    },
+    {
+      "dia": "Lunes",
+      "hora": 14,
+      "n": 909,
+      "mediana": 20.293
+    },
+    {
+      "dia": "Lunes",
+      "hora": 15,
+      "n": 911,
+      "mediana": 19.215
+    },
+    {
+      "dia": "Lunes",
+      "hora": 16,
+      "n": 910,
+      "mediana": 18.387
+    },
+    {
+      "dia": "Lunes",
+      "hora": 17,
+      "n": 905,
+      "mediana": 17.067
+    },
+    {
+      "dia": "Lunes",
+      "hora": 18,
+      "n": 909,
+      "mediana": 16.747
+    },
+    {
+      "dia": "Lunes",
+      "hora": 19,
+      "n": 904,
+      "mediana": 22.067
+    },
+    {
+      "dia": "Lunes",
+      "hora": 20,
+      "n": 911,
+      "mediana": 25.363
+    },
+    {
+      "dia": "Lunes",
+      "hora": 21,
+      "n": 907,
+      "mediana": 26.805
+    },
+    {
+      "dia": "Lunes",
+      "hora": 22,
+      "n": 900,
+      "mediana": 28.252
+    },
+    {
+      "dia": "Lunes",
+      "hora": 23,
+      "n": 904,
+      "mediana": 29.199
+    },
+    {
+      "dia": "Martes",
+      "hora": 0,
+      "n": 900,
+      "mediana": 30.895
+    },
+    {
+      "dia": "Martes",
+      "hora": 1,
+      "n": 883,
+      "mediana": 32.113
+    },
+    {
+      "dia": "Martes",
+      "hora": 2,
+      "n": 866,
+      "mediana": 32.18
+    },
+    {
+      "dia": "Martes",
+      "hora": 3,
+      "n": 849,
+      "mediana": 34.13
+    },
+    {
+      "dia": "Martes",
+      "hora": 4,
+      "n": 871,
+      "mediana": 31.81
+    },
+    {
+      "dia": "Martes",
+      "hora": 5,
+      "n": 898,
+      "mediana": 26.798
+    },
+    {
+      "dia": "Martes",
+      "hora": 6,
+      "n": 907,
+      "mediana": 22.29
+    },
+    {
+      "dia": "Martes",
+      "hora": 7,
+      "n": 916,
+      "mediana": 17.965
+    },
+    {
+      "dia": "Martes",
+      "hora": 8,
+      "n": 906,
+      "mediana": 16.385
+    },
+    {
+      "dia": "Martes",
+      "hora": 9,
+      "n": 913,
+      "mediana": 16.587
+    },
+    {
+      "dia": "Martes",
+      "hora": 10,
+      "n": 911,
+      "mediana": 18.36
+    },
+    {
+      "dia": "Martes",
+      "hora": 11,
+      "n": 911,
+      "mediana": 18.12
+    },
+    {
+      "dia": "Martes",
+      "hora": 12,
+      "n": 909,
+      "mediana": 17.76
+    },
+    {
+      "dia": "Martes",
+      "hora": 13,
+      "n": 910,
+      "mediana": 18.067
+    },
+    {
+      "dia": "Martes",
+      "hora": 14,
+      "n": 912,
+      "mediana": 18.337
+    },
+    {
+      "dia": "Martes",
+      "hora": 15,
+      "n": 918,
+      "mediana": 17.485
+    },
+    {
+      "dia": "Martes",
+      "hora": 16,
+      "n": 914,
+      "mediana": 15.925
+    },
+    {
+      "dia": "Martes",
+      "hora": 17,
+      "n": 912,
+      "mediana": 14.242
+    },
+    {
+      "dia": "Martes",
+      "hora": 18,
+      "n": 917,
+      "mediana": 13.48
+    },
+    {
+      "dia": "Martes",
+      "hora": 19,
+      "n": 913,
+      "mediana": 18.24
+    },
+    {
+      "dia": "Martes",
+      "hora": 20,
+      "n": 908,
+      "mediana": 23.855
+    },
+    {
+      "dia": "Martes",
+      "hora": 21,
+      "n": 900,
+      "mediana": 25.543
+    },
+    {
+      "dia": "Martes",
+      "hora": 22,
+      "n": 912,
+      "mediana": 27.375
+    },
+    {
+      "dia": "Martes",
+      "hora": 23,
+      "n": 905,
+      "mediana": 29.365
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 0,
+      "n": 719,
+      "mediana": 31.227
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 1,
+      "n": 706,
+      "mediana": 31.419
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 2,
+      "n": 697,
+      "mediana": 32.42
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 3,
+      "n": 698,
+      "mediana": 34.297
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 4,
+      "n": 703,
+      "mediana": 31.213
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 5,
+      "n": 719,
+      "mediana": 26.83
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 6,
+      "n": 719,
+      "mediana": 21.82
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 7,
+      "n": 721,
+      "mediana": 18.297
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 8,
+      "n": 731,
+      "mediana": 16.96
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 9,
+      "n": 729,
+      "mediana": 17.36
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 10,
+      "n": 730,
+      "mediana": 17.09
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 11,
+      "n": 730,
+      "mediana": 16.578
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 12,
+      "n": 731,
+      "mediana": 17.08
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 13,
+      "n": 728,
+      "mediana": 18.115
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 14,
+      "n": 731,
+      "mediana": 18.483
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 15,
+      "n": 730,
+      "mediana": 17.798
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 16,
+      "n": 727,
+      "mediana": 16.993
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 17,
+      "n": 732,
+      "mediana": 14.723
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 18,
+      "n": 728,
+      "mediana": 13.26
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 19,
+      "n": 722,
+      "mediana": 17.432
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 20,
+      "n": 723,
+      "mediana": 22.773
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 21,
+      "n": 721,
+      "mediana": 25.037
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 22,
+      "n": 717,
+      "mediana": 26.993
+    },
+    {
+      "dia": "Miercoles",
+      "hora": 23,
+      "n": 716,
+      "mediana": 28.993
+    },
+    {
+      "dia": "Jueves",
+      "hora": 0,
+      "n": 713,
+      "mediana": 31.063
+    },
+    {
+      "dia": "Jueves",
+      "hora": 1,
+      "n": 712,
+      "mediana": 31.648
+    },
+    {
+      "dia": "Jueves",
+      "hora": 2,
+      "n": 707,
+      "mediana": 32.56
+    },
+    {
+      "dia": "Jueves",
+      "hora": 3,
+      "n": 700,
+      "mediana": 34.553
+    },
+    {
+      "dia": "Jueves",
+      "hora": 4,
+      "n": 706,
+      "mediana": 31.027
+    },
+    {
+      "dia": "Jueves",
+      "hora": 5,
+      "n": 718,
+      "mediana": 26.2
+    },
+    {
+      "dia": "Jueves",
+      "hora": 6,
+      "n": 727,
+      "mediana": 22.117
+    },
+    {
+      "dia": "Jueves",
+      "hora": 7,
+      "n": 733,
+      "mediana": 18.767
+    },
+    {
+      "dia": "Jueves",
+      "hora": 8,
+      "n": 732,
+      "mediana": 17.21
+    },
+    {
+      "dia": "Jueves",
+      "hora": 9,
+      "n": 731,
+      "mediana": 17.41
+    },
+    {
+      "dia": "Jueves",
+      "hora": 10,
+      "n": 729,
+      "mediana": 17.197
+    },
+    {
+      "dia": "Jueves",
+      "hora": 11,
+      "n": 733,
+      "mediana": 17.407
+    },
+    {
+      "dia": "Jueves",
+      "hora": 12,
+      "n": 731,
+      "mediana": 17.173
+    },
+    {
+      "dia": "Jueves",
+      "hora": 13,
+      "n": 734,
+      "mediana": 18.178
+    },
+    {
+      "dia": "Jueves",
+      "hora": 14,
+      "n": 730,
+      "mediana": 17.962
+    },
+    {
+      "dia": "Jueves",
+      "hora": 15,
+      "n": 732,
+      "mediana": 16.385
+    },
+    {
+      "dia": "Jueves",
+      "hora": 16,
+      "n": 729,
+      "mediana": 16.083
+    },
+    {
+      "dia": "Jueves",
+      "hora": 17,
+      "n": 730,
+      "mediana": 14.782
+    },
+    {
+      "dia": "Jueves",
+      "hora": 18,
+      "n": 728,
+      "mediana": 12.192
+    },
+    {
+      "dia": "Jueves",
+      "hora": 19,
+      "n": 729,
+      "mediana": 15.213
+    },
+    {
+      "dia": "Jueves",
+      "hora": 20,
+      "n": 734,
+      "mediana": 21.75
+    },
+    {
+      "dia": "Jueves",
+      "hora": 21,
+      "n": 725,
+      "mediana": 23.603
+    },
+    {
+      "dia": "Jueves",
+      "hora": 22,
+      "n": 724,
+      "mediana": 26.012
+    },
+    {
+      "dia": "Jueves",
+      "hora": 23,
+      "n": 721,
+      "mediana": 28.543
+    },
+    {
+      "dia": "Viernes",
+      "hora": 0,
+      "n": 720,
+      "mediana": 30.512
+    },
+    {
+      "dia": "Viernes",
+      "hora": 1,
+      "n": 720,
+      "mediana": 31.057
+    },
+    {
+      "dia": "Viernes",
+      "hora": 2,
+      "n": 721,
+      "mediana": 33.39
+    },
+    {
+      "dia": "Viernes",
+      "hora": 3,
+      "n": 709,
+      "mediana": 33.853
+    },
+    {
+      "dia": "Viernes",
+      "hora": 4,
+      "n": 711,
+      "mediana": 32.82
+    },
+    {
+      "dia": "Viernes",
+      "hora": 5,
+      "n": 717,
+      "mediana": 26.593
+    },
+    {
+      "dia": "Viernes",
+      "hora": 6,
+      "n": 719,
+      "mediana": 22.13
+    },
+    {
+      "dia": "Viernes",
+      "hora": 7,
+      "n": 735,
+      "mediana": 18.747
+    },
+    {
+      "dia": "Viernes",
+      "hora": 8,
+      "n": 733,
+      "mediana": 17.53
+    },
+    {
+      "dia": "Viernes",
+      "hora": 9,
+      "n": 733,
+      "mediana": 17.767
+    },
+    {
+      "dia": "Viernes",
+      "hora": 10,
+      "n": 732,
+      "mediana": 17.953
+    },
+    {
+      "dia": "Viernes",
+      "hora": 11,
+      "n": 733,
+      "mediana": 17.22
+    },
+    {
+      "dia": "Viernes",
+      "hora": 12,
+      "n": 732,
+      "mediana": 17.283
+    },
+    {
+      "dia": "Viernes",
+      "hora": 13,
+      "n": 730,
+      "mediana": 17.498
+    },
+    {
+      "dia": "Viernes",
+      "hora": 14,
+      "n": 731,
+      "mediana": 16.933
+    },
+    {
+      "dia": "Viernes",
+      "hora": 15,
+      "n": 727,
+      "mediana": 16.313
+    },
+    {
+      "dia": "Viernes",
+      "hora": 16,
+      "n": 731,
+      "mediana": 15.87
+    },
+    {
+      "dia": "Viernes",
+      "hora": 17,
+      "n": 731,
+      "mediana": 14.785
+    },
+    {
+      "dia": "Viernes",
+      "hora": 18,
+      "n": 727,
+      "mediana": 14.09
+    },
+    {
+      "dia": "Viernes",
+      "hora": 19,
+      "n": 732,
+      "mediana": 15.9
+    },
+    {
+      "dia": "Viernes",
+      "hora": 20,
+      "n": 730,
+      "mediana": 20.532
+    },
+    {
+      "dia": "Viernes",
+      "hora": 21,
+      "n": 729,
+      "mediana": 22.687
+    },
+    {
+      "dia": "Viernes",
+      "hora": 22,
+      "n": 723,
+      "mediana": 23.52
+    },
+    {
+      "dia": "Viernes",
+      "hora": 23,
+      "n": 725,
+      "mediana": 26.67
+    },
+    {
+      "dia": "Sabado",
+      "hora": 0,
+      "n": 723,
+      "mediana": 29.273
+    },
+    {
+      "dia": "Sabado",
+      "hora": 1,
+      "n": 716,
+      "mediana": 29.709
+    },
+    {
+      "dia": "Sabado",
+      "hora": 2,
+      "n": 718,
+      "mediana": 30.413
+    },
+    {
+      "dia": "Sabado",
+      "hora": 3,
+      "n": 715,
+      "mediana": 32.023
+    },
+    {
+      "dia": "Sabado",
+      "hora": 4,
+      "n": 712,
+      "mediana": 32.712
+    },
+    {
+      "dia": "Sabado",
+      "hora": 5,
+      "n": 716,
+      "mediana": 28.648
+    },
+    {
+      "dia": "Sabado",
+      "hora": 6,
+      "n": 713,
+      "mediana": 25.277
+    },
+    {
+      "dia": "Sabado",
+      "hora": 7,
+      "n": 730,
+      "mediana": 23.485
+    },
+    {
+      "dia": "Sabado",
+      "hora": 8,
+      "n": 729,
+      "mediana": 22.59
+    },
+    {
+      "dia": "Sabado",
+      "hora": 9,
+      "n": 733,
+      "mediana": 21.67
+    },
+    {
+      "dia": "Sabado",
+      "hora": 10,
+      "n": 732,
+      "mediana": 19.384
+    },
+    {
+      "dia": "Sabado",
+      "hora": 11,
+      "n": 730,
+      "mediana": 16.922
+    },
+    {
+      "dia": "Sabado",
+      "hora": 12,
+      "n": 733,
+      "mediana": 15.18
+    },
+    {
+      "dia": "Sabado",
+      "hora": 13,
+      "n": 731,
+      "mediana": 14.98
+    },
+    {
+      "dia": "Sabado",
+      "hora": 14,
+      "n": 735,
+      "mediana": 16.735
+    },
+    {
+      "dia": "Sabado",
+      "hora": 15,
+      "n": 731,
+      "mediana": 19.507
+    },
+    {
+      "dia": "Sabado",
+      "hora": 16,
+      "n": 726,
+      "mediana": 19.76
+    },
+    {
+      "dia": "Sabado",
+      "hora": 17,
+      "n": 730,
+      "mediana": 20.198
+    },
+    {
+      "dia": "Sabado",
+      "hora": 18,
+      "n": 731,
+      "mediana": 19.59
+    },
+    {
+      "dia": "Sabado",
+      "hora": 19,
+      "n": 732,
+      "mediana": 21.455
+    },
+    {
+      "dia": "Sabado",
+      "hora": 20,
+      "n": 723,
+      "mediana": 22.257
+    },
+    {
+      "dia": "Sabado",
+      "hora": 21,
+      "n": 715,
+      "mediana": 24.51
+    },
+    {
+      "dia": "Sabado",
+      "hora": 22,
+      "n": 722,
+      "mediana": 25.653
+    },
+    {
+      "dia": "Sabado",
+      "hora": 23,
+      "n": 713,
+      "mediana": 27.557
+    },
+    {
+      "dia": "Domingo",
+      "hora": 0,
+      "n": 893,
+      "mediana": 29.16
+    },
+    {
+      "dia": "Domingo",
+      "hora": 1,
+      "n": 894,
+      "mediana": 30.855
+    },
+    {
+      "dia": "Domingo",
+      "hora": 2,
+      "n": 890,
+      "mediana": 32.727
+    },
+    {
+      "dia": "Domingo",
+      "hora": 3,
+      "n": 886,
+      "mediana": 33.478
+    },
+    {
+      "dia": "Domingo",
+      "hora": 4,
+      "n": 885,
+      "mediana": 32.337
+    },
+    {
+      "dia": "Domingo",
+      "hora": 5,
+      "n": 898,
+      "mediana": 29.928
+    },
+    {
+      "dia": "Domingo",
+      "hora": 6,
+      "n": 904,
+      "mediana": 26.809
+    },
+    {
+      "dia": "Domingo",
+      "hora": 7,
+      "n": 902,
+      "mediana": 24.805
+    },
+    {
+      "dia": "Domingo",
+      "hora": 8,
+      "n": 910,
+      "mediana": 23.742
+    },
+    {
+      "dia": "Domingo",
+      "hora": 9,
+      "n": 905,
+      "mediana": 22.457
+    },
+    {
+      "dia": "Domingo",
+      "hora": 10,
+      "n": 908,
+      "mediana": 22.19
+    },
+    {
+      "dia": "Domingo",
+      "hora": 11,
+      "n": 915,
+      "mediana": 21.37
+    },
+    {
+      "dia": "Domingo",
+      "hora": 12,
+      "n": 912,
+      "mediana": 20.453
+    },
+    {
+      "dia": "Domingo",
+      "hora": 13,
+      "n": 911,
+      "mediana": 20.255
+    },
+    {
+      "dia": "Domingo",
+      "hora": 14,
+      "n": 906,
+      "mediana": 23.003
+    },
+    {
+      "dia": "Domingo",
+      "hora": 15,
+      "n": 910,
+      "mediana": 23.587
+    },
+    {
+      "dia": "Domingo",
+      "hora": 16,
+      "n": 905,
+      "mediana": 24.1
+    },
+    {
+      "dia": "Domingo",
+      "hora": 17,
+      "n": 909,
+      "mediana": 23.72
+    },
+    {
+      "dia": "Domingo",
+      "hora": 18,
+      "n": 904,
+      "mediana": 23.918
+    },
+    {
+      "dia": "Domingo",
+      "hora": 19,
+      "n": 914,
+      "mediana": 25.094
+    },
+    {
+      "dia": "Domingo",
+      "hora": 20,
+      "n": 914,
+      "mediana": 26.067
+    },
+    {
+      "dia": "Domingo",
+      "hora": 21,
+      "n": 907,
+      "mediana": 27.56
+    },
+    {
+      "dia": "Domingo",
+      "hora": 22,
+      "n": 902,
+      "mediana": 28.866
+    },
+    {
+      "dia": "Domingo",
+      "hora": 23,
+      "n": 901,
+      "mediana": 29.643
+    }
+  ],
+  "por_tramo": [
+    {
+      "tid": "1000011",
+      "n": 2976,
+      "nombre": "KR7 → CL76;CL72 ",
+      "mediana_velocidad": 31.235,
+      "q1_velocidad": 25.283,
+      "q3_velocidad": 41.782,
+      "distancia_mediana": 523.0,
+      "dispositivos_mediana": 25.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000012",
+      "n": 2976,
+      "nombre": "KR7 → CL72;CL76 ",
+      "mediana_velocidad": 26.875,
+      "q1_velocidad": 18.202,
+      "q3_velocidad": 36.139,
+      "distancia_mediana": 538.0,
+      "dispositivos_mediana": 51.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000019",
+      "n": 2976,
+      "nombre": "KR7 → CL76;CL79 ",
+      "mediana_velocidad": 23.788,
+      "q1_velocidad": 15.237,
+      "q3_velocidad": 37.27,
+      "distancia_mediana": 393.0,
+      "dispositivos_mediana": 25.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000020",
+      "n": 2976,
+      "nombre": "KR7 → CL79;CL76 ",
+      "mediana_velocidad": 18.418,
+      "q1_velocidad": 13.819,
+      "q3_velocidad": 28.824,
+      "distancia_mediana": 394.0,
+      "dispositivos_mediana": 26.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000021",
+      "n": 2976,
+      "nombre": "KR7 → CL79;CL85 ",
+      "mediana_velocidad": 47.207,
+      "q1_velocidad": 34.687,
+      "q3_velocidad": 60.231,
+      "distancia_mediana": 585.0,
+      "dispositivos_mediana": 12.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000022",
+      "n": 2976,
+      "nombre": "KR7 → CL85;CL79 ",
+      "mediana_velocidad": 24.177,
+      "q1_velocidad": 13.228,
+      "q3_velocidad": 38.426,
+      "distancia_mediana": 582.0,
+      "dispositivos_mediana": 15.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000030",
+      "n": 2976,
+      "nombre": "CL72 → KR11;KR7 ",
+      "mediana_velocidad": 13.798,
+      "q1_velocidad": 11.389,
+      "q3_velocidad": 16.631,
+      "distancia_mediana": 440.0,
+      "dispositivos_mediana": 6.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000031",
+      "n": 2976,
+      "nombre": "CL72 → KR11;KR20 ",
+      "mediana_velocidad": 10.634,
+      "q1_velocidad": 8.718,
+      "q3_velocidad": 15.265,
+      "distancia_mediana": 405.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000032",
+      "n": 2976,
+      "nombre": "CL72 → KR20;KR11 ",
+      "mediana_velocidad": 10.59,
+      "q1_velocidad": 8.812,
+      "q3_velocidad": 14.777,
+      "distancia_mediana": 399.0,
+      "dispositivos_mediana": 4.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000033",
+      "n": 2976,
+      "nombre": "CARACAS → CL72;CL80 ",
+      "mediana_velocidad": 20.96,
+      "q1_velocidad": 18.382,
+      "q3_velocidad": 24.233,
+      "distancia_mediana": 699.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000035",
+      "n": 2976,
+      "nombre": "AUTONORTE → CL80;CL82 ",
+      "mediana_velocidad": 21.025,
+      "q1_velocidad": 16.825,
+      "q3_velocidad": 26.663,
+      "distancia_mediana": 440.0,
+      "dispositivos_mediana": 6.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000034",
+      "n": 2976,
+      "nombre": "CARACAS → CL80;CL72 ",
+      "mediana_velocidad": 18.237,
+      "q1_velocidad": 12.933,
+      "q3_velocidad": 23.302,
+      "distancia_mediana": 670.0,
+      "dispositivos_mediana": 6.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000036",
+      "n": 2976,
+      "nombre": "AUTONORTE → CL82;CL80 ",
+      "mediana_velocidad": 34.09,
+      "q1_velocidad": 22.336,
+      "q3_velocidad": 51.178,
+      "distancia_mediana": 444.0,
+      "dispositivos_mediana": 4.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000037",
+      "n": 2976,
+      "nombre": "CL80 → CARACAS;KR24 ",
+      "mediana_velocidad": 27.323,
+      "q1_velocidad": 21.992,
+      "q3_velocidad": 35.141,
+      "distancia_mediana": 432.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000983",
+      "n": 2976,
+      "nombre": "CL80 → KR24;KR58 ",
+      "mediana_velocidad": 38.02,
+      "q1_velocidad": 31.849,
+      "q3_velocidad": 46.507,
+      "distancia_mediana": 1572.0,
+      "dispositivos_mediana": 8.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000038",
+      "n": 2976,
+      "nombre": "CL80 → KR24;CARACAS ",
+      "mediana_velocidad": 26.585,
+      "q1_velocidad": 22.816,
+      "q3_velocidad": 30.999,
+      "distancia_mediana": 419.0,
+      "dispositivos_mediana": 7.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000039",
+      "n": 2976,
+      "nombre": "KR24 → CL80;CL72 ",
+      "mediana_velocidad": 18.728,
+      "q1_velocidad": 15.37,
+      "q3_velocidad": 23.963,
+      "distancia_mediana": 751.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000040",
+      "n": 2976,
+      "nombre": "KR24 → CL72;CL80 ",
+      "mediana_velocidad": 18.65,
+      "q1_velocidad": 16.259,
+      "q3_velocidad": 22.183,
+      "distancia_mediana": 775.0,
+      "dispositivos_mediana": 4.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000042",
+      "n": 2976,
+      "nombre": "CL72 → KR24;KR20 ",
+      "mediana_velocidad": 16.064,
+      "q1_velocidad": 12.503,
+      "q3_velocidad": 20.327,
+      "distancia_mediana": 684.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000043",
+      "n": 2976,
+      "nombre": "KR15 → CL72;CL77 ",
+      "mediana_velocidad": 16.34,
+      "q1_velocidad": 12.575,
+      "q3_velocidad": 20.538,
+      "distancia_mediana": 463.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000179",
+      "n": 2976,
+      "nombre": "KR11 → CL92;CL85 ",
+      "mediana_velocidad": 20.093,
+      "q1_velocidad": 11.329,
+      "q3_velocidad": 27.595,
+      "distancia_mediana": 707.0,
+      "dispositivos_mediana": 7.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000181",
+      "n": 2976,
+      "nombre": "CL76 → KR7;KR11 ",
+      "mediana_velocidad": 18.47,
+      "q1_velocidad": 13.255,
+      "q3_velocidad": 24.386,
+      "distancia_mediana": 424.0,
+      "dispositivos_mediana": 4.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000209",
+      "n": 2976,
+      "nombre": "KR7 → CL72;CL63 ",
+      "mediana_velocidad": 21.643,
+      "q1_velocidad": 18.311,
+      "q3_velocidad": 27.329,
+      "distancia_mediana": 896.0,
+      "dispositivos_mediana": 19.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000185",
+      "n": 2976,
+      "nombre": "KR11 → CL85;CL76 ",
+      "mediana_velocidad": 16.14,
+      "q1_velocidad": 11.238,
+      "q3_velocidad": 21.233,
+      "distancia_mediana": 911.0,
+      "dispositivos_mediana": 6.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000208",
+      "n": 2976,
+      "nombre": "KR7 → CL63;CL72 ",
+      "mediana_velocidad": 24.09,
+      "q1_velocidad": 21.378,
+      "q3_velocidad": 28.275,
+      "distancia_mediana": 903.0,
+      "dispositivos_mediana": 26.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000984",
+      "n": 2976,
+      "nombre": "CL80 → KR58;KR24 ",
+      "mediana_velocidad": 34.919,
+      "q1_velocidad": 29.06,
+      "q3_velocidad": 41.909,
+      "distancia_mediana": 1588.0,
+      "dispositivos_mediana": 7.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000688",
+      "n": 2976,
+      "nombre": "CL76 → KR11;KR15 ",
+      "mediana_velocidad": 9.812,
+      "q1_velocidad": 7.543,
+      "q3_velocidad": 14.635,
+      "distancia_mediana": 380.0,
+      "dispositivos_mediana": 4.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000961",
+      "n": 2976,
+      "nombre": "CL72 → KR24;KR55 ",
+      "mediana_velocidad": 22.12,
+      "q1_velocidad": 18.17,
+      "q3_velocidad": 29.304,
+      "distancia_mediana": 1251.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000978",
+      "n": 2976,
+      "nombre": "KR24 → CL72;CL63 ",
+      "mediana_velocidad": 27.178,
+      "q1_velocidad": 22.992,
+      "q3_velocidad": 33.368,
+      "distancia_mediana": 1461.0,
+      "dispositivos_mediana": 4.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000675",
+      "n": 2976,
+      "nombre": "KR11 → CL76;CL72 ",
+      "mediana_velocidad": 23.865,
+      "q1_velocidad": 18.602,
+      "q3_velocidad": 31.711,
+      "distancia_mediana": 484.0,
+      "dispositivos_mediana": 7.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1001724",
+      "n": 2976,
+      "nombre": "CL68 → KR24;KR58 ",
+      "mediana_velocidad": 26.693,
+      "q1_velocidad": 19.788,
+      "q3_velocidad": 32.905,
+      "distancia_mediana": 1744.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2976
+    },
+    {
+      "tid": "1000041",
+      "n": 2975,
+      "nombre": "CL72 → KR20;KR24 ",
+      "mediana_velocidad": 17.85,
+      "q1_velocidad": 14.813,
+      "q3_velocidad": 21.242,
+      "distancia_mediana": 674.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2975
+    },
+    {
+      "tid": "1001993",
+      "n": 2973,
+      "nombre": "AUTONORTE → VIRREY;CL82 ",
+      "mediana_velocidad": 37.673,
+      "q1_velocidad": 30.057,
+      "q3_velocidad": 47.867,
+      "distancia_mediana": 739.0,
+      "dispositivos_mediana": 5.0,
+      "intervalos": 2973
+    },
+    {
+      "tid": "1000029",
+      "n": 2971,
+      "nombre": "CL72 → KR7;KR11 ",
+      "mediana_velocidad": 16.8,
+      "q1_velocidad": 13.352,
+      "q3_velocidad": 22.262,
+      "distancia_mediana": 455.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2971
+    },
+    {
+      "tid": "1001034",
+      "n": 2971,
+      "nombre": "CL72 → KR55;KR24 ",
+      "mediana_velocidad": 22.273,
+      "q1_velocidad": 19.23,
+      "q3_velocidad": 27.505,
+      "distancia_mediana": 1227.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2971
+    },
+    {
+      "tid": "1000071",
+      "n": 2965,
+      "nombre": "CL85 → KR7;KR11 ",
+      "mediana_velocidad": 11.373,
+      "q1_velocidad": 9.665,
+      "q3_velocidad": 14.483,
+      "distancia_mediana": 551.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2965
+    },
+    {
+      "tid": "1000655",
+      "n": 2960,
+      "nombre": "AV.CIRCUNVALAR → CL83;CL72 ",
+      "mediana_velocidad": 41.977,
+      "q1_velocidad": 32.369,
+      "q3_velocidad": 49.832,
+      "distancia_mediana": 1173.0,
+      "dispositivos_mediana": 4.0,
+      "intervalos": 2960
+    },
+    {
+      "tid": "1000658",
+      "n": 2959,
+      "nombre": "AV.CIRCUNVALAR → CL69;CL72 ",
+      "mediana_velocidad": 22.43,
+      "q1_velocidad": 19.777,
+      "q3_velocidad": 25.367,
+      "distancia_mediana": 757.0,
+      "dispositivos_mediana": 4.0,
+      "intervalos": 2959
+    },
+    {
+      "tid": "1001992",
+      "n": 2952,
+      "nombre": "AUTONORTE → CL82;VIRREY ",
+      "mediana_velocidad": 36.553,
+      "q1_velocidad": 27.049,
+      "q3_velocidad": 47.105,
+      "distancia_mediana": 751.0,
+      "dispositivos_mediana": 5.0,
+      "intervalos": 2952
+    },
+    {
+      "tid": "1000977",
+      "n": 2950,
+      "nombre": "KR24 → CL63;CL72 ",
+      "mediana_velocidad": 62.112,
+      "q1_velocidad": 49.704,
+      "q3_velocidad": 78.185,
+      "distancia_mediana": 1441.0,
+      "dispositivos_mediana": 4.0,
+      "intervalos": 2950
+    },
+    {
+      "tid": "1000657",
+      "n": 2948,
+      "nombre": "AV.CIRCUNVALAR → CL72;CL69 ",
+      "mediana_velocidad": 22.962,
+      "q1_velocidad": 20.567,
+      "q3_velocidad": 26.293,
+      "distancia_mediana": 739.0,
+      "dispositivos_mediana": 4.0,
+      "intervalos": 2948
+    },
+    {
+      "tid": "1000072",
+      "n": 2921,
+      "nombre": "CL85 → KR11;KR7 ",
+      "mediana_velocidad": 8.675,
+      "q1_velocidad": 7.12,
+      "q3_velocidad": 11.27,
+      "distancia_mediana": 562.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2921
+    },
+    {
+      "tid": "1000656",
+      "n": 2874,
+      "nombre": "AV.CIRCUNVALAR → CL72;CL83 ",
+      "mediana_velocidad": 30.113,
+      "q1_velocidad": 24.643,
+      "q3_velocidad": 34.898,
+      "distancia_mediana": 1163.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 2874
+    },
+    {
+      "tid": "1001979",
+      "n": 2784,
+      "nombre": "NQS → KR24;CL75",
+      "mediana_velocidad": 26.673,
+      "q1_velocidad": 15.063,
+      "q3_velocidad": 49.984,
+      "distancia_mediana": 1142.0,
+      "dispositivos_mediana": 16.0,
+      "intervalos": 2784
+    },
+    {
+      "tid": "1001978",
+      "n": 2776,
+      "nombre": "NQS → CL75;KR24",
+      "mediana_velocidad": 47.978,
+      "q1_velocidad": 32.614,
+      "q3_velocidad": 60.858,
+      "distancia_mediana": 1146.0,
+      "dispositivos_mediana": 7.0,
+      "intervalos": 2776
+    },
+    {
+      "tid": "1000044",
+      "n": 1303,
+      "nombre": "KR15 → CL77;CL92 ",
+      "mediana_velocidad": 10.56,
+      "q1_velocidad": 6.79,
+      "q3_velocidad": 20.947,
+      "distancia_mediana": 1597.0,
+      "dispositivos_mediana": 3.0,
+      "intervalos": 1303
+    }
+  ],
+  "por_fecha": [
+    {
+      "fecha": "2022-05-01",
+      "n": 4315,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-02",
+      "n": 4325,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-03",
+      "n": 4349,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-04",
+      "n": 4353,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-05",
+      "n": 4348,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-06",
+      "n": 4365,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-07",
+      "n": 4284,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-08",
+      "n": 4315,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-09",
+      "n": 4336,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-10",
+      "n": 4301,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-11",
+      "n": 4281,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-12",
+      "n": 4371,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-13",
+      "n": 4338,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-14",
+      "n": 4369,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-15",
+      "n": 4355,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-16",
+      "n": 4347,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-17",
+      "n": 4342,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-18",
+      "n": 4333,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-19",
+      "n": 4307,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-20",
+      "n": 4356,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-21",
+      "n": 4374,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-22",
+      "n": 4339,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-23",
+      "n": 4344,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-24",
+      "n": 4329,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-25",
+      "n": 4341,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-26",
+      "n": 4362,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-27",
+      "n": 4372,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-28",
+      "n": 4362,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-29",
+      "n": 4361,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-30",
+      "n": 4324,
+      "tids": 46
+    },
+    {
+      "fecha": "2022-05-31",
+      "n": 4340,
+      "tids": 46
+    }
+  ],
+  "correlacion_pearson": {
+    "distancia_vs_velocidad": 0.33,
+    "dispositivos_vs_velocidad": -0.067,
+    "distancia_vs_tiempo_derivado": 0.396
+  }
+}

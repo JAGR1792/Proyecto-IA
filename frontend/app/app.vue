@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from 'vue'
 import GraphView from '@/components/GraphView.vue'
+import AnalisisMovilidad from '@/components/AnalisisMovilidad.vue'
 import MapaOSM from '@/components/MapaOSM.vue'
 import type { NodoGrafo, AristaGrafo } from '@/components/GraphView.vue'
 import { esJson } from '@/utils/api'
@@ -23,10 +24,17 @@ const destinoSeleccionado = ref<string>('')
 const criterioSeleccionado = ref<string>('menor_tiempo')
 const horaSalida = ref<string>('08:00')
 const algoritmoSeleccionado = ref<string>('voraz')
+// Ruta ML: se añade como alternativa, sin reemplazar los cinco algoritmos.
+const diaSemanaML = ref<number>(0)
+const rutaPorRegresion = ref(false)
+const avisoAlternativa = ref<string | null>(null)
+const comparacionRegresion = ref<any>(null) // TAXI_IA_COMPARACION_REGRESION_V2
+
 const resultadoRuta = ref<any>(null)
 const comparacion = ref<any>(null)
 const comparando = ref(false)
 const panelComparacion = ref<HTMLElement | null>(null)
+const seccionActiva = ref<'rutas' | 'eda'>('rutas')
 const vistaActiva = ref<'grafo' | 'mapa'>('mapa')
 const temaActivo = ref<'oscuro' | 'claro'>('oscuro')
 // Capas de contexto: la ruta activa se dibuja siempre, aunque se oculten
@@ -102,7 +110,7 @@ function etiquetaDeAlgoritmo(id: string): string {
 
 const etiquetaAlgoritmo = computed(() => {
   const id = resultadoRuta.value?.algoritmo
-  return id ? etiquetaDeAlgoritmo(id) : '—'
+  return rutaPorRegresion.value ? 'UCS + Regresión lineal' : id ? etiquetaDeAlgoritmo(id) : '—'
 })
 
 const comparacionOrdenada = computed(() => {
@@ -247,6 +255,8 @@ function usarNodoComo(rol: RolExtremo) {
 }
 
 function limpiarRuta() {
+  comparacionRegresion.value = null
+  rutaPorRegresion.value = false
   rutaResaltada.value = []
   aristaResaltada.value = []
   resultadoRuta.value = null
@@ -254,6 +264,8 @@ function limpiarRuta() {
 }
 
 async function cambiarHoraSalida() {
+  comparacionRegresion.value = null
+  rutaPorRegresion.value = false
   rutaResaltada.value = []
   aristaResaltada.value = []
   resultadoRuta.value = null
@@ -262,6 +274,9 @@ async function cambiarHoraSalida() {
 }
 
 async function buscarRuta() {
+  avisoAlternativa.value = null
+  comparacionRegresion.value = null
+  rutaPorRegresion.value = false
   if (!origenSeleccionado.value || !destinoSeleccionado.value) return
   if (origenSeleccionado.value === destinoSeleccionado.value) return
 
@@ -296,11 +311,36 @@ async function buscarRuta() {
       throw new Error(data.detail || `Error ${response.status} en la búsqueda`)
     }
 
-    rutaResaltada.value = data.camino || []
-    aristaResaltada.value = data.aristas_camino || []
-    resultadoRuta.value = data
+    // Si Voraz se atasca, ofrecer automáticamente la alternativa óptima UCS.
+    // No se cambia el algoritmo Voraz ni los algoritmos de los compañeros.
+    let resultadoFinal = data
+    if (!data.ruta_encontrada && algoritmoSeleccionado.value === 'voraz') {
+      const altResp = await fetch(`${apiBase}/busqueda/buscar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          origen: origenSeleccionado.value,
+          destino: destinoSeleccionado.value,
+          algoritmo: 'ucs',
+          criterio: criterioSeleccionado.value,
+          hora_salida: horaSalida.value,
+          tarifa: opcionesTarifa.value,
+        }),
+      })
+      if (altResp.ok && esJson(altResp.headers.get('content-type') || '')) {
+        const alt = await altResp.json()
+        if (alt.ruta_encontrada) {
+          resultadoFinal = alt
+          avisoAlternativa.value = 'Voraz no encontró un recorrido; se muestra la alternativa encontrada por UCS.'
+        }
+      }
+    }
+    const rutaActual = resultadoFinal
+    rutaResaltada.value = rutaActual.camino || []
+    aristaResaltada.value = rutaActual.aristas_camino || []
+    resultadoRuta.value = rutaActual
 
-    if (!data.ruta_encontrada) {
+    if (!rutaActual.ruta_encontrada) {
       error.value = 'No se encontró una ruta entre esos nodos.'
     }
   } catch (e: any) {
@@ -312,6 +352,8 @@ async function buscarRuta() {
 }
 
 async function compararAlgoritmos() {
+  comparacionRegresion.value = null
+  rutaPorRegresion.value = false
   if (!origenSeleccionado.value || !destinoSeleccionado.value) return
   if (origenSeleccionado.value === destinoSeleccionado.value) return
 
@@ -354,6 +396,65 @@ async function compararAlgoritmos() {
   }
 }
 
+
+// Predicción aplicada al grafo: conserva la búsqueda y el mapa existentes.
+async function buscarRutaConRegresion() {
+  avisoAlternativa.value = null
+  if (!origenSeleccionado.value || !destinoSeleccionado.value || origenSeleccionado.value === destinoSeleccionado.value) return
+  const hora = Number(horaSalida.value.split(':')[0])
+  if (!Number.isInteger(hora) || hora < 0 || hora > 23) {
+    error.value = 'Selecciona una hora válida para la regresión.'
+    return
+  }
+  cargando.value = true
+  error.value = null
+  rutaPorRegresion.value = false
+  comparacionRegresion.value = null
+  resultadoRuta.value = null
+  comparacion.value = null
+  rutaResaltada.value = []
+  aristaResaltada.value = []
+  try {
+    const response = await fetch(`${apiBase}/ml/ruta`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        origen: origenSeleccionado.value,
+        destino: destinoSeleccionado.value,
+        dia_semana: Number(diaSemanaML.value),
+        hora,
+      }),
+    })
+    const contenido = response.headers.get('content-type') || ''
+    if (!esJson(contenido)) throw new Error(`La API ML respondió ${response.status} sin JSON. Verifica que FastAPI esté activo.`)
+    const data = await response.json()
+    if (!response.ok) {
+      const detalle = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail ?? data)
+      if (response.status === 422 && detalle.includes('Grafo y dataset')) {
+        throw new Error('La red del mapa todavía no coincide con el dataset OSM utilizado para la regresión. No se aplicaron tiempos a aristas incompatibles. Detalle: ' + detalle)
+      }
+      throw new Error(detalle || `Error HTTP ${response.status}`)
+    }
+    // El endpoint ML devuelve {resultado, modelo, auditoria}; reutilizamos
+    // el mismo modelo de respuesta de la interfaz de búsqueda existente.
+    const resultado = data.resultado
+    if (!resultado || typeof resultado.ruta_encontrada !== 'boolean') {
+      throw new Error('Formato de respuesta de ruta ML inesperado.')
+    }
+    rutaPorRegresion.value = true
+    comparacionRegresion.value = data.comparacion_regresion ?? null
+    resultadoRuta.value = resultado
+    rutaResaltada.value = resultado.camino ?? []
+    aristaResaltada.value = resultado.aristas_camino ?? []
+    if (!resultado.ruta_encontrada) error.value = 'No se encontró un camino dirigido entre los puntos elegidos.'
+  } catch (e: any) {
+    error.value = e instanceof Error ? e.message : String(e)
+    console.error('Error calculando ruta ML:', e)
+  } finally {
+    cargando.value = false
+  }
+}
+
 function claseCongestion(nivel: string) {
   const clases: Record<string, string> = {
     baja: 'tx-badge tx-badge-baja',
@@ -389,6 +490,11 @@ onMounted(() => {
       </div>
       <div class="tx-header-actions">
         <button
+type="button" class="tx-button tx-button-secondary"
+          @click="seccionActiva = seccionActiva === 'rutas' ? 'eda' : 'rutas'">
+          {{ seccionActiva === 'rutas' ? 'Análisis de movilidad' : 'Volver a rutas' }}
+        </button>
+        <button
           class="tx-theme-toggle"
           :class="{ 'tx-theme-toggle--activo': temaActivo === 'claro' }"
           :aria-label="temaActivo === 'oscuro' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
@@ -415,7 +521,7 @@ onMounted(() => {
     </header>
 
     <!-- Main Content -->
-    <main class="tx-main">
+    <main v-if="seccionActiva === 'rutas'" class="tx-main">
       <!-- Panel Izquierdo: Controles y Info -->
       <aside class="tx-sidebar">
         <!-- Selector Origen/Destino -->
@@ -516,6 +622,32 @@ onMounted(() => {
           </button>
         </div>
 
+
+          <!-- Regresión lineal ML: opción independiente del motor de búsqueda. -->
+          <div class="tx-ml-route-box">
+            <div class="tx-ml-route-heading">Predicción de tiempo · Regresión lineal</div>
+            <p class="tx-panel-note">Calcula la ruta de menor tiempo estimado con UCS usando nuestro modelo LinearRegression. No reemplaza los cinco algoritmos de búsqueda.</p>
+            <div class="tx-form-group">
+              <label for="dia-regresion" class="tx-label">Día de la semana</label>
+              <select id="dia-regresion" v-model.number="diaSemanaML" class="tx-select">
+                <option :value="0">Lunes</option>
+                <option :value="1">Martes</option>
+                <option :value="2">Miércoles</option>
+                <option :value="3">Jueves</option>
+                <option :value="4">Viernes</option>
+                <option :value="5">Sábado</option>
+                <option :value="6">Domingo</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              class="tx-button tx-button-primary tx-ml-route-button"
+              :disabled="!origenSeleccionado || !destinoSeleccionado || origenSeleccionado === destinoSeleccionado || cargando || comparando"
+              @click="buscarRutaConRegresion"
+            >{{ cargando ? 'Calculando...' : 'Predecir tiempo y mostrar ruta' }}</button>
+            <p class="tx-panel-note">Utiliza la hora seleccionada arriba. Estimación sobre escenarios del dataset, no tráfico en vivo.</p>
+          </div>
+
         <!-- Opciones de Tarifa de Taxi -->
         <div class="tx-panel" style="margin-top: 1.5rem;">
           <h3 class="tx-panel-title">Tarifa de Taxi</h3>
@@ -575,7 +707,7 @@ onMounted(() => {
         <!-- Resultado de Ruta -->
         <div v-if="resultadoRuta" class="tx-panel" style="margin-top: 1.5rem;">
           <h3 class="tx-panel-title">Resultado de Ruta</h3>
-          <p class="tx-panel-note">Salida: {{ horaSalida }} · congestión sintética</p>
+          <p class="tx-panel-note">Salida: {{ horaSalida }} · {{ rutaPorRegresion ? "tiempos de regresión lineal" : "congestión sintética" }}</p>
           <dl class="tx-data-list">
             <div class="tx-data-row">
               <dt class="tx-data-term">Estado</dt>
@@ -755,6 +887,36 @@ onMounted(() => {
 
       <!-- Panel Central: Grafo -->
       <section class="tx-graph-section">
+        <!-- TAXI_IA_RESULTADOS_MAPA_V3: comparación visible en área principal del mapa -->
+        <!-- Comparación académica del mismo recorrido y horario; referencia derivada, no observación real. -->
+          <section v-if="rutaPorRegresion && resultadoRuta.ruta_encontrada" class="tx-ml-eval" aria-label="Evaluación de predicción de la ruta">
+            <h3 class="tx-ml-eval-title">Resultado de regresión · ruta seleccionada</h3>
+            <p class="tx-panel-note">Predicción frente al tiempo derivado del dataset para exactamente el mismo recorrido, día y hora.</p>
+            <div class="tx-ml-eval-grid">
+              <div class="tx-ml-eval-stat">
+                <span>Tiempo predicho</span>
+                <strong>{{ comparacionRegresion?.tiempo_predicho_min != null ? comparacionRegresion.tiempo_predicho_min.toFixed(3) + ' min' : resultadoRuta.tiempo_total_min.toFixed(3) + ' min' }}</strong>
+              </div>
+              <div class="tx-ml-eval-stat">
+                <span>Tiempo de referencia</span>
+                <strong>{{ comparacionRegresion?.disponible ? comparacionRegresion.tiempo_referencia_min.toFixed(3) + ' min' : 'No disponible' }}</strong>
+              </div>
+              <div class="tx-ml-eval-stat">
+                <span>Error absoluto</span>
+                <strong>{{ comparacionRegresion?.disponible ? (comparacionRegresion.error_absoluto_min * 60).toFixed(2) + ' s' : '—' }}</strong>
+              </div>
+              <div class="tx-ml-eval-stat">
+                <span>Loss individual (error²)</span>
+                <strong>{{ comparacionRegresion?.disponible ? comparacionRegresion.loss_cuadratica_min2.toFixed(6) + ' min²' : '—' }}</strong>
+              </div>
+            </div>
+            <p v-if="!comparacionRegresion?.disponible" class="tx-panel-note tx-ml-eval-warning">
+              {{ comparacionRegresion?.motivo || 'El backend no envió una referencia comparable. Reinicia FastAPI después de instalar el parche.' }}
+            </p>
+            <p v-if="comparacionRegresion?.tramos_total" class="tx-panel-note">Tramos con referencia: {{ comparacionRegresion.tramos_con_referencia }} de {{ comparacionRegresion.tramos_total }}.</p>
+            <p class="tx-panel-note">Fuente: {{ comparacionRegresion?.fuente || "Referencia no disponible" }}. Ninguna referencia aquí es un viaje real observado; esta pérdida individual no es el MSE global de prueba.</p>
+          </section>
+        <p v-if="rutaPorRegresion && resultadoRuta && !resultadoRuta.ruta_encontrada" class="tx-ml-map-warning">No existe un camino dirigido entre los puntos seleccionados. UCS comprueba todas las alternativas alcanzables; otro algoritmo no puede crear una conexión inexistente.</p>
         <div class="tx-view-toggle">
           <div class="tx-view-toggle-grupo">
             <button
@@ -814,6 +976,7 @@ onMounted(() => {
           />
         </div>
 
+        <p v-if="avisoAlternativa" class="tx-ml-map-info" role="status">{{ avisoAlternativa }}</p>
         <!-- Leyenda -->
         <div class="tx-panel" style="margin-top: 1.5rem;">
           <h4 class="tx-panel-title" style="margin-bottom: 0.5rem;">Simbología</h4>
@@ -912,10 +1075,75 @@ onMounted(() => {
         </div>
       </section>
     </main>
+    <!-- Dashboard EDA: resultados descriptivos, no datos de tráfico actuales -->
+    <main v-else class="tx-main" style="display:block; width:100%">
+      <AnalisisMovilidad />
+    </main>
   </div>
 </template>
 
 <style scoped>
+
+/* Resultado ML en el contenido principal del mapa, usando tokens Taxi IA */
+.tx-graph-section > .tx-ml-eval {
+  margin-top: 0;
+  margin-bottom: 0.8rem;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border-color: var(--accent-brand);
+}
+.tx-graph-section > .tx-ml-eval .tx-ml-eval-grid {
+  grid-template-columns: repeat(4,minmax(0,1fr));
+}
+.tx-ml-map-warning, .tx-ml-map-info {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: .8rem;
+  margin: 0 0 .9rem;
+  font-size: .85rem;
+  color: var(--text-secondary);
+}
+.tx-ml-map-warning { border-color: var(--status-warning); }
+.tx-ml-map-info { border-color: var(--accent-route); }
+@media (max-width: 1200px) {
+  .tx-graph-section > .tx-ml-eval .tx-ml-eval-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width: 560px) {
+  .tx-graph-section > .tx-ml-eval .tx-ml-eval-grid {grid-template-columns:1fr}
+}
+
+
+/* Comparación individual de regresión: paleta original Taxi IA */
+.tx-ml-eval {border:1px solid var(--border-focus);border-radius:var(--radius-sm);padding:0.85rem;margin-top:1rem;background:var(--bg-base)}
+.tx-ml-eval-title {font-size:0.92rem;color:var(--accent-brand);margin:0 0 0.5rem}
+.tx-ml-eval-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.5rem;margin:0.8rem 0}
+.tx-ml-eval-stat {border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:0.65rem;min-width:0}
+.tx-ml-eval-stat span {display:block;font-size:0.72rem;color:var(--text-secondary);margin-bottom:0.35rem}
+.tx-ml-eval-stat strong {display:block;font-family:var(--font-mono);font-size:0.83rem;color:var(--accent-brand);overflow-wrap:anywhere}
+.tx-ml-eval-warning {color:var(--status-warning)}
+@media(max-width:390px){.tx-ml-eval-grid{grid-template-columns:1fr}}
+
+
+/* TAXI_IA_RUTA_REGRESION_V1 */
+.tx-ml-route-box {
+  margin-top: 1.1rem;
+  padding: 1rem;
+  background: var(--bg-surface-hover);
+  border: 1px solid var(--border-focus);
+  border-radius: var(--radius-md);
+}
+.tx-ml-route-heading {
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent-brand);
+  margin-bottom: 0.55rem;
+}
+.tx-ml-route-box .tx-form-group { margin-top: 0.8rem; margin-bottom: 0.7rem; }
+.tx-ml-route-box .tx-panel-note { margin-top: 0.45rem; }
+.tx-ml-route-button { width: 100%; white-space: normal; }
+
 .tx-view-toggle {
   display: flex;
   align-items: center;

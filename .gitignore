@@ -44,3 +44,20 @@ Thumbs.db
 
 # Notebooks sin procesar
 .ipynb_checkpoints/
+# Datos historicos originales de Bitcarrier (no versionar)
+/backend/datos/ml/bitcarrier_mayo_2022_original/
+
+# Datos historicos originales de Bitcarrier (no versionar)
+/backend/datos/ml/bitcarrier_mayo_2022_original/
+
+# Copias de seguridad de integraciones
+*.antes_*
+*.edabak
+
+# Archivos temporales de instalacion
+INSTRUCCIONES.md
+README_INSTALACION.md
+
+# Resultados temporales de ejecucion
+backend/datos/ml/**/temp/
+backend/datos/ml/**/__pycache__/

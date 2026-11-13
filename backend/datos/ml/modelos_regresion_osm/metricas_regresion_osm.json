@@ -1,0 +1,73 @@
+{
+  "modelo": "Regresion lineal multiple ordinaria (LinearRegression)",
+  "objetivo": "tiempo_min",
+  "unidad_objetivo": "minutos derivados",
+  "features": [
+    "distancia_m",
+    "hora_sin",
+    "hora_cos",
+    "dia_semana",
+    "tipo_via"
+  ],
+  "version_sklearn_entrenamiento": "1.5.1",
+  "posprocesamiento": "tiempo limitado usando velocidad entre 5 y 80 km/h",
+  "predicciones_crudas_no_positivas_prueba": 2517,
+  "predicciones_ajustadas_prueba": 3942,
+  "dataset_sha256": "3177d445d047c1d2f8b3c8b9c2e90e49fd9c039b1b9185aa8d1c1550f62e60d2",
+  "dataset_archivo": "C:\\Users\\limac\\Desktop\\IA\\Proyecto-IA\\backend\\datos\\ml\\red_osm_auditada\\dataset_red_osm_operativo_auditado.csv.gz",
+  "fecha_utc": "2026-11-12T21:45:05.075927+00:00",
+  "filas_dataset": 292488,
+  "particiones": {
+    "entrenamiento": {
+      "filas": 175392,
+      "aristas": 1044
+    },
+    "validacion": {
+      "filas": 58464,
+      "aristas": 348
+    },
+    "prueba": {
+      "filas": 58632,
+      "aristas": 349
+    }
+  },
+  "entrenamiento_final_regresion": {
+    "Loss_MSE_min2": 0.002094951,
+    "MAE_min": 0.027492,
+    "RMSE_min": 0.045771,
+    "R2": 0.836315
+  },
+  "validacion_regresion": {
+    "Loss_MSE_min2": 0.00165646,
+    "MAE_min": 0.026549,
+    "RMSE_min": 0.0407,
+    "R2": 0.847977
+  },
+  "baseline_validacion": {
+    "Loss_MSE_min2": 0.002448245,
+    "MAE_min": 0.035109,
+    "RMSE_min": 0.04948,
+    "R2": 0.77531
+  },
+  "prueba_regresion": {
+    "Loss_MSE_min2": 0.001957732,
+    "MAE_min": 0.026812,
+    "RMSE_min": 0.044246,
+    "R2": 0.866988
+  },
+  "prueba_baseline": {
+    "Loss_MSE_min2": 0.002982983,
+    "MAE_min": 0.036709,
+    "RMSE_min": 0.054617,
+    "R2": 0.79733
+  },
+  "evaluacion": "Prueba sobre ARISTAS OSM no vistas con etiquetas derivadas o simuladas",
+  "limitaciones": [
+    "La tabla OSM no contiene mediciones directas: no se demuestra precision de trafico real.",
+    "tiempo_min procede de distancia/velocidad de cada escenario; no es duracion de viaje medida.",
+    "No incluir velocidad_kmh en FEATURES pues causaria fuga de informacion.",
+    "Una particion por aristas evalua generalizacion espacial dentro del simulador; no validacion temporal ni empirica.",
+    "La asociacion historica Bitcarrier-OSM es provisional.",
+    "Para evaluar con trafico observado es necesario un protocolo adicional sobre historico reservado."
+  ]
+}
