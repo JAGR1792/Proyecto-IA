@@ -10,10 +10,7 @@
       "entrypoint": "src.api.main:app",
       "functions": {
         "src/api/main.py": {
-          "includeFiles": [
-            "datos/ml/modelos_regresion_osm/**",
-            "datos/ml/red_osm_auditada/dataset_red_osm_operativo_auditado.csv.gz"
-          ]
+          "includeFiles": "datos/ml/**"
         }
       }
     }
