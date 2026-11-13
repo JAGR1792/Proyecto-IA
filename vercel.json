@@ -1,35 +1,44 @@
+
 {
-    "services": {
-        "frontend": {
-            "root": "frontend",
-            "framework": "nuxtjs"
-        },
-        "backend": {
-            "root": "backend",
-            "entrypoint": "src.api.main:app"
-        }
+  "services": {
+    "frontend": {
+      "root": "frontend",
+      "framework": "nuxtjs"
     },
-    "rewrites": [
-        {
-            "source": "/api/v1(/.*)?",
-            "destination": {
-                "type": "service",
-                "service": "backend"
-            }
-        },
-        {
-            "source": "/health",
-            "destination": {
-                "type": "service",
-                "service": "backend"
-            }
-        },
-        {
-            "source": "/(.*)",
-            "destination": {
-                "type": "service",
-                "service": "frontend"
-            }
+    "backend": {
+      "root": "backend",
+      "entrypoint": "src.api.main:app",
+      "functions": {
+        "src/api/main.py": {
+          "includeFiles": [
+            "datos/ml/modelos_regresion_osm/**",
+            "datos/ml/red_osm_auditada/dataset_red_osm_operativo_auditado.csv.gz"
+          ]
         }
-    ]
+      }
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/v1(/.*)?",
+      "destination": {
+        "type": "service",
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/health",
+      "destination": {
+        "type": "service",
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "type": "service",
+        "service": "frontend"
+      }
+    }
+  ]
 }
