@@ -909,3 +909,23 @@ Tras la rama experimental de expansión a 2 500 m / mosaico urbano y su integrac
 - ✅ 100 % de las 1 741 aristas y 888 nodos coinciden con la auditoría Bitcarrier+OSM de regresión y con los informes de los Cortes 1 y 2.
 - ✅ Payload de `/mapa/geojson/aristas` baja a ~1.08 MB sin compresión (amplio margen bajo 4.5 MB en Vercel) y ambas vistas (Leaflet y Cytoscape) responden con fluidez.
 - ✅ Para escalar a más nodos en el futuro (>888): usar `GZipMiddleware` + GeoJSON simplificado o tiles vectoriales, activar recorte por viewport en el cliente cuando el grafo supere ~2 000 aristas, limitar `GraphView` al subgrafo de la ruta y ampliar la auditoría Bitcarrier+OSM al radio mayor.
+
+---
+
+## ADR-036 — Vista dedicada de clasificación en el Centro de Análisis (`03 · Clasificación`)
+
+**Fecha:** 2026-11-20  
+**Estado:** Aceptado
+
+### Contexto
+En `frontend/app/components/AnalisisMovilidad.vue` (Centro de Análisis), los módulos `01 · Análisis exploratorio` y `02 · Regresión lineal` estaban activos, mientras `03 · Clasificación` (Persona 2) permanecía como marcador reservado a pesar de que el backend `/api/v1/ml/clasificacion` y las métricas reales ya existían en `main`. El módulo `04 · Agrupamiento` corresponde a Persona 3 y debe seguir reservado.
+
+### Decisión
+- Crear `frontend/app/components/analisis/VistaClasificacion.vue` con KPIs (mejor modelo, accuracy, F1 macro, observaciones), pestañas para comparación visual/tabular de los 5 modelos, matriz de confusión 3×3 interactiva por modelo con métricas derivadas por clase, y distribución/definición de categorías (`baja`, `media`, `alta`).
+- Consumir `GET ${apiBase}/ml/clasificacion` y añadir respaldo estático en `frontend/public/datos/ml_clasificacion_resumen.json` (copia sincronizada de `backend/datos/ml/metricas_clasificacion.json`) por si la vista se abre sin backend activo.
+- Activar `clasificacion` (`disponible: true`) en `AnalisisMovilidad.vue`, dejando `agrupamiento` (`disponible: false`) intacto para Persona 3.
+
+### Consecuencias
+- ✅ El módulo `03 · Clasificación` muestra los resultados completos de Persona 2 dentro del Centro de Análisis, alineado con `VistaEDA.vue` y `VistaRegresion.vue`.
+- ✅ Funciona tanto conectado a FastAPI como con el resumen estático de respaldo en `public/datos/`.
+- ⚠️ Si se reentrena el clasificador en el backend con un grafo distinto, conviene actualizar `frontend/public/datos/ml_clasificacion_resumen.json` para mantener coherente el fallback offline.
