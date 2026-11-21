@@ -38,6 +38,7 @@ def test_resultado_reproducible_y_minutos_interpolados(grafo_lineal):
     a = grafo_en_hora(grafo_lineal, "08:12")
     b = grafo_en_hora(grafo_lineal, "08:12")
     c = grafo_en_hora(grafo_lineal, "08:13")
+    assert a is b
     assert a.aristas[0].tiempo_estimado == b.aristas[0].tiempo_estimado
     assert a.aristas[0].tiempo_estimado != c.aristas[0].tiempo_estimado
 

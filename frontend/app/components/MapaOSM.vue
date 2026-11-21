@@ -1,12 +1,22 @@
 <script setup lang="ts">
 /**
  * MapaOSM - Vista geográfica del grafo usando Leaflet.
- * Consume los endpoints /api/v1/mapa/geojson/nodos y /api/v1/mapa/geojson/aristas.
- * Incluye capas base Mapa (OSM) y Satélite (Esri), con etiquetas opcionales.
+ * Carga nodos y aristas del grafo completo una sola vez vía GeoJSON.
  */
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Map as LeafletMap } from 'leaflet'
 import { esJson } from '@/utils/api'
+import type { RutaAlgoritmo } from '@/utils/busqueda'
+import {
+  CENTRO_CHAPINERO,
+  obtenerBboxMapa,
+  urlGeojsonAristasMapa,
+  urlGeojsonNodosMapa,
+  ZOOM_INICIAL_CHAPINERO,
+  type AristaVisibleMapa,
+  type GeoJsonFeatureCollection,
+  nodoMasCercanoPorLatLon,
+} from '@/utils/grafo'
 
 interface Props {
   nodos: { id: string; nombre: string; lat: number; lon: number; tipo: string }[]
@@ -19,17 +29,24 @@ interface Props {
   }[]
   rutaResaltada?: string[]
   aristaResaltada?: string[]
+  rutasComparacion?: RutaAlgoritmo[]
+  algoritmoEnfocado?: string | null
   mostrarRedVial?: boolean
   mostrarNodos?: boolean
   modoSeleccion?: 'origen' | 'destino' | null
   origenId?: string | null
   destinoId?: string | null
   apiBase?: string
+  horaSalida?: string
+  /** Congestión ML por id de arista; actualiza estilos sobre el GeoJSON cargado. */
+  congestionMl?: Record<string, string>
 }
 
 interface Emits {
   (e: 'nodo-click', nodo: NodoGeografico): void
   (e: 'arista-click', arista: AristaGeografica): void
+  (e: 'aristas-visibles', aristas: AristaVisibleMapa[]): void
+  (e: 'toggle-algoritmo-enfocado', algoritmo: string): void
 }
 
 interface NodoGeografico {
@@ -51,12 +68,16 @@ interface AristaGeografica {
 const props = withDefaults(defineProps<Props>(), {
   rutaResaltada: () => [],
   aristaResaltada: () => [],
+  rutasComparacion: () => [],
+  algoritmoEnfocado: null,
   mostrarRedVial: true,
   mostrarNodos: true,
   modoSeleccion: null,
   origenId: null,
   destinoId: null,
   apiBase: '/api/v1',
+  horaSalida: '08:00',
+  congestionMl: () => ({}),
 })
 
 const emit = defineEmits<Emits>()
@@ -79,6 +100,8 @@ let capaOrigenSeleccion: any = null
 let capaDestinoSeleccion: any = null
 let capaRutaBase: any = null
 let capaRuta: any = null
+let capasComparacion: Array<{ algoritmo: string; base: any; linea: any }> = []
+let vistaInicialFijada = false
 
 let L: typeof import('leaflet') | null = null
 
@@ -102,10 +125,16 @@ const COLORES_TIPO: Record<string, string> = {
   interseccion: '#3f3f46',
 }
 
+function congestionDeFeature(feature: { properties?: Record<string, unknown> }): string {
+  const propsF = feature.properties || {}
+  const id = String(propsF.id ?? '')
+  if (id && props.congestionMl[id]) return props.congestionMl[id]
+  return String(propsF.congestion || 'baja')
+}
+
 function estiloArista(feature: any) {
-  const props = feature.properties || {}
-  const congestion = props.congestion || 'baja'
-  const estilo: Record<string, any> = {
+  const congestion = congestionDeFeature(feature)
+  const estilo: Record<string, unknown> = {
     color: COLORES_CONGESTION[congestion] || '#3f3f46',
     weight: 2,
     opacity: 1,
@@ -125,6 +154,126 @@ function estiloNodo(feature: any) {
     color: '#09090b',
     weight: 1.5,
     fillOpacity: 1,
+  }
+}
+
+function nodoGeograficoDesdeIndice(lat: number, lon: number): NodoGeografico | null {
+  const cercano = nodoMasCercanoPorLatLon(props.nodos, lat, lon)
+  if (!cercano) return null
+  const nombre =
+    nombresPorId.value.get(cercano.id) || cercano.nombre || `Nodo ${cercano.id}`
+  return {
+    id: cercano.id,
+    nombre,
+    lat: cercano.lat,
+    lon: cercano.lon,
+    tipo: 'interseccion',
+  }
+}
+
+function emitirNodoMasCercano(lat: number, lon: number): boolean {
+  const nodo = nodoGeograficoDesdeIndice(lat, lon)
+  if (!nodo) return false
+  emit('nodo-click', nodo)
+  return true
+}
+
+async function pedirJson(url: string): Promise<unknown> {
+  const respuesta = await fetch(url)
+  const tipo = respuesta.headers.get('content-type') || ''
+  if (!respuesta.ok || !esJson(tipo)) {
+    throw new Error(
+      `La API no respondió JSON en ${url} (status ${respuesta.status}). ` +
+        'Verifica que el backend esté activo.',
+    )
+  }
+  return respuesta.json()
+}
+
+function aristasVisiblesDesdeGeojson(geo: GeoJsonFeatureCollection): AristaVisibleMapa[] {
+  const lista: AristaVisibleMapa[] = []
+  for (const feature of geo.features ?? []) {
+    const p = feature.properties
+    if (!p?.id) continue
+    const coords = feature.geometry?.coordinates
+    const geometria = Array.isArray(coords) ? (coords as number[][]) : null
+    lista.push({
+      id: String(p.id),
+      origen: String(p.origen ?? ''),
+      destino: String(p.destino ?? ''),
+      congestion: String(p.congestion ?? 'baja'),
+      nombre_via: p.nombre_via != null ? String(p.nombre_via) : undefined,
+      geometria,
+    })
+  }
+  return lista
+}
+
+function aplicarCongestionMlEnCapa() {
+  if (!layerAristas) return
+  layerAristas.eachLayer((layer: any) => {
+    const feature = layer.feature
+    if (!feature?.properties?.id) return
+    const id = String(feature.properties.id)
+    const override = props.congestionMl[id]
+    if (override) {
+      feature.properties.congestion = override
+      layer.setStyle(estiloArista(feature))
+    }
+  })
+}
+
+async function cargarDatos() {
+  if (!mapa || !layerNodos || !layerAristas) return
+
+  cargando.value = true
+  error.value = null
+
+  try {
+    const [bbox, geoNodos, geoAristas] = await Promise.all([
+      obtenerBboxMapa(props.apiBase),
+      pedirJson(urlGeojsonNodosMapa(props.apiBase, props.horaSalida)) as Promise<
+        GeoJsonFeatureCollection
+      >,
+      pedirJson(urlGeojsonAristasMapa(props.apiBase, props.horaSalida)) as Promise<
+        GeoJsonFeatureCollection
+      >,
+    ])
+
+    layerNodos.clearLayers()
+    layerAristas.clearLayers()
+    layerAristas.addData(geoAristas as any)
+    layerNodos.addData(geoNodos as any)
+    actualizarNombresNodos()
+
+    if (!vistaInicialFijada) {
+      try {
+        mapa.fitBounds(
+          [
+            [bbox.min_lat, bbox.min_lon],
+            [bbox.max_lat, bbox.max_lon],
+          ],
+          { maxZoom: 16, padding: [24, 24] },
+        )
+      } catch {
+        mapa.setView(CENTRO_CHAPINERO, ZOOM_INICIAL_CHAPINERO)
+      }
+      vistaInicialFijada = true
+    }
+
+    emit('aristas-visibles', aristasVisiblesDesdeGeojson(geoAristas))
+    aplicarCongestionMlEnCapa()
+
+    await aplicarRuta()
+    aplicarSeleccion()
+    resaltarAristas()
+    aplicarVisibilidadCapas()
+  } catch (e: unknown) {
+    const mensaje = e instanceof Error ? e.message : 'Error cargando mapa'
+    error.value = mensaje
+    console.error('Error cargando mapa:', e)
+  } finally {
+    cargando.value = false
   }
 }
 
@@ -176,13 +325,17 @@ async function inicializarMapa() {
         feature.properties?.nombre_via || `Arista ${feature.properties?.id}`,
         { sticky: true },
       )
-      layer.on('click', () => {
+      layer.on('click', (e: { latlng: { lat: number; lng: number } }) => {
+        if (props.modoSeleccion) {
+          emitirNodoMasCercano(e.latlng.lat, e.latlng.lng)
+          return
+        }
         const p = feature.properties
         emit('arista-click', {
           id: p.id,
           origen: p.origen,
           destino: p.destino,
-          congestion: p.congestion,
+          congestion: congestionDeFeature(feature),
           nombre_via: p.nombre_via,
         })
       })
@@ -216,61 +369,18 @@ async function inicializarMapa() {
     },
   }).addTo(mapa)
 
-  cargarDatos()
+  mapa.on('click', (e: { latlng: { lat: number; lng: number } }) => {
+    if (!props.modoSeleccion) return
+    emitirNodoMasCercano(e.latlng.lat, e.latlng.lng)
+  })
+
+  void cargarDatos()
 }
 
-/** Pide JSON y falla con un mensaje claro si el servidor devuelve HTML. */
-async function pedirJson(url: string): Promise<any> {
-  const respuesta = await fetch(url)
-  const tipo = respuesta.headers.get('content-type') || ''
-  if (!respuesta.ok || !esJson(tipo)) {
-    throw new Error(
-      `La API no respondió JSON en ${url} (status ${respuesta.status}). ` +
-        'Verifica que el backend esté activo.',
-    )
-  }
-  return respuesta.json()
-}
-
-async function cargarDatos() {
-  if (!mapa) return
-  cargando.value = true
-  error.value = null
-  try {
-    const [bbox, geoNodos, geoAristas] = await Promise.all([
-      pedirJson(`${props.apiBase}/mapa/bbox`),
-      pedirJson(`${props.apiBase}/mapa/geojson/nodos`),
-      pedirJson(`${props.apiBase}/mapa/geojson/aristas`),
-    ])
-
-    layerAristas!.addData(geoAristas as any)
-    layerNodos!.addData(geoNodos as any)
-    actualizarNombresNodos()
-
-    mapa!.fitBounds([
-      [bbox.min_lat, bbox.min_lon],
-      [bbox.max_lat, bbox.max_lon],
-    ])
-
-    // La ruta puede haberse calculado antes de que el mapa terminara de cargar
-    await aplicarRuta()
-    aplicarSeleccion()
-    resaltarAristas()
-    aplicarVisibilidadCapas()
-  } catch (e: any) {
-    error.value = e.message
-    console.error('Error cargando mapa:', e)
-  } finally {
-    cargando.value = false
-  }
-}
-
-/**
- * Convierte la ruta devuelta por el backend en un trazado continuo.
- * Usa la geometría real de cada arista (`atributos.geometria` de OSM) y solo
- * cae a la recta entre nodos cuando la vía no trae geometría.
- */
-function construirTrazadoRuta(): [number, number][] {
+function construirTrazadoDesdeCamino(
+  camino: string[],
+  aristasCamino: string[],
+): [number, number][] {
   const nodoPorId = new Map(props.nodos.map((n) => [n.id, n]))
   const aristaPorId = new Map(props.aristas.map((a) => [a.id, a]))
   const puntos: [number, number][] = []
@@ -286,12 +396,11 @@ function construirTrazadoRuta(): [number, number][] {
     }
   }
 
-  props.rutaResaltada.forEach((nodoId, indice) => {
-    const nodoAnterior = props.rutaResaltada[indice - 1]
+  camino.forEach((nodoId, indice) => {
+    const nodoAnterior = camino[indice - 1]
     const arista =
-      indice > 0 ? aristaPorId.get(props.aristaResaltada[indice - 1]) : undefined
+      indice > 0 ? aristaPorId.get(aristasCamino[indice - 1]) : undefined
     if (arista?.geometria?.length) {
-      // OSM entrega [[lon, lat], ...] en el sentido origen → destino de la arista
       const geometria =
         arista.origen === nodoAnterior
           ? arista.geometria
@@ -305,6 +414,16 @@ function construirTrazadoRuta(): [number, number][] {
   return puntos
 }
 
+function construirTrazadoRuta(): [number, number][] {
+  return construirTrazadoDesdeCamino(props.rutaResaltada, props.aristaResaltada)
+}
+
+const modoComparacion = computed(
+  () =>
+    props.rutaResaltada.length < 2 &&
+    (props.rutasComparacion?.length ?? 0) > 0,
+)
+
 function limpiarCapasRuta() {
   for (const capa of [capaRutaBase, capaRuta, capaOrigen, capaDestino]) {
     capa?.remove()
@@ -313,6 +432,11 @@ function limpiarCapasRuta() {
   capaRuta = null
   capaOrigen = null
   capaDestino = null
+  for (const par of capasComparacion) {
+    par.base?.remove()
+    par.linea?.remove()
+  }
+  capasComparacion = []
 }
 
 function limpiarSeleccion() {
@@ -322,7 +446,6 @@ function limpiarSeleccion() {
   capaDestinoSeleccion = null
 }
 
-/** Refresca los tooltips cuando los nombres amigables llegan después del GeoJSON. */
 function actualizarNombresNodos() {
   if (!layerNodos) return
   layerNodos.eachLayer((layer: any) => {
@@ -336,7 +459,6 @@ function actualizarNombresNodos() {
   })
 }
 
-/** Dibuja un anillo alrededor de los extremos elegidos, sin depender de la ruta. */
 function aplicarSeleccion() {
   if (!mapa || !L) return
   limpiarSeleccion()
@@ -351,7 +473,6 @@ function aplicarSeleccion() {
       weight: 3,
       fillColor: color,
       fillOpacity: 0.12,
-      // El anillo es solo visual: no debe bloquear el clic sobre el nodo.
       interactive: false,
     }).addTo(mapa!)
   }
@@ -360,38 +481,11 @@ function aplicarSeleccion() {
   capaDestinoSeleccion = dibujar(props.destinoId, '#ef4444')
 }
 
-async function aplicarRuta() {
-  if (!mapa || !L) return
-  limpiarCapasRuta()
-
-  const ruta = props.rutaResaltada
-  if (ruta.length < 2) return
-
-  const puntos = construirTrazadoRuta()
-  if (puntos.length < 2) return
-
-  // Contorno oscuro: mantiene la ruta legible sobre cualquier tile
-  capaRutaBase = L.polyline(puntos, {
-    color: '#09090b',
-    weight: 9,
-    opacity: 0.55,
-    lineCap: 'round',
-    lineJoin: 'round',
-    smoothFactor: 0,
-  }).addTo(mapa)
-
-  capaRuta = L.polyline(puntos, {
-    color: '#a3e635',
-    weight: 5,
-    opacity: 0.95,
-    lineCap: 'round',
-    lineJoin: 'round',
-    smoothFactor: 0,
-  }).addTo(mapa)
-
+function dibujarExtremosRuta(camino: string[]) {
+  if (!mapa || !L || camino.length < 2) return
   const nodoPorId = new Map(props.nodos.map((n) => [n.id, n]))
-  const origen = nodoPorId.get(ruta[0])
-  const destino = nodoPorId.get(ruta[ruta.length - 1])
+  const origen = nodoPorId.get(camino[0])
+  const destino = nodoPorId.get(camino[camino.length - 1])
   if (origen) {
     capaOrigen = L.circleMarker([origen.lat, origen.lon], {
       radius: 9,
@@ -414,18 +508,131 @@ async function aplicarRuta() {
       .addTo(mapa)
       .bindTooltip('Destino')
   }
+}
+
+function opacidadRutaComparacion(algoritmo: string): number {
+  const enfocado = props.algoritmoEnfocado
+  if (!enfocado) return 0.88
+  return algoritmo === enfocado ? 0.98 : 0.28
+}
+
+function pesoRutaComparacion(algoritmo: string): number {
+  const enfocado = props.algoritmoEnfocado
+  if (!enfocado) return 5
+  return algoritmo === enfocado ? 7 : 3
+}
+
+function traerRutaEnfocadaAlFrente() {
+  const enfocado = props.algoritmoEnfocado
+  if (!enfocado || !capasComparacion.length) return
+  const par = capasComparacion.find((c) => c.algoritmo === enfocado)
+  if (!par) return
+  par.base.bringToFront()
+  par.linea.bringToFront()
+}
+
+async function aplicarRutasComparacion() {
+  if (!mapa || !L) return
+  limpiarCapasRuta()
+  const enfocado = props.algoritmoEnfocado
+  const rutasBase = props.rutasComparacion ?? []
+  if (!rutasBase.length) return
+
+  const rutas = [...rutasBase].sort((a, b) => {
+    if (!enfocado) return 0
+    if (a.algoritmo === enfocado) return 1
+    if (b.algoritmo === enfocado) return -1
+    return 0
+  })
+
+  const limites: any[] = []
+  for (const ruta of rutas) {
+    const puntos = construirTrazadoDesdeCamino(ruta.camino, ruta.aristas)
+    if (puntos.length < 2) continue
+    const base = L.polyline(puntos, {
+      color: '#09090b',
+      weight: pesoRutaComparacion(ruta.algoritmo) + 4,
+      opacity: 0.45 * opacidadRutaComparacion(ruta.algoritmo),
+      lineCap: 'round',
+      lineJoin: 'round',
+      smoothFactor: 0,
+    }).addTo(mapa)
+    const linea = L.polyline(puntos, {
+      color: ruta.color,
+      weight: pesoRutaComparacion(ruta.algoritmo),
+      opacity: opacidadRutaComparacion(ruta.algoritmo),
+      lineCap: 'round',
+      lineJoin: 'round',
+      smoothFactor: 0,
+    })
+      .addTo(mapa)
+      .bindTooltip(ruta.etiqueta)
+    capasComparacion.push({ algoritmo: ruta.algoritmo, base, linea })
+    limites.push(linea.getBounds())
+  }
+
+  traerRutaEnfocadaAlFrente()
+
+  const referencia = rutas.find((r) => r.camino.length >= 2) ?? rutas[0]
+  dibujarExtremosRuta(referencia.camino)
+
+  if (limites.length) {
+    const union = limites[0]
+    for (let i = 1; i < limites.length; i++) union.extend(limites[i])
+    try {
+      mapa.flyToBounds(union, { padding: [36, 36], duration: 0.6 })
+    } catch {
+      // Vista aún sin inicializar.
+    }
+  }
+}
+
+async function aplicarRuta() {
+  if (!mapa || !L) return
+  if (modoComparacion.value) {
+    await aplicarRutasComparacion()
+    return
+  }
+
+  limpiarCapasRuta()
+
+  const ruta = props.rutaResaltada
+  if (ruta.length < 2) return
+
+  const puntos = construirTrazadoRuta()
+  if (puntos.length < 2) return
+
+  capaRutaBase = L.polyline(puntos, {
+    color: '#09090b',
+    weight: 9,
+    opacity: 0.55,
+    lineCap: 'round',
+    lineJoin: 'round',
+    smoothFactor: 0,
+  }).addTo(mapa)
+
+  capaRuta = L.polyline(puntos, {
+    color: '#a3e635',
+    weight: 5,
+    opacity: 0.95,
+    lineCap: 'round',
+    lineJoin: 'round',
+    smoothFactor: 0,
+  }).addTo(mapa)
+
+  dibujarExtremosRuta(ruta)
 
   try {
     mapa.flyToBounds(capaRuta.getBounds(), { padding: [30, 30], duration: 0.6 })
   } catch {
-    // El mapa aún no tiene vista (los datos no cargaron): cargarDatos la fija.
+    // El mapa aún no tiene vista.
   }
 }
 
-/** Resalta sobre el GeoJSON base las aristas que pertenecen a la ruta. */
 function resaltarAristas() {
   if (!layerAristas) return
   layerAristas.resetStyle()
+  if (modoComparacion.value) return
   if (props.aristaResaltada.length === 0) return
   const ids = new Set(props.aristaResaltada)
   layerAristas.eachLayer((layer: any) => {
@@ -436,7 +643,6 @@ function resaltarAristas() {
   })
 }
 
-/** Muestra u oculta las capas de contexto sin tocar la ruta activa. */
 function aplicarVisibilidadCapas() {
   if (!mapa) return
   const capas: [any, boolean][] = [
@@ -454,6 +660,13 @@ function aplicarVisibilidadCapas() {
 }
 
 watch(() => props.rutaResaltada, () => { void aplicarRuta() }, { deep: true })
+watch(() => props.rutasComparacion, () => { void aplicarRuta() }, { deep: true })
+watch(() => props.algoritmoEnfocado, () => {
+  if (modoComparacion.value && capasComparacion.length) {
+    traerRutaEnfocadaAlFrente()
+  }
+  void aplicarRuta()
+})
 watch(() => props.aristaResaltada, () => {
   resaltarAristas()
   void aplicarRuta()
@@ -471,6 +684,13 @@ watch(() => props.modoSeleccion, () => {
 })
 watch(() => props.mostrarRedVial, aplicarVisibilidadCapas)
 watch(() => props.mostrarNodos, aplicarVisibilidadCapas)
+watch(() => props.horaSalida, () => {
+  void cargarDatos()
+})
+watch(() => props.congestionMl, () => {
+  aplicarCongestionMlEnCapa()
+  resaltarAristas()
+}, { deep: true })
 
 onMounted(() => {
   nextTick(() => inicializarMapa())
@@ -482,6 +702,8 @@ onUnmounted(() => {
     mapa = null
   }
 })
+
+defineExpose({ recargarDatos: cargarDatos })
 </script>
 
 <template>
@@ -492,16 +714,41 @@ onUnmounted(() => {
     <div v-if="cargando" class="mapa-osm-overlay">Cargando red vial OpenStreetMap...</div>
     <div v-else-if="error" class="mapa-osm-overlay mapa-osm-error">Error: {{ error }}</div>
     <div v-if="modoSeleccion && !cargando && !error" class="mapa-osm-pick-hint">
-      Haz clic en un nodo para fijar {{ modoSeleccion === 'origen' ? 'el origen' : 'el destino' }}
+      Clic en mapa o vía → nodo más cercano ({{ modoSeleccion === 'origen' ? 'origen' : 'destino' }})
     </div>
     <div ref="containerRef" class="mapa-osm-canvas" />
+    <div
+      v-if="modoComparacion"
+      class="mapa-osm-leyenda-rutas"
+      role="region"
+      aria-label="Leyenda de algoritmos"
+    >
+      <p class="mapa-osm-leyenda-titulo">Rutas por algoritmo</p>
+      <ul class="mapa-osm-leyenda-lista">
+        <li
+          v-for="ruta in rutasComparacion"
+          :key="ruta.algoritmo"
+        >
+          <button
+            type="button"
+            class="mapa-osm-leyenda-boton"
+            :class="{ 'mapa-osm-leyenda-item--enfocado': algoritmoEnfocado === ruta.algoritmo }"
+            :aria-pressed="algoritmoEnfocado === ruta.algoritmo"
+            @click="emit('toggle-algoritmo-enfocado', ruta.algoritmo)"
+          >
+            <span class="mapa-osm-leyenda-muestra" :style="{ backgroundColor: ruta.color }" aria-hidden="true" />
+            {{ ruta.etiqueta }}
+          </button>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .tx-graph-container {
-  height: calc(100vh - 12rem);
-  min-height: 500px;
+  height: clamp(360px, 52vh, 540px);
+  min-height: 360px;
   width: 100%;
   position: relative;
   overflow: hidden;
@@ -535,12 +782,121 @@ onUnmounted(() => {
   color: var(--text-secondary, #5c5645);
 }
 
+.mapa-osm-overlay--sutil {
+  top: auto;
+  bottom: 3.5rem;
+  font-size: 0.75rem;
+  opacity: 0.92;
+}
+
 .mapa-osm-error {
   color: var(--status-error, #ef4444);
 }
 
+.mapa-osm-aviso-zoom,
+.mapa-osm-aviso-truncado {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 450;
+  max-width: min(22rem, calc(100% - 2rem));
+  padding: 0.65rem 1rem;
+  border: 1px dashed var(--border-color, #27272a);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-surface-glass, rgba(9, 9, 11, 0.88));
+  color: var(--text-secondary, #a1a1aa);
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.mapa-osm-aviso-truncado {
+  top: auto;
+  bottom: 5rem;
+  transform: translateX(-50%);
+  font-size: 0.78rem;
+}
+
 .mapa-osm-pick :deep(.leaflet-container) {
   cursor: crosshair;
+}
+
+.mapa-osm-leyenda-rutas {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 600;
+  max-width: min(16rem, calc(100% - 2rem));
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border-color, #27272a);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-surface-glass, rgba(9, 9, 11, 0.9));
+  color: var(--text-secondary, #a1a1aa);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+}
+
+.mapa-osm-leyenda-titulo {
+  margin: 0 0 0.45rem;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary, #71717a);
+}
+
+.mapa-osm-leyenda-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mapa-osm-leyenda-lista li {
+  list-style: none;
+}
+
+.mapa-osm-leyenda-boton {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  border: none;
+  padding: 0.2rem 0.25rem;
+  margin: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-primary, #fafafa);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.mapa-osm-leyenda-boton:hover {
+  background: var(--bg-surface-hover, rgba(255, 255, 255, 0.08));
+}
+
+.mapa-osm-leyenda-boton:focus-visible {
+  outline: 2px solid var(--border-focus, #fbbf24);
+  outline-offset: 2px;
+}
+
+.mapa-osm-leyenda-item--enfocado {
+  font-weight: 600;
+}
+
+.mapa-osm-leyenda-muestra {
+  width: 1.1rem;
+  height: 0.35rem;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px #09090b;
+  flex-shrink: 0;
 }
 
 .mapa-osm-pick-hint {

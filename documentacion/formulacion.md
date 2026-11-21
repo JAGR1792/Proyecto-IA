@@ -30,7 +30,7 @@ Diseñar e implementar un sistema inteligente para la planificación de rutas de
 |-------|----------|------------|
 | **Corte 1** | Formular el problema, modelar el PEAS, construir el grafo de red y un agente funcional (percepción→decisión→acción) | Modelo PEAS, diagrama de red (6 nodos), dataset inicial, endpoints API `/agente/paso` |
 | **Corte 2** | Implementar algoritmos de búsqueda (BFS, DFS, UCS, Voraz, A*) y heurísticas (Euclidiana, Manhattan, tiempo) | Módulo `busqueda/`, endpoint `/busqueda/buscar`, comparador de algoritmos |
-| **Corte 3** | Incorporar machine learning para predicción de demanda y congestión | Modelos ML, notebooks, análisis de movilidad |
+| **Corte 3** | Incorporar machine learning para predicción de demanda y congestión | Modelos ML, notebooks, análisis de movilidad (clasificación Persona 2: ver `clasificacion_congestion.md`) |
 
 ---
 

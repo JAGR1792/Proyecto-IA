@@ -1,9 +1,12 @@
 #!/usr/bin/env python
-"""Script para generar dataset de red vial para taxis en Chapinero.
+"""Script para generar dataset de red vial (OSM offline o sintético PDF).
 
 Uso:
-    python generar_dataset.py --osm       # Descarga red vial OpenStreetMap (OSMnx)
-    python generar_dataset.py --sintetico # Dataset 6 nodos ejemplo PDF
+    python generar_dataset.py --osm
+        # Zona Chapinero (~1,2 km USAB), guardada en backend/datos/
+    python generar_dataset.py --osm --modo mosaico
+        # Mantenimiento: mosaico urbano Bogotá (no usado por defecto en el dashboard)
+    python generar_dataset.py --sintetico
 """
 
 import argparse
@@ -17,16 +20,27 @@ from grafo.repositorio import ExcepcionRepositorio, RepositorioGrafo
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generar dataset de taxis (Chapinero)")
+    parser = argparse.ArgumentParser(description="Generar dataset de red vial (OSM o sintético)")
     parser.add_argument(
         "--osm", action="store_true", help="Descargar red vial desde OpenStreetMap (OSMnx)"
     )
     parser.add_argument(
         "--lugar",
         default="Universidad Sergio Arboleda, Bogotá, Colombia",
-        help="Lugar para OSM (geocodificación)",
+        help="Lugar OSM: ciudad/admin (modo place) o centro del radio (modo point)",
     )
-    parser.add_argument("--radio", type=int, default=1500, help="Radio en metros para descarga OSM")
+    parser.add_argument(
+        "--modo",
+        choices=("mosaico", "place", "point"),
+        default="point",
+        help="point=radio Chapinero (default); mosaico=9 discos Bogotá; place=graph_from_place",
+    )
+    parser.add_argument(
+        "--radio",
+        type=int,
+        default=1200,
+        help="Radio en metros por tile (modo mosaico) o alrededor del punto (modo point)",
+    )
     parser.add_argument(
         "--tipo-red", default="drive", help="Tipo de red OSM: drive, walk, bike, all"
     )
@@ -43,12 +57,19 @@ def main():
 
     try:
         if args.osm:
-            print(">>> GENERANDO DATASET OPENSTREETMAP (OSMnx) <<<")
-            print(f"Lugar: {args.lugar} | Radio: {args.radio}m | Red: {args.tipo_red}")
+            print(">>> GENERANDO DATASET OPENSTREETMAP (OSMnx) — OFFLINE <<<")
+            print(f"Lugar: {args.lugar} | Modo: {args.modo} | Red: {args.tipo_red}")
+            if args.modo == "point":
+                print(f"Radio: {args.radio} m")
+            elif args.modo == "mosaico":
+                print(f"Radio por tile: {args.radio} m (9 centros urbanos)")
+            else:
+                print("Radio: N/A (graph_from_place; fallback a mosaico si Overpass falla)")
             grafo = repo.generar_dataset_osm(
                 lugar=args.lugar,
                 radio_metros=args.radio,
                 tipo_red=args.tipo_red,
+                modo=args.modo,
             )
         else:
             print(">>> GENERANDO DATASET SINTÉTICO (6 NODOS EJEMPLO PDF) <<<")

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
+import { onMounted, onUnmounted, ref, watch, nextTick, computed } from 'vue'
+import type { RutaAlgoritmo } from '@/utils/busqueda'
 import cytoscape from 'cytoscape'
 import coseBilkent from 'cytoscape-cose-bilkent'
 import dagre from 'cytoscape-dagre'
@@ -33,6 +34,8 @@ interface Props {
   aristas: AristaGrafo[]
   rutaResaltada?: string[]  // IDs de nodos en la ruta
   aristaResaltada?: string[]  // IDs de aristas en la ruta
+  rutasComparacion?: RutaAlgoritmo[]
+  algoritmoEnfocado?: string | null
   tema?: 'oscuro' | 'claro'  // Cambia estilos internos (Cytoscape no lee CSS vars)
   mostrarRedVial?: boolean  // Oculta las aristas de contexto
   mostrarNodos?: boolean  // Oculta los nodos de contexto
@@ -47,6 +50,8 @@ const props = withDefaults(defineProps<Props>(), {
   tema: 'oscuro',
   rutaResaltada: () => [],
   aristaResaltada: () => [],
+  rutasComparacion: () => [],
+  algoritmoEnfocado: null,
   mostrarRedVial: true,
   mostrarNodos: true,
 })
@@ -54,6 +59,12 @@ const emit = defineEmits<Emits>()
 
 const containerRef = ref<HTMLElement | null>(null)
 let cy: ReturnType<typeof cytoscape> | null = null
+
+const modoComparacion = computed(
+  () =>
+    (props.rutaResaltada?.length ?? 0) < 2 &&
+    (props.rutasComparacion?.length ?? 0) > 0,
+)
 
 function leerCssVariable(nombre: string, porDefecto: string): string {
   if (typeof document === 'undefined') return porDefecto
@@ -355,12 +366,76 @@ function ajustarVista() {
   }
 }
 
+function restablecerEstilosAristas() {
+  if (!cy) return
+  cy.edges().removeClass('en-ruta')
+  cy.edges().forEach((arista) => {
+    arista.removeStyle()
+  })
+}
+
+function opacidadRutaComparacion(algoritmo: string): number {
+  const enfocado = props.algoritmoEnfocado
+  if (!enfocado) return 1
+  return algoritmo === enfocado ? 1 : 0.35
+}
+
+function anchoRutaComparacion(algoritmo: string): number {
+  const enfocado = props.algoritmoEnfocado
+  if (!enfocado) return 5
+  return algoritmo === enfocado ? 6.5 : 3
+}
+
+function aplicarRutasComparacion() {
+  if (!cy) return
+  cy.nodes().removeClass('en-ruta origen destino')
+  restablecerEstilosAristas()
+
+  const rutas = props.rutasComparacion ?? []
+  if (!rutas.length) return
+
+  const nodosEnAlgunaRuta = new Set<string>()
+  for (const ruta of rutas) {
+    for (const aristaId of ruta.aristas) {
+      const edge = cy.getElementById(aristaId)
+      if (!edge.length) continue
+      edge.addClass('en-ruta')
+      edge.style({
+        'line-color': ruta.color,
+        'target-arrow-color': ruta.color,
+        width: anchoRutaComparacion(ruta.algoritmo),
+        opacity: opacidadRutaComparacion(ruta.algoritmo),
+        'z-index': ruta.algoritmo === props.algoritmoEnfocado ? 120 : 100,
+      })
+    }
+    for (const nodoId of ruta.camino) nodosEnAlgunaRuta.add(nodoId)
+  }
+
+  const referencia = rutas[0]
+  if (referencia?.camino.length) {
+    for (const [i, nodoId] of referencia.camino.entries()) {
+      const nodo = cy.getElementById(nodoId)
+      if (!nodo.length) continue
+      if (nodosEnAlgunaRuta.has(nodoId)) nodo.addClass('en-ruta')
+      if (i === 0) nodo.addClass('origen')
+      if (i === referencia.camino.length - 1) nodo.addClass('destino')
+    }
+  }
+
+  aplicarVisibilidadCapas()
+}
+
 function actualizarResaltados() {
   if (!cy) return
 
+  if (modoComparacion.value) {
+    aplicarRutasComparacion()
+    return
+  }
+
   // Limpiar clases anteriores
   cy.nodes().removeClass('en-ruta origen destino')
-  cy.edges().removeClass('en-ruta')
+  restablecerEstilosAristas()
 
   // Resaltar ruta de nodos
   if (props.rutaResaltada?.length) {
@@ -428,6 +503,8 @@ watch(() => props.tema, () => {
 })
 watch(() => props.rutaResaltada, actualizarResaltados, { deep: true })
 watch(() => props.aristaResaltada, actualizarResaltados, { deep: true })
+watch(() => props.rutasComparacion, actualizarResaltados, { deep: true })
+watch(() => props.algoritmoEnfocado, actualizarResaltados)
 watch(() => props.mostrarNodos, () => {
   aplicarVisibilidadCapas()
   ajustarVista()
