@@ -141,7 +141,7 @@ npm run preview
 >
 > ⚠️ No ejecutes `npm run build` con `npm run dev` activo: comparten el directorio de caché (`.nuxt`) y el dev server puede quedarse sin el proxy (la API respondería HTML). Si pasa, reinicia `npm run dev`.
 
-En el dashboard: panel **Clasificación ML** (métricas y matriz de confusión), red vial **precargada** (Bogotá OSM) y predicción de congestión al cambiar la hora de salida (fallback a perfil sintético si no hay modelo). Al abrir, el cliente solo pide **resumen + índice de nodos** y el mapa carga **GeoJSON por bbox** del viewport (ver ADR-031); el grafo completo permanece en memoria del backend para búsqueda.
+En el dashboard: pestaña **Análisis de movilidad** (EDA y regresión lineal), predicción de ruta con regresión (`/ml/ruta`), panel **Clasificación ML** (métricas y matriz de confusión), comparación multicolor de algoritmos y red vial precargada de **Chapinero 1 200 m** (888 nodos / 1 741 aristas). Al abrir, el cliente pide **resumen + índice de nodos** y el mapa carga el **GeoJSON completo** una sola vez (sin refetch en pan/zoom; ver ADR-033 y ADR-035).
 
 ---
 
@@ -228,7 +228,7 @@ Base: `/api/v1` · Documentación interactiva: `http://localhost:8000/docs`
 | Recurso | Método | Descripción |
 |---------|--------|-------------|
 | `/grafo/resumen` | GET | Totales y metadata del grafo en caché (sin geometría) |
-| `/grafo/nodos/indice` | GET | Lista compacta `{id, nombre, lat, lon}` + `total` (autocomplete) |
+| `/grafo/nodos/indice` | GET | Lista compacta `{id, nombre, lat, lon, tipo}` + `total` (autocomplete y selección) |
 | `/grafo/` | GET | Grafo completo; `hora_salida` opcional; `incluir_geometria=false` por defecto |
 | `/grafo/recargar` | POST | `desde_archivo=true` recarga `dataset_osm.json` (flujo del dashboard); descarga OSMnx solo con `modo=mosaico\|place\|point` sin `desde_archivo` (mantenimiento offline) |
 | `/grafo/estadisticas` | GET | Métricas de la red |
@@ -240,6 +240,7 @@ Base: `/api/v1` · Documentación interactiva: `http://localhost:8000/docs`
 | `/busqueda/buscar` | POST | Búsqueda de rutas (Voraz, UCS y A*) con criterio y tarifa de taxi opcional |
 | `/busqueda/comparar` | POST | Compara todos los algoritmos implementados sobre la misma ruta y liquida la tarifa por algoritmo |
 | `/busqueda/algoritmos` | GET | Algoritmos disponibles y estado de implementación |
+| `/ml/estado`, `/ml/predecir`, `/ml/ruta` | GET/POST | Estado, predicción de tiempo y ruta UCS con regresión lineal |
 | `/ml/clasificacion` | GET | Métricas Corte 3, matrices y flag `modelo_disponible` |
 | `/ml/clasificacion/predecir` | POST | Predicción por `hora_salida` (y opcional `arista_ids`) |
 | `/ml/clasificacion/reentrenar` | POST | Regenera CSV, JSON y modelo joblib del grafo actual |
@@ -316,4 +317,4 @@ Toda la documentación está en `documentacion/`:
 
 - **Corte 1 (hecho):** modelos de grafo, repositorio, datos OSM reales, módulo de agente, frontend con mapa/grafo, deploy en Vercel.
 - **Corte 2 (en curso):** motores **Voraz (greedy)**, **BFS**, **DFS**, **UCS** y **A\*** implementados y conectados al frontend; **comparador** (`POST /busqueda/comparar`), tabla comparativa en la UI, benchmark reproducible con escenarios base/cierre y agente que planifica con búsqueda. Incluye **tarifa oficial de taxi** (Decreto 042 de 2026) en la API y la UI, **mapa satelital** con capas Esri, **selección de origen/destino por clic** con nombres amigables de vías OSM y **congestión horaria sintética** por hora de salida. Ver [`documentacion/informe_corte2.md`](documentacion/informe_corte2.md), ADR-024 a ADR-026 en [`documentacion/decisiones.md`](documentacion/decisiones.md).
-- **Corte 3 (en curso):** clasificación supervisada de congestión (Persona 2): notebook, 5 modelos, API `/ml/clasificacion`, panel ML en el dashboard, **comparación multicolor** en mapa (ADR-029) y red precargada **Chapinero 2 500 m** (~3 161 nodos / ~6 665 aristas; ADR-032 revierte mosaico ciudad). Carga por viewport (ADR-031). Ver [`documentacion/clasificacion_congestion.md`](documentacion/clasificacion_congestion.md), ADR-027–032. Pendiente: regresión y agrupamiento (otras personas).
+- **Corte 3 (en curso):** clasificación supervisada de congestión (5 modelos, API `/ml/clasificacion`, panel ML y coloreado del mapa), regresión lineal de tiempos (`/ml/ruta`, vista EDA y análisis de movilidad), **comparación multicolor** en mapa (ADR-029), selección por nodo cercano (ADR-034) y red precargada **Chapinero 1 200 m** (888 nodos / 1 741 aristas; ADR-035). Ver [`documentacion/clasificacion_congestion.md`](documentacion/clasificacion_congestion.md) y ADR-027–035.

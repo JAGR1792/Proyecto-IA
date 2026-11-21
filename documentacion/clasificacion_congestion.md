@@ -15,10 +15,10 @@ Las vías `bloqueada` se excluyen del entrenamiento: son cierres explícitos, no
 
 ## Dataset compartido
 
-- **Fuente:** geometría OSM (`grafo_osm.json` / `dataset_osm.json`) × perfil horario sintético del Corte 2.
+- **Fuente:** geometría OSM (`grafo_osm.json` / `dataset_osm.json`, zona Chapinero 1 200 m: 888 nodos / 1 741 aristas) × perfil horario sintético del Corte 2.
 - **Archivo:** `backend/datos/ml/dataset_clasificacion_congestion.csv`
-- **Escala:** depende del grafo precargado. Regenerar el CSV tras cambiar `backend/datos/dataset_osm.json` (véase abajo).
-- **Distribución aproximada:** media 56 929 · baja 39 560 · alta 10 151.
+- **Escala:** 27 856 filas (1 741 aristas × 16 horas de muestreo). Regenerar el CSV si cambia `backend/datos/dataset_osm.json` (véase abajo).
+- **Distribución exacta:** media 14 772 · baja 10 183 · alta 2 901.
 - **Features:** hora, intensidad del perfil, distancia, tiempo/velocidad base, carriles, sentido, incidentes, peso y tipo de vía.
 - **Target:** `congestion`.
 
@@ -36,11 +36,11 @@ Hold-out estratificado 75/25, semilla 42. Métricas en `backend/datos/ml/metrica
 
 | Modelo | Accuracy | F1 macro |
 |--------|----------|----------|
-| Gradient Boosting | 0.939 | 0.906 |
-| SVM lineal | 0.933 | 0.903 |
-| KNN (k=7) | 0.928 | 0.891 |
-| Random Forest | 0.918 | 0.885 |
-| Regresión logística | 0.917 | 0.885 |
+| Gradient Boosting | 0.938 | 0.909 |
+| SVM lineal | 0.928 | 0.901 |
+| Random Forest | 0.920 | 0.891 |
+| KNN (k=7) | 0.916 | 0.885 |
+| Regresión logística | 0.913 | 0.883 |
 
 **Mejor modelo (F1 macro):** Gradient Boosting.
 

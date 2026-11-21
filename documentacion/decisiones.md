@@ -877,3 +877,35 @@ Tras el rework (sidebar sticky + `tx-map-stage` sticky + deck analítico), el us
 - ✅ Scroll predecible; mapa solo captura rueda dentro del lienzo Leaflet.
 - ✅ Origen/destino sin marcar todos los nodos en pantalla.
 - ⚠️ Snap lineal ~3k nodos no escala a ciudad completa sin ADR futuro.
+
+---
+
+## ADR-035 — Retorno a Chapinero 1 200 m, corrección de consistencia GeoJSON/frontend e integración con regresión lineal
+
+**Fecha:** 2026-11-20  
+**Estado:** Aceptado
+
+### Contexto
+Tras la rama experimental de expansión a 2 500 m / mosaico urbano y su integración con la rama principal (que ya incluye EDA y regresión lineal entrenada sobre la auditoría Bitcarrier+OSM de 1 741 aristas), se detectaron tres regresiones reales de consistencia y compatibilidad:
+
+1. **Truncamiento silencioso del mapa:** `rutas_mapa.py` aplicaba `LIMITE_FEATURES_GEOJSON = 4000` incluso en peticiones sin `bbox`, cortando el 40 % de las aristas de 2 500 m (2 665/6 665) y dejando 581 nodos desconectados visualmente.
+2. **Desalineación con regresión lineal y límite de Vercel:** el payload GeoJSON completo de 2 500 m pesa ~4.13 MB (muy cerca del límite de 4.5 MB de Vercel Serverless Functions), las 4 924 aristas adicionales no están en el dataset operativo auditado, y Cytoscape (`cose-bilkent`) se degrada por encima de 3 000 nodos.
+3. **Atributos descartados en el frontend y recarga innecesaria:** `MapaOSM.vue` y `app.vue` reemplazaban `distancia`, `tiempo_estimado` y `disponible` por `0`/`true`, `/grafo/nodos/indice` omitía `tipo`, y `onMounted` disparaba `POST /grafo/recargar` en cada carga.
+
+### Decisión
+- **Dataset activo (`backend/datos/`):** conservar el grafo OSM de **Chapinero 1 200 m** (**888 nodos**, **1 741 aristas**) de `main` y alinear el radio por defecto a `1200` en `generar_dataset.py`, `RepositorioGrafo.generar_dataset_osm()` y `POST /grafo/recargar`.
+- **Clasificación ML:** reentrenar `scripts/generar_dataset_clasificacion.py` sobre las 1 741 aristas (`27 856` filas; Gradient Boosting accuracy `93.8 %`, F1 macro `0.909`).
+- **Consistencia de API (`rutas_mapa.py`, `rutas_grafo.py`, `main.py`):**
+  - Aplicar `LIMITE_FEATURES_GEOJSON` únicamente cuando hay `bbox` activo o `limite` explícito; sin `bbox` el mapa recibe el grafo completo.
+  - Agregar `GZipMiddleware` (`minimum_size=1000`) en FastAPI.
+  - Exponer `tipo` en `/grafo/nodos/indice`.
+  - Unificar en `rutas_ml.py` los endpoints de regresión (`/estado`, `/predecir`, `/ruta`) y clasificación (`/clasificacion`, `/clasificacion/predecir`, `/clasificacion/reentrenar`).
+- **Frontend (`grafo.ts`, `MapaOSM.vue`, `app.vue`):**
+  - Propagar `distancia`, `tiempo_estimado` y `disponible` reales en `aristas-visibles` y `arista-click`, y `tipo` en nodos del índice.
+  - Reservar `POST /grafo/recargar?desde_archivo=true` exclusivamente para el botón «Actualizar Grafo» (sin recargar en `onMounted`).
+  - Integrar en `app.vue` la pestaña «Análisis de movilidad» (`AnalisisMovilidad.vue`), el panel de ruta con regresión lineal, el fallback de Voraz a UCS, la comparación multicolor y el panel de clasificación ML.
+
+### Consecuencias
+- ✅ 100 % de las 1 741 aristas y 888 nodos coinciden con la auditoría Bitcarrier+OSM de regresión y con los informes de los Cortes 1 y 2.
+- ✅ Payload de `/mapa/geojson/aristas` baja a ~1.08 MB sin compresión (amplio margen bajo 4.5 MB en Vercel) y ambas vistas (Leaflet y Cytoscape) responden con fluidez.
+- ✅ Para escalar a más nodos en el futuro (>888): usar `GZipMiddleware` + GeoJSON simplificado o tiles vectoriales, activar recorte por viewport en el cliente cuando el grafo supere ~2 000 aristas, limitar `GraphView` al subgrafo de la ruta y ampliar la auditoría Bitcarrier+OSM al radio mayor.
