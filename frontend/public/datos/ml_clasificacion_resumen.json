@@ -1,0 +1,173 @@
+{
+  "resumen_dataset": {
+    "filas": 27856,
+    "columnas": 15,
+    "clases": {
+      "media": 14772,
+      "baja": 10183,
+      "alta": 2901
+    },
+    "horas_unicas": 16,
+    "aristas_unicas": 1741
+  },
+  "mejor_modelo": "Gradient Boosting",
+  "metricas": [
+    {
+      "modelo": "Gradient Boosting",
+      "accuracy": 0.9379666858127513,
+      "precision_macro": 0.9134620257821083,
+      "recall_macro": 0.9058461308845267,
+      "f1_macro": 0.909378220784768
+    },
+    {
+      "modelo": "SVM lineal",
+      "accuracy": 0.9279149913842619,
+      "precision_macro": 0.8839795496498547,
+      "recall_macro": 0.9232029752375458,
+      "f1_macro": 0.9008039870277497
+    },
+    {
+      "modelo": "Random Forest",
+      "accuracy": 0.919586444572085,
+      "precision_macro": 0.8647612563224181,
+      "recall_macro": 0.93538605849829,
+      "f1_macro": 0.89083156154013
+    },
+    {
+      "modelo": "KNN (k=7)",
+      "accuracy": 0.9164273406088455,
+      "precision_macro": 0.8831003115326826,
+      "recall_macro": 0.8871763293200443,
+      "f1_macro": 0.8850630344309672
+    },
+    {
+      "modelo": "Regresión logística",
+      "accuracy": 0.9125502584721424,
+      "precision_macro": 0.8545090499651585,
+      "recall_macro": 0.9412175949824461,
+      "f1_macro": 0.8827303923036155
+    }
+  ],
+  "matrices_confusion": {
+    "Regresión logística": {
+      "matriz": [
+        [
+          2534,
+          12,
+          0
+        ],
+        [
+          178,
+          3105,
+          410
+        ],
+        [
+          0,
+          9,
+          716
+        ]
+      ],
+      "clases": [
+        "baja",
+        "media",
+        "alta"
+      ]
+    },
+    "Random Forest": {
+      "matriz": [
+        [
+          2509,
+          37,
+          0
+        ],
+        [
+          155,
+          3204,
+          334
+        ],
+        [
+          0,
+          34,
+          691
+        ]
+      ],
+      "clases": [
+        "baja",
+        "media",
+        "alta"
+      ]
+    },
+    "Gradient Boosting": {
+      "matriz": [
+        [
+          2498,
+          48,
+          0
+        ],
+        [
+          132,
+          3453,
+          108
+        ],
+        [
+          0,
+          144,
+          581
+        ]
+      ],
+      "clases": [
+        "baja",
+        "media",
+        "alta"
+      ]
+    },
+    "KNN (k=7)": {
+      "matriz": [
+        [
+          2390,
+          153,
+          3
+        ],
+        [
+          116,
+          3413,
+          164
+        ],
+        [
+          0,
+          146,
+          579
+        ]
+      ],
+      "clases": [
+        "baja",
+        "media",
+        "alta"
+      ]
+    },
+    "SVM lineal": {
+      "matriz": [
+        [
+          2535,
+          11,
+          0
+        ],
+        [
+          195,
+          3286,
+          212
+        ],
+        [
+          0,
+          84,
+          641
+        ]
+      ],
+      "clases": [
+        "baja",
+        "media",
+        "alta"
+      ]
+    }
+  }
+}

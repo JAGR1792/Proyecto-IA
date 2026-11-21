@@ -56,7 +56,7 @@ Matriz de confusión del mejor modelo (hold-out 25 %): ver `backend/datos/ml/met
 | POST | `/api/v1/grafo/recargar?desde_archivo=true` | Recarga `dataset_osm.json` del disco (uso dashboard) |
 | POST | `/api/v1/grafo/recargar?usar_sintetico=false&modo=place` | Descarga OSM en vivo (offline preferido: `generar_dataset.py`) |
 
-El panel **Clasificación ML** en el dashboard consume GET métricas y POST predecir; si falla la predicción, el mapa conserva congestión sintética por hora (ADR-028).
+El panel **Clasificación ML** en el dashboard de rutas y el módulo **03 · Clasificación** dentro de **Análisis de movilidad** (`VistaClasificacion.vue`) consumen GET métricas (`ml_clasificacion_resumen.json` como respaldo estático) y POST predecir; si falla la predicción, el mapa conserva congestión sintética por hora (ADR-028 y ADR-036).
 
 ## Entregables
 
@@ -68,6 +68,8 @@ El panel **Clasificación ML** en el dashboard consume GET métricas y POST pred
 | Dataset CSV | `backend/datos/ml/dataset_clasificacion_congestion.csv` |
 | Métricas JSON | `backend/datos/ml/metricas_clasificacion.json` |
 | Router API | `backend/src/api/rutas_ml.py` |
+| Vista Centro de Análisis | `frontend/app/components/analisis/VistaClasificacion.vue` |
+| Respaldo estático frontend | `frontend/public/datos/ml_clasificacion_resumen.json` |
 | Tests | `backend/tests/test_ml/` |
 
 ## Limitaciones

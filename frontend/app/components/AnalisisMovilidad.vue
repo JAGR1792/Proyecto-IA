@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import VistaClasificacion from './analisis/VistaClasificacion.vue'
 import VistaEDA from './analisis/VistaEDA.vue'
 import VistaRegresion from './analisis/VistaRegresion.vue'
 
@@ -8,7 +9,7 @@ const activo = ref<Modulo>('eda')
 const modulos: { id: Modulo; numero: string; titulo: string; descripcion: string; disponible: boolean }[] = [
   { id: 'eda', numero: '01', titulo: 'Análisis exploratorio', descripcion: 'Datos y movilidad', disponible: true },
   { id: 'regresion', numero: '02', titulo: 'Regresión lineal', descripcion: 'Predicción de tiempos', disponible: true },
-  { id: 'clasificacion', numero: '03', titulo: 'Clasificación', descripcion: 'Niveles de congestión', disponible: false },
+  { id: 'clasificacion', numero: '03', titulo: 'Clasificación', descripcion: 'Niveles de congestión', disponible: true },
   { id: 'agrupamiento', numero: '04', titulo: 'Agrupamiento', descripcion: 'Patrones de movilidad', disponible: false },
 ]
 const actual = computed(() => modulos.find(m => m.id === activo.value)!)
@@ -42,11 +43,12 @@ v-for="modulo in modulos" :key="modulo.id" type="button"
         <div class="txml-breadcrumb">CENTRO DE ANÁLISIS <span>/</span> {{ actual.titulo.toUpperCase() }}</div>
         <VistaEDA v-if="activo === 'eda'" />
         <VistaRegresion v-else-if="activo === 'regresion'" />
+        <VistaClasificacion v-else-if="activo === 'clasificacion'" />
         <section v-else class="txml-placeholder" aria-live="polite">
           <div class="txml-placeholder-icon">{{ actual.numero }}</div>
           <p class="txml-eyebrow">MÓDULO RESERVADO</p>
           <h3>{{ actual.titulo }}</h3>
-          <p>{{ activo === 'clasificacion' ? 'Este módulo mostrará la distribución de clases, matriz de confusión y métricas de evaluación cuando el modelo de clasificación esté listo.' : 'Este módulo mostrará los grupos encontrados, sus perfiles de movilidad y las métricas de agrupamiento cuando el modelo esté listo.' }}</p>
+          <p>Este módulo mostrará los grupos encontrados, sus perfiles de movilidad y las métricas de agrupamiento cuando el modelo esté listo.</p>
           <p class="txml-placeholder-note">Sin resultados cargados. No se muestran métricas de ejemplo.</p>
         </section>
       </main>

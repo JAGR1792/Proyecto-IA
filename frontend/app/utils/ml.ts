@@ -10,6 +10,7 @@ export type FilaMetricaMl = {
 
 export type MetricasMl = {
   mejor_modelo: string
+  modelo_disponible?: boolean
   metricas: FilaMetricaMl[]
   matrices_confusion: Record<string, { matriz: number[][]; clases: string[] }>
   resumen_dataset: {
