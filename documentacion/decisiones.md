@@ -903,7 +903,7 @@ Tras la rama experimental de expansión a 2 500 m / mosaico urbano y su integrac
 - **Frontend (`grafo.ts`, `MapaOSM.vue`, `app.vue`):**
   - Propagar `distancia`, `tiempo_estimado` y `disponible` reales en `aristas-visibles` y `arista-click`, y `tipo` en nodos del índice.
   - Reservar `POST /grafo/recargar?desde_archivo=true` exclusivamente para el botón «Actualizar Grafo» (sin recargar en `onMounted`).
-  - Integrar en `app.vue` la pestaña «Análisis de movilidad» (`AnalisisMovilidad.vue`), el panel de ruta con regresión lineal, el fallback de Voraz a UCS, la comparación multicolor y el panel de clasificación ML.
+  - Integrar en `app.vue` la pestaña «Análisis de movilidad» (`AnalisisMovilidad.vue`), el panel de ruta con regresión lineal, el fallback de Voraz a UCS, la comparación multicolor y el panel de clasificación ML, restaurando los manejadores `seleccionarFilaComparacion` y `toggleEnfoqueAlgoritmo` junto con `@click.stop` y el estilo visual de `.mapa-osm-leyenda-item--enfocado` en `MapaOSM.vue`.
 
 ### Consecuencias
 - ✅ 100 % de las 1 741 aristas y 888 nodos coinciden con la auditoría Bitcarrier+OSM de regresión y con los informes de los Cortes 1 y 2.

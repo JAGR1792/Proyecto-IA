@@ -743,7 +743,7 @@ defineExpose({ recargarDatos: cargarDatos })
             class="mapa-osm-leyenda-boton"
             :class="{ 'mapa-osm-leyenda-item--enfocado': algoritmoEnfocado === ruta.algoritmo }"
             :aria-pressed="algoritmoEnfocado === ruta.algoritmo"
-            @click="emit('toggle-algoritmo-enfocado', ruta.algoritmo)"
+            @click.stop="emit('toggle-algoritmo-enfocado', ruta.algoritmo)"
           >
             <span class="mapa-osm-leyenda-muestra" :style="{ backgroundColor: ruta.color }" aria-hidden="true" />
             {{ ruta.etiqueta }}
@@ -898,6 +898,8 @@ defineExpose({ recargarDatos: cargarDatos })
 
 .mapa-osm-leyenda-item--enfocado {
   font-weight: 600;
+  background: var(--bg-surface-active, rgba(251, 191, 36, 0.16));
+  color: var(--accent-brand, #fbbf24);
 }
 
 .mapa-osm-leyenda-muestra {
