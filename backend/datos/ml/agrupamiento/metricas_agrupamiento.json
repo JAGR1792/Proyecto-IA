@@ -1,0 +1,582 @@
+{
+  "schema_version": 1,
+  "algoritmo": "K-Means (k-means++, n_init=20) sobre features estandarizadas",
+  "fecha_generacion": "2026-11-21T12:52:51",
+  "k": 6,
+  "justificacion_k": [
+    "k = 6 fijado manualmente."
+  ],
+  "features": [
+    {
+      "nombre": "velocidad_media_kmh",
+      "descripcion": "Velocidad promedio de la arista en las 168 horas de la semana."
+    },
+    {
+      "nombre": "caida_hora_pico",
+      "descripcion": "1 − (velocidad en la peor hora pico laboral / velocidad nocturna)."
+    },
+    {
+      "nombre": "log_intermediacion",
+      "descripcion": "log(1 + 1000·betweenness) ponderado por tiempo: cuántas rutas más rápidas pasan por la arista."
+    },
+    {
+      "nombre": "carriles",
+      "descripcion": "Número de carriles OSM (imputado con la mediana del tipo de vía)."
+    },
+    {
+      "nombre": "log_distancia",
+      "descripcion": "Logaritmo de la longitud de la arista en metros."
+    },
+    {
+      "nombre": "grado_medio",
+      "descripcion": "Grado promedio (entradas + salidas) de los dos nodos extremos."
+    }
+  ],
+  "metricas": {
+    "silueta": 0.26597753590778295,
+    "davies_bouldin": 1.1279322027653989,
+    "calinski_harabasz": 416.8702993516751,
+    "inercia": 4745.274749224979,
+    "estabilidad_ari": 0.9923017296563711,
+    "varianza_pca_2d": 0.4483161346134271
+  },
+  "evaluacion_k": [
+    {
+      "k": 2,
+      "inercia": 8631.20594,
+      "silueta": 0.3218,
+      "davies_bouldin": 1.50407,
+      "calinski_harabasz": 365.64147,
+      "estabilidad_ari": 0.978,
+      "grupo_minimo_pct": 16.59966,
+      "codo_kneedle": 0.0
+    },
+    {
+      "k": 3,
+      "inercia": 7391.8447,
+      "silueta": 0.20038,
+      "davies_bouldin": 1.62077,
+      "calinski_harabasz": 359.05259,
+      "estabilidad_ari": 0.98122,
+      "grupo_minimo_pct": 15.96783,
+      "codo_kneedle": 0.10661
+    },
+    {
+      "k": 4,
+      "inercia": 6278.73923,
+      "silueta": 0.22717,
+      "davies_bouldin": 1.34419,
+      "calinski_harabasz": 384.29794,
+      "estabilidad_ari": 0.98324,
+      "grupo_minimo_pct": 2.87191,
+      "codo_kneedle": 0.18963
+    },
+    {
+      "k": 5,
+      "inercia": 5447.52728,
+      "silueta": 0.25138,
+      "davies_bouldin": 1.23337,
+      "calinski_harabasz": 398.22419,
+      "estabilidad_ari": 0.83318,
+      "grupo_minimo_pct": 2.87191,
+      "codo_kneedle": 0.21997
+    },
+    {
+      "k": 6,
+      "inercia": 4745.27475,
+      "silueta": 0.26598,
+      "davies_bouldin": 1.12793,
+      "calinski_harabasz": 416.8703,
+      "estabilidad_ari": 0.9923,
+      "grupo_minimo_pct": 2.87191,
+      "codo_kneedle": 0.22621
+    },
+    {
+      "k": 7,
+      "inercia": 4232.6516,
+      "silueta": 0.27695,
+      "davies_bouldin": 1.10891,
+      "calinski_harabasz": 424.23943,
+      "estabilidad_ari": 0.85373,
+      "grupo_minimo_pct": 2.58472,
+      "codo_kneedle": 0.19701
+    },
+    {
+      "k": 8,
+      "inercia": 3780.71464,
+      "silueta": 0.29118,
+      "davies_bouldin": 1.03873,
+      "calinski_harabasz": 436.46289,
+      "estabilidad_ari": 0.85278,
+      "grupo_minimo_pct": 0.86157,
+      "codo_kneedle": 0.15647
+    },
+    {
+      "k": 9,
+      "inercia": 3466.55397,
+      "silueta": 0.30242,
+      "davies_bouldin": 1.03929,
+      "calinski_harabasz": 435.894,
+      "estabilidad_ari": 0.78366,
+      "grupo_minimo_pct": 0.86157,
+      "codo_kneedle": 0.09018
+    },
+    {
+      "k": 10,
+      "inercia": 3280.21667,
+      "silueta": 0.26889,
+      "davies_bouldin": 1.07976,
+      "calinski_harabasz": 420.16096,
+      "estabilidad_ari": 0.73947,
+      "grupo_minimo_pct": 0.86157,
+      "codo_kneedle": 0.0
+    }
+  ],
+  "grupos": [
+    {
+      "cluster": 0,
+      "nombre": "Corredores rápidos",
+      "descripcion": "Avenidas y troncales con las velocidades más altas durante todo el día.",
+      "aristas": 246,
+      "porcentaje": 14.129810453762206,
+      "silueta_media": 0.15445394305965546,
+      "perfil": {
+        "velocidad_media_kmh": 50.16969,
+        "caida_hora_pico": 0.42889,
+        "log_intermediacion": 2.50583,
+        "carriles": 2.43089,
+        "log_distancia": 4.24411,
+        "grado_medio": 3.73984,
+        "intermediacion": 0.01922,
+        "distancia_m": 87.21833,
+        "vel_pico_am_kmh": 42.00232,
+        "vel_valle_kmh": 40.52283,
+        "vel_pico_pm_kmh": 36.39485,
+        "vel_noche_kmh": 63.7507,
+        "vel_fin_semana_kmh": 53.93785,
+        "variabilidad_horaria": 0.23839
+      },
+      "tipos_via": {
+        "primaria": 24,
+        "secundaria": 108,
+        "terciaria": 90,
+        "troncal": 24
+      },
+      "congestion": {
+        "alta": 0.2728658536585366,
+        "baja": 0.2863313008130081,
+        "media": 0.4408028455284553
+      },
+      "regresion": {
+        "mae_s": 3.0517842814894744,
+        "mae_relativo_pct": 44.41721837344062,
+        "registros": 7224
+      },
+      "espacial": {
+        "cluster": 0,
+        "centroide": {
+          "latitud": 4.661875115650407,
+          "longitud": -74.06026128617886
+        },
+        "distancia_al_centro_zona_m": 100.19402971432514,
+        "dispersion_media_m": 905.8509620012172,
+        "longitud_total_km": 21.455708577870045,
+        "vias_principales": [
+          {
+            "nombre": "Avenida Carrera 24",
+            "metros": 2574.3
+          },
+          {
+            "nombre": "Avenida Carrera 7",
+            "metros": 1767.1
+          },
+          {
+            "nombre": "Avenida Calle 80",
+            "metros": 1687.1
+          },
+          {
+            "nombre": "Avenida Calle 72",
+            "metros": 1541.9
+          },
+          {
+            "nombre": "Carrera 4",
+            "metros": 1303.2
+          }
+        ]
+      }
+    },
+    {
+      "cluster": 1,
+      "nombre": "Tramos cortos de intersección",
+      "descripcion": "Segmentos muy cortos que conectan cruces, glorietas y accesos.",
+      "aristas": 194,
+      "porcentaje": 11.143021252153934,
+      "silueta_media": 0.22020446194429907,
+      "perfil": {
+        "velocidad_media_kmh": 33.2321,
+        "caida_hora_pico": 0.43505,
+        "log_intermediacion": 1.83205,
+        "carriles": 1.86598,
+        "log_distancia": 2.60731,
+        "grado_medio": 3.84536,
+        "intermediacion": 0.01088,
+        "distancia_m": 15.41862,
+        "vel_pico_am_kmh": 27.76311,
+        "vel_valle_kmh": 26.7189,
+        "vel_pico_pm_kmh": 23.98067,
+        "vel_noche_kmh": 42.44525,
+        "vel_fin_semana_kmh": 35.72412,
+        "variabilidad_horaria": 0.24264
+      },
+      "tipos_via": {
+        "otro": 10,
+        "primaria": 2,
+        "residencial": 116,
+        "secundaria": 21,
+        "terciaria": 45
+      },
+      "congestion": {
+        "alta": 0.08247422680412371,
+        "baja": 0.37242268041237114,
+        "media": 0.5451030927835051
+      },
+      "regresion": {
+        "mae_s": 0.9327707227761382,
+        "mae_relativo_pct": 54.750506735037426,
+        "registros": 6048
+      },
+      "espacial": {
+        "cluster": 1,
+        "centroide": {
+          "latitud": 4.661382371907217,
+          "longitud": -74.05764190386599
+        },
+        "distancia_al_centro_zona_m": 386.8761765054556,
+        "dispersion_media_m": 932.9078145175581,
+        "longitud_total_km": 2.991213030756821,
+        "vias_principales": [
+          {
+            "nombre": "Calle 70",
+            "metros": 144.6
+          },
+          {
+            "nombre": "Calle 72",
+            "metros": 144.5
+          },
+          {
+            "nombre": "Carrera 10",
+            "metros": 132.6
+          },
+          {
+            "nombre": "Calle 74",
+            "metros": 99.5
+          },
+          {
+            "nombre": "Calle 75",
+            "metros": 88.2
+          }
+        ]
+      }
+    },
+    {
+      "cluster": 2,
+      "nombre": "Vías residenciales internas",
+      "descripcion": "Calles de barrio que casi ninguna ruta usa como paso.",
+      "aristas": 551,
+      "porcentaje": 31.648477886272257,
+      "silueta_media": 0.32387059471674284,
+      "perfil": {
+        "velocidad_media_kmh": 31.34515,
+        "caida_hora_pico": 0.43493,
+        "log_intermediacion": 0.94836,
+        "carriles": 1.92015,
+        "log_distancia": 4.50214,
+        "grado_medio": 3.91652,
+        "intermediacion": 0.00206,
+        "distancia_m": 100.79979,
+        "vel_pico_am_kmh": 26.18591,
+        "vel_valle_kmh": 25.22006,
+        "vel_pico_pm_kmh": 22.61697,
+        "vel_noche_kmh": 40.02609,
+        "vel_fin_semana_kmh": 33.69605,
+        "variabilidad_horaria": 0.24236
+      },
+      "tipos_via": {
+        "otro": 13,
+        "primaria": 5,
+        "residencial": 482,
+        "secundaria": 8,
+        "terciaria": 42,
+        "troncal": 1
+      },
+      "congestion": {
+        "alta": 0.041401996370235936,
+        "baja": 0.3958711433756806,
+        "media": 0.5627268602540835
+      },
+      "regresion": {
+        "mae_s": 1.674555733701682,
+        "mae_relativo_pct": 12.878529881858233,
+        "registros": 17472
+      },
+      "espacial": {
+        "cluster": 2,
+        "centroide": {
+          "latitud": 4.661260094373866,
+          "longitud": -74.06109575807623
+        },
+        "distancia_al_centro_zona_m": 39.01702128026868,
+        "dispersion_media_m": 942.059216529293,
+        "longitud_total_km": 55.540683489666016,
+        "vias_principales": [
+          {
+            "nombre": "Calle 70A",
+            "metros": 2214.5
+          },
+          {
+            "nombre": "Calle 71",
+            "metros": 1738.7
+          },
+          {
+            "nombre": "Carrera 22",
+            "metros": 1696.8
+          },
+          {
+            "nombre": "Calle 78",
+            "metros": 1409.1
+          },
+          {
+            "nombre": "Carrera 27",
+            "metros": 1374.3
+          }
+        ]
+      }
+    },
+    {
+      "cluster": 3,
+      "nombre": "Vías colectoras de paso",
+      "descripcion": "Calles locales que muchas rutas usan para llegar a los corredores.",
+      "aristas": 405,
+      "porcentaje": 23.262492820218267,
+      "silueta_media": 0.24654964227201243,
+      "perfil": {
+        "velocidad_media_kmh": 31.15234,
+        "caida_hora_pico": 0.43336,
+        "log_intermediacion": 3.10659,
+        "carriles": 2.10617,
+        "log_distancia": 4.29581,
+        "grado_medio": 4.1284,
+        "intermediacion": 0.02619,
+        "distancia_m": 82.09071,
+        "vel_pico_am_kmh": 26.04526,
+        "vel_valle_kmh": 25.0699,
+        "vel_pico_pm_kmh": 22.54173,
+        "vel_noche_kmh": 39.78022,
+        "vel_fin_semana_kmh": 33.45684,
+        "variabilidad_horaria": 0.24201
+      },
+      "tipos_via": {
+        "otro": 5,
+        "primaria": 5,
+        "residencial": 210,
+        "secundaria": 78,
+        "terciaria": 107
+      },
+      "congestion": {
+        "alta": 0.11929012345679012,
+        "baja": 0.3574074074074074,
+        "media": 0.5233024691358025
+      },
+      "regresion": {
+        "mae_s": 1.373234901793462,
+        "mae_relativo_pct": 13.341037812613056,
+        "registros": 15120
+      },
+      "espacial": {
+        "cluster": 3,
+        "centroide": {
+          "latitud": 4.6609047343209875,
+          "longitud": -74.0610011325926
+        },
+        "distancia_al_centro_zona_m": 79.59178067251852,
+        "dispersion_media_m": 799.0234167257638,
+        "longitud_total_km": 33.24673724668284,
+        "vias_principales": [
+          {
+            "nombre": "Avenida Calle 72",
+            "metros": 2081.1
+          },
+          {
+            "nombre": "Carrera 9",
+            "metros": 1707.4
+          },
+          {
+            "nombre": "Calle 74",
+            "metros": 1614.2
+          },
+          {
+            "nombre": "Calle 76",
+            "metros": 1468.7
+          },
+          {
+            "nombre": "Calle 70",
+            "metros": 1151.8
+          }
+        ]
+      }
+    },
+    {
+      "cluster": 4,
+      "nombre": "Malla local densa",
+      "descripcion": "Vías locales entre intersecciones muy conectadas, con poco tráfico de paso.",
+      "aristas": 295,
+      "porcentaje": 16.94428489373923,
+      "silueta_media": 0.29762517734476535,
+      "perfil": {
+        "velocidad_media_kmh": 31.1392,
+        "caida_hora_pico": 0.43488,
+        "log_intermediacion": 1.29038,
+        "carriles": 2.1661,
+        "log_distancia": 4.3603,
+        "grado_medio": 6.36441,
+        "intermediacion": 0.00429,
+        "distancia_m": 84.61649,
+        "vel_pico_am_kmh": 26.01046,
+        "vel_valle_kmh": 25.04198,
+        "vel_pico_pm_kmh": 22.47506,
+        "vel_noche_kmh": 39.7676,
+        "vel_fin_semana_kmh": 33.47457,
+        "variabilidad_horaria": 0.2425
+      },
+      "tipos_via": {
+        "residencial": 261,
+        "secundaria": 13,
+        "terciaria": 21
+      },
+      "congestion": {
+        "alta": 0.04343220338983051,
+        "baja": 0.39555084745762714,
+        "media": 0.5610169491525424
+      },
+      "regresion": {
+        "mae_s": 1.0937012280361254,
+        "mae_relativo_pct": 10.495432306407833,
+        "registros": 11256
+      },
+      "espacial": {
+        "cluster": 4,
+        "centroide": {
+          "latitud": 4.663010721186441,
+          "longitud": -74.06498967847459
+        },
+        "distancia_al_centro_zona_m": 455.73465990638033,
+        "dispersion_media_m": 841.8301364003538,
+        "longitud_total_km": 24.961864269835143,
+        "vias_principales": [
+          {
+            "nombre": "Carrera 21",
+            "metros": 2129.7
+          },
+          {
+            "nombre": "Calle 75",
+            "metros": 1811.0
+          },
+          {
+            "nombre": "Calle 77",
+            "metros": 1427.0
+          },
+          {
+            "nombre": "Carrera 26",
+            "metros": 1176.8
+          },
+          {
+            "nombre": "Avenida Calle 85",
+            "metros": 1147.0
+          }
+        ]
+      }
+    },
+    {
+      "cluster": 5,
+      "nombre": "Corredores críticos en hora pico",
+      "descripcion": "Arterias con muchas rutas de paso que pierden más velocidad en las horas pico.",
+      "aristas": 50,
+      "porcentaje": 2.8719126938541066,
+      "silueta_media": 0.32493648559569566,
+      "perfil": {
+        "velocidad_media_kmh": 26.46773,
+        "caida_hora_pico": 0.51145,
+        "log_intermediacion": 3.31951,
+        "carriles": 2.64,
+        "log_distancia": 4.50432,
+        "grado_medio": 3.83,
+        "intermediacion": 0.03678,
+        "distancia_m": 105.05547,
+        "vel_pico_am_kmh": 21.89499,
+        "vel_valle_kmh": 20.04582,
+        "vel_pico_pm_kmh": 17.78573,
+        "vel_noche_kmh": 36.51413,
+        "vel_fin_semana_kmh": 28.10833,
+        "variabilidad_horaria": 0.31677
+      },
+      "tipos_via": {
+        "primaria": 4,
+        "secundaria": 46
+      },
+      "congestion": {
+        "alta": 0.285,
+        "baja": 0.28375,
+        "media": 0.43125
+      },
+      "regresion": {
+        "mae_s": 2.8461323162042502,
+        "mae_relativo_pct": 26.788414726430446,
+        "registros": 1512
+      },
+      "espacial": {
+        "cluster": 5,
+        "centroide": {
+          "latitud": 4.662484465,
+          "longitud": -74.057421533
+        },
+        "distancia_al_centro_zona_m": 421.83816089708625,
+        "dispersion_media_m": 656.1664975314466,
+        "longitud_total_km": 5.252773470177241,
+        "vias_principales": [
+          {
+            "nombre": "Avenida Carrera 11",
+            "metros": 1720.2
+          },
+          {
+            "nombre": "Avenida Calle 72",
+            "metros": 1185.8
+          },
+          {
+            "nombre": "Avenida Carrera 15",
+            "metros": 880.4
+          },
+          {
+            "nombre": "Calle 76",
+            "metros": 823.0
+          },
+          {
+            "nombre": "Avenida Carrera 7",
+            "metros": 531.8
+          }
+        ]
+      }
+    }
+  ],
+  "homofilia_espacial": {
+    "observada": 0.47535275792560017,
+    "esperada_azar": 0.215334432838556,
+    "razon": 2.2075092759641897,
+    "p_valor": 0.0033222591362126247,
+    "pares": 5457
+  },
+  "resumen_dataset": {
+    "aristas": 1741,
+    "observaciones_maestro": 292488,
+    "fuente": "dataset_red_osm_operativo_auditado.csv.gz + dataset_osm.json"
+  }
+}

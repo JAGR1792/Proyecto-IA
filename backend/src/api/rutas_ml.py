@@ -1,4 +1,4 @@
-"""Endpoints de aprendizaje automático (regresión lineal y clasificación ML)."""
+"""Endpoints de aprendizaje automático (regresión lineal, clasificación y agrupamiento)."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from src.api.rutas_grafo import obtener_grafo
 from src.busqueda.ucs import BusquedaCostoUniforme
+from src.ml import agrupamiento
 from src.ml.clasificacion import (
     cargar_metricas_desde_disco,
     cargar_modelo,
@@ -242,3 +243,60 @@ def reentrenar_tras_grafo_nuevo() -> dict[str, Any]:
     resultado = reentrenar_y_persistir(grafo)
     _invalidar_cache_modelo()
     return resultado
+
+
+# ==================== Agrupamiento no supervisado (K-Means) ====================
+
+
+@router.get("/agrupamiento")
+async def obtener_agrupamiento() -> dict[str, Any]:
+    """k elegido y su justificación, métricas, evaluación de k, perfiles y análisis espacial."""
+    try:
+        return agrupamiento.cargar_metricas_desde_disco()
+    except FileNotFoundError as e:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "No hay metricas_agrupamiento.json. Entrene con POST "
+                "/api/v1/ml/agrupamiento/reentrenar o backend/scripts/ml/entrenar_agrupamiento.py."
+            ),
+        ) from e
+
+
+@router.get("/agrupamiento/aristas")
+async def obtener_aristas_agrupadas(cluster: int | None = None) -> dict[str, Any]:
+    """Asignación arista → cluster (opcionalmente filtrada por ``cluster``)."""
+    try:
+        tabla = agrupamiento.cargar_asignaciones()
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    if cluster is not None:
+        tabla = tabla[tabla["cluster"] == cluster]
+    columnas = ["arista_id", "cluster", "nombre_cluster", "nombre_via", "tipo_via", "silueta"]
+    return {
+        "total": int(len(tabla)),
+        "aristas": tabla[columnas].round({"silueta": 4}).to_dict(orient="records"),
+    }
+
+
+@router.post("/agrupamiento/reentrenar")
+async def reentrenar_agrupamiento(k: int | None = None) -> dict[str, Any]:
+    """Recalcula features, selección de k y K-Means; sobrescribe los artefactos en disco."""
+    if k is not None and not 2 <= k <= 15:
+        raise HTTPException(status_code=422, detail="k debe estar entre 2 y 15")
+    try:
+        res, payload = agrupamiento.ejecutar_pipeline_completo(k=k)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reentrenando agrupamiento: {e}") from e
+    return {
+        "mensaje": "Agrupamiento reentrenado",
+        "k": res.k,
+        "justificacion_k": res.justificacion,
+        "metricas": res.metricas,
+        "grupos": [
+            {"cluster": g["cluster"], "nombre": g["nombre"], "aristas": g["aristas"]}
+            for g in payload["grupos"]
+        ],
+    }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import VistaAgrupamiento from './analisis/VistaAgrupamiento.vue'
 import VistaClasificacion from './analisis/VistaClasificacion.vue'
 import VistaEDA from './analisis/VistaEDA.vue'
 import VistaRegresion from './analisis/VistaRegresion.vue'
@@ -10,7 +11,7 @@ const modulos: { id: Modulo; numero: string; titulo: string; descripcion: string
   { id: 'eda', numero: '01', titulo: 'Análisis exploratorio', descripcion: 'Datos y movilidad', disponible: true },
   { id: 'regresion', numero: '02', titulo: 'Regresión lineal', descripcion: 'Predicción de tiempos', disponible: true },
   { id: 'clasificacion', numero: '03', titulo: 'Clasificación', descripcion: 'Niveles de congestión', disponible: true },
-  { id: 'agrupamiento', numero: '04', titulo: 'Agrupamiento', descripcion: 'Patrones de movilidad', disponible: false },
+  { id: 'agrupamiento', numero: '04', titulo: 'Agrupamiento', descripcion: 'Patrones de movilidad', disponible: true },
 ]
 const actual = computed(() => modulos.find(m => m.id === activo.value)!)
 </script>
@@ -44,6 +45,7 @@ v-for="modulo in modulos" :key="modulo.id" type="button"
         <VistaEDA v-if="activo === 'eda'" />
         <VistaRegresion v-else-if="activo === 'regresion'" />
         <VistaClasificacion v-else-if="activo === 'clasificacion'" />
+        <VistaAgrupamiento v-else-if="activo === 'agrupamiento'" />
         <section v-else class="txml-placeholder" aria-live="polite">
           <div class="txml-placeholder-icon">{{ actual.numero }}</div>
           <p class="txml-eyebrow">MÓDULO RESERVADO</p>
