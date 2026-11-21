@@ -61,7 +61,10 @@ interface AristaGeografica {
   id: string
   origen: string
   destino: string
+  distancia: number
+  tiempo_estimado: number
   congestion: string
+  disponible: boolean
   nombre_via?: string
 }
 
@@ -167,7 +170,7 @@ function nodoGeograficoDesdeIndice(lat: number, lon: number): NodoGeografico | n
     nombre,
     lat: cercano.lat,
     lon: cercano.lon,
-    tipo: 'interseccion',
+    tipo: cercano.tipo || 'interseccion',
   }
 }
 
@@ -201,7 +204,10 @@ function aristasVisiblesDesdeGeojson(geo: GeoJsonFeatureCollection): AristaVisib
       id: String(p.id),
       origen: String(p.origen ?? ''),
       destino: String(p.destino ?? ''),
+      distancia: Number(p.distancia ?? 0),
+      tiempo_estimado: Number(p.tiempo_estimado ?? 0),
       congestion: String(p.congestion ?? 'baja'),
+      disponible: p.disponible !== false,
       nombre_via: p.nombre_via != null ? String(p.nombre_via) : undefined,
       geometria,
     })
@@ -335,7 +341,10 @@ async function inicializarMapa() {
           id: p.id,
           origen: p.origen,
           destino: p.destino,
+          distancia: Number(p.distancia ?? 0),
+          tiempo_estimado: Number(p.tiempo_estimado ?? 0),
           congestion: congestionDeFeature(feature),
+          disponible: p.disponible !== false,
           nombre_via: p.nombre_via,
         })
       })

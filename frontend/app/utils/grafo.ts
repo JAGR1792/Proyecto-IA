@@ -7,6 +7,7 @@ export interface NodoIndice {
   nombre: string
   lat: number
   lon: number
+  tipo?: string
 }
 
 export interface IndiceNodosResponse {
@@ -31,7 +32,10 @@ export interface AristaVisibleMapa {
   id: string
   origen: string
   destino: string
+  distancia: number
+  tiempo_estimado: number
   congestion: string
+  disponible: boolean
   nombre_via?: string
   geometria?: number[][] | null
 }
