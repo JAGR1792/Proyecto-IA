@@ -141,7 +141,7 @@ npm run preview
 >
 > ⚠️ No ejecutes `npm run build` con `npm run dev` activo: comparten el directorio de caché (`.nuxt`) y el dev server puede quedarse sin el proxy (la API respondería HTML). Si pasa, reinicia `npm run dev`.
 
-En el dashboard: pestaña **Análisis de movilidad** (EDA y regresión lineal), predicción de ruta con regresión (`/ml/ruta`), panel **Clasificación ML** (métricas y matriz de confusión), comparación multicolor de algoritmos y red vial precargada de **Chapinero 1 200 m** (888 nodos / 1 741 aristas). Al abrir, el cliente pide **resumen + índice de nodos** y el mapa carga el **GeoJSON completo** una sola vez (sin refetch en pan/zoom; ver ADR-033 y ADR-035).
+En el dashboard: pestaña **Análisis de movilidad** (EDA y regresión lineal), predicción de ruta con regresión (`/ml/ruta`), panel **Clasificación ML** (métricas y matriz de confusión), módulo **04 · Agrupamiento** (K-Means, selección de k, perfiles y mapa de zonas), comparación multicolor de algoritmos y red vial precargada de **Chapinero 1 200 m** (888 nodos / 1 741 aristas). Al abrir, el cliente pide **resumen + índice de nodos** y el mapa carga el **GeoJSON completo** una sola vez (sin refetch en pan/zoom; ver ADR-033 y ADR-035).
 
 ---
 
@@ -244,6 +244,9 @@ Base: `/api/v1` · Documentación interactiva: `http://localhost:8000/docs`
 | `/ml/clasificacion` | GET | Métricas Corte 3, matrices y flag `modelo_disponible` |
 | `/ml/clasificacion/predecir` | POST | Predicción por `hora_salida` (y opcional `arista_ids`) |
 | `/ml/clasificacion/reentrenar` | POST | Regenera CSV, JSON y modelo joblib del grafo actual |
+| `/ml/agrupamiento` | GET | K-Means de patrones de movilidad: k elegido y justificación, métricas, perfiles y análisis espacial |
+| `/ml/agrupamiento/aristas` | GET | Asignación arista → grupo (query opcional `cluster`) |
+| `/ml/agrupamiento/reentrenar` | POST | Recalcula features, selección de k y K-Means (query opcional `k`) |
 | `/health` | GET | Health check |
 
 > Los endpoints de exportación generan las respuestas **en memoria** (sin escribir en disco), por lo que son compatibles con el entorno serverless *read-only* de Vercel (ver ADR-012).
@@ -310,6 +313,7 @@ Toda la documentación está en `documentacion/`:
 | `diagrama_red.md` | Grafo de ejemplo (6 nodos) |
 | `dataset_inicial.md` | Estructura de datos (JSON/CSV/GeoJSON) |
 | `clasificacion_congestion.md` | Persona 2 / Corte 3: categorías, dataset, modelos y métricas |
+| `agrupamiento_movilidad.md` | Persona 3 / Corte 3: features, selección de k, grupos y análisis espacial (K-Means) |
 
 ---
 
@@ -317,4 +321,4 @@ Toda la documentación está en `documentacion/`:
 
 - **Corte 1 (hecho):** modelos de grafo, repositorio, datos OSM reales, módulo de agente, frontend con mapa/grafo, deploy en Vercel.
 - **Corte 2 (en curso):** motores **Voraz (greedy)**, **BFS**, **DFS**, **UCS** y **A\*** implementados y conectados al frontend; **comparador** (`POST /busqueda/comparar`), tabla comparativa en la UI, benchmark reproducible con escenarios base/cierre y agente que planifica con búsqueda. Incluye **tarifa oficial de taxi** (Decreto 042 de 2026) en la API y la UI, **mapa satelital** con capas Esri, **selección de origen/destino por clic** con nombres amigables de vías OSM y **congestión horaria sintética** por hora de salida. Ver [`documentacion/informe_corte2.md`](documentacion/informe_corte2.md), ADR-024 a ADR-026 en [`documentacion/decisiones.md`](documentacion/decisiones.md).
-- **Corte 3 (en curso):** clasificación supervisada de congestión (5 modelos, API `/ml/clasificacion`, panel ML y coloreado del mapa), regresión lineal de tiempos (`/ml/ruta`, vista EDA y análisis de movilidad), **comparación multicolor** en mapa (ADR-029), selección por nodo cercano (ADR-034) y red precargada **Chapinero 1 200 m** (888 nodos / 1 741 aristas; ADR-035). Ver [`documentacion/clasificacion_congestion.md`](documentacion/clasificacion_congestion.md) y ADR-027–035.
+- **Corte 3 (en curso):** clasificación supervisada de congestión (5 modelos, API `/ml/clasificacion`, panel ML y coloreado del mapa), regresión lineal de tiempos (`/ml/ruta`, vista EDA y análisis de movilidad), **comparación multicolor** en mapa (ADR-029), selección por nodo cercano (ADR-034), red precargada **Chapinero 1 200 m** (888 nodos / 1 741 aristas; ADR-035) y **agrupamiento K-Means** de patrones de movilidad (API `/ml/agrupamiento`, módulo 04 del Centro de Análisis; ADR-037). Ver [`documentacion/clasificacion_congestion.md`](documentacion/clasificacion_congestion.md), [`documentacion/agrupamiento_movilidad.md`](documentacion/agrupamiento_movilidad.md) y ADR-027–037.

@@ -929,3 +929,28 @@ En `frontend/app/components/AnalisisMovilidad.vue` (Centro de Análisis), los m�
 - ✅ El módulo `03 · Clasificación` muestra los resultados completos de Persona 2 dentro del Centro de Análisis, alineado con `VistaEDA.vue` y `VistaRegresion.vue`.
 - ✅ Funciona tanto conectado a FastAPI como con el resumen estático de respaldo en `public/datos/`.
 - ⚠️ Si se reentrena el clasificador en el backend con un grafo distinto, conviene actualizar `frontend/public/datos/ml_clasificacion_resumen.json` para mantener coherente el fallback offline.
+
+---
+
+## ADR-037 — Agrupamiento K-Means de patrones de movilidad (`04 · Agrupamiento`, Persona 3)
+
+**Fecha:** 2026-11-21  
+**Estado:** Aceptado
+
+### Contexto
+El Corte 3 pide a Persona 3 identificar patrones de movilidad con K-Means, justificar el número de grupos y analizar su distribución espacial. El módulo `04 · Agrupamiento` del Centro de Análisis estaba reservado (ADR-036). Al revisar el dataset maestro se encontró que el perfil horario de velocidad depende casi solo del tipo de vía (simulación calibrada), por lo que agrupar únicamente por velocidad reproduciría el tipo de vía.
+
+### Decisión
+- Unidad de análisis: **arista dirigida** (1 741). Features estandarizadas: velocidad media, caída en hora pico (dataset maestro), intermediación de arista ponderada por tiempo, grado medio de los nodos, carriles y longitud (grafo OSM).
+- Selección de k automática y reproducible (`seleccionar_k`): k ≥ 3, estabilidad ARI ≥ 0.95 entre 10 semillas y mejor suma de rangos en silueta, Davies-Bouldin, Calinski-Harabasz y codo. Resultado: **k = 6**.
+- Nombres de grupos asignados por reglas sobre los centroides (no dependen de la numeración de K-Means); IDs renumerados por velocidad media descendente.
+- Las etiquetas de congestión (Persona 2) y el error de la regresión (Persona 1) se usan solo como **validación externa**.
+- Análisis espacial: centroides, dispersión, vías principales y test de permutación de homofilia entre aristas vecinas.
+- Nuevo módulo `backend/src/ml/agrupamiento.py`, script `backend/scripts/ml/entrenar_agrupamiento.py`, endpoints `GET /ml/agrupamiento`, `GET /ml/agrupamiento/aristas`, `POST /ml/agrupamiento/reentrenar` y vista `VistaAgrupamiento.vue` (selección de k, perfiles, mapa SVG por grupo, validación). `agrupamiento` pasa a `disponible: true` en `AnalisisMovilidad.vue`.
+
+### Consecuencias
+- ✅ Grupos estables (ARI 0.992) y espacialmente coherentes (2.2× más vecinos del mismo grupo que al azar, p = 0.003).
+- ✅ Los grupos coinciden con la congestión alta de la clasificación y con el mayor error de la regresión sin haber usado esas variables.
+- ✅ La vista funciona sin backend gracias a `frontend/public/datos/ml_agrupamiento_resumen.json` (~220 KB con geometría simplificada).
+- ⚠️ Si cambia `dataset_osm.json` o el dataset maestro, ejecutar `entrenar_agrupamiento.py` para regenerar artefactos y el respaldo estático.
+- ⚠️ La silueta es moderada (0.27): fronteras suaves entre vías locales, esperables con perfiles horarios simulados.
