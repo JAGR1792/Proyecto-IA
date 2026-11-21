@@ -1,6 +1,7 @@
 """Repositorio para persistencia del grafo (JSON, GraphML, GeoJSON)."""
 
 import json
+import time
 from pathlib import Path
 from typing import Any, Union
 
@@ -17,6 +18,20 @@ from .modelos import (
     Nodo,
     TipoNodo,
     TipoVia,
+)
+
+# Mosaico de puntos para cubrir el área urbana de Bogotá sin una sola query gigante
+# (los servidores Overpass públicos suelen rechazar graph_from_place de la ciudad entera).
+BOGOTA_MOSAICO_CENTROS: tuple[tuple[float, float], ...] = (
+    (4.7110, -74.0721),
+    (4.7500, -74.0721),
+    (4.6700, -74.0721),
+    (4.7110, -74.0200),
+    (4.7110, -74.1200),
+    (4.7500, -74.0200),
+    (4.7500, -74.1200),
+    (4.6700, -74.0200),
+    (4.6700, -74.1200),
 )
 
 
@@ -383,44 +398,114 @@ class RepositorioGrafo:
 
     # ==================== OSMnx (OpenStreetMap) ====================
 
+    def _descargar_osm_mosaico(
+        self,
+        centros: tuple[tuple[float, float], ...],
+        radio_metros: int,
+        tipo_red: str,
+    ) -> nx.MultiDiGraph:
+        """Descarga varios discos OSM y los fusiona (cobertura urbana amplia)."""
+        try:
+            import osmnx as ox
+        except ImportError:
+            raise ExcepcionRepositorio("OSMnx no instalado. Ejecute: pip install osmnx")
+
+        ox.settings.requests_timeout = 600
+        graphs: list[nx.MultiDiGraph] = []
+        total = len(centros)
+        for idx, centro in enumerate(centros, start=1):
+            descargado = False
+            for intento in range(5):
+                try:
+                    G = ox.graph_from_point(
+                        centro,
+                        dist=radio_metros,
+                        network_type=tipo_red,
+                    )
+                    graphs.append(G)
+                    print(
+                        f"  Mosaico {idx}/{total} @ {centro}: "
+                        f"{G.number_of_nodes()} nodos, {G.number_of_edges()} aristas"
+                    )
+                    descargado = True
+                    break
+                except Exception as err:
+                    espera = min(300, 20 * (2**intento))
+                    print(f"  Reintento mosaico {idx} (intento {intento + 1}): {err}")
+                    time.sleep(espera)
+            if not descargado:
+                print(f"  ADVERTENCIA: mosaico {idx}/{total} omitido tras reintentos")
+            time.sleep(12)
+        if not graphs:
+            raise ExcepcionRepositorio("No se descargó ningún mosaico OSM")
+        return nx.compose_all(graphs)
+
     def descargar_desde_osm(
         self,
-        lugar: str = "Universidad Sergio Arboleda, BogotÃ¡, Colombia",
-        radio_metros: int = 1500,
+        lugar: str = "Bogotá, Colombia",
+        radio_metros: int = 4500,
         tipo_red: str = "drive",
         nombre_salida: str = "osm_grafo",
+        modo: str = "mosaico",
     ) -> Grafo:
         """Descarga red vial de OpenStreetMap usando OSMnx.
 
         Args:
-            lugar: DirecciÃ³n o lugar de referencia para geo-codificar el centro.
-            radio_metros: Radio de descarga alrededor del punto central.
+            lugar: Nombre del lugar (modo ``place``) o punto de geocodificación (modo ``point``).
+            radio_metros: Radio en metros; solo aplica con ``modo='point'``.
             tipo_red: Tipo de red OSM ('drive', 'walk', 'bike', 'all').
             nombre_salida: Prefijo para archivos GraphML/JSON generados.
+            modo: ``place`` usa ``graph_from_place`` (p. ej. ciudad completa);
+                ``point`` usa ``graph_from_point`` alrededor del lugar geocodificado.
 
         Returns:
             Grafo poblado con nodos y aristas reales de OpenStreetMap.
 
         Raises:
-            ExcepcionRepositorio: Si OSMnx no estÃ¡ instalado o la descarga falla.
+            ExcepcionRepositorio: Si OSMnx no está instalado o la descarga falla.
         """
         try:
             import osmnx as ox
         except ImportError:
             raise ExcepcionRepositorio("OSMnx no instalado. Ejecute: pip install osmnx")
 
-        # Geo-codificar lugar â†’ punto central (lat, lon)
-        try:
-            punto = ox.geocode(lugar)  # (lat, lon)
-        except Exception as e:
-            raise ExcepcionRepositorio(f"No se pudo geocodificar '{lugar}': {e}")
+        modo_norm = (modo or "mosaico").lower()
+        if modo_norm not in ("place", "point", "mosaico"):
+            raise ExcepcionRepositorio(
+                f"Modo OSM inválido: {modo!r}. Use 'place', 'point' o 'mosaico'."
+            )
 
-        # osmnx 2.x: graph_from_point(center_point, dist, network_type)
-        G = ox.graph_from_point(
-            punto,
-            dist=radio_metros,
-            network_type=tipo_red,
-        )
+        ox.settings.requests_timeout = 600
+        meta_modo = modo_norm
+
+        try:
+            if modo_norm == "mosaico":
+                radio_tile = radio_metros if radio_metros > 0 else 4500
+                print(
+                    f"  Descarga por mosaico ({len(BOGOTA_MOSAICO_CENTROS)} tiles, "
+                    f"{radio_tile} m c/u): {lugar}"
+                )
+                G = self._descargar_osm_mosaico(BOGOTA_MOSAICO_CENTROS, radio_tile, tipo_red)
+            elif modo_norm == "place":
+                print(f"  Descarga por lugar (graph_from_place): {lugar}")
+                try:
+                    G = ox.graph_from_place(lugar, network_type=tipo_red)
+                except Exception as err_place:
+                    print(f"  graph_from_place falló ({err_place}); usando mosaico urbano…")
+                    meta_modo = "mosaico_fallback"
+                    G = self._descargar_osm_mosaico(BOGOTA_MOSAICO_CENTROS, 4500, tipo_red)
+            else:
+                punto = ox.geocode(lugar)
+                print(f"  Descarga por punto ({radio_metros} m): {lugar}")
+                G = ox.graph_from_point(
+                    punto,
+                    dist=radio_metros,
+                    network_type=tipo_red,
+                )
+        except ExcepcionRepositorio:
+            raise
+        except Exception as e:
+            raise ExcepcionRepositorio(f"Error descargando red OSM ({modo_norm}): {e}")
 
         # Guardar GraphML original
         ox.save_graphml(G, filepath=self.directorio / f"{nombre_salida}.graphml")
@@ -430,7 +515,9 @@ class RepositorioGrafo:
         grafo.metadata = {
             "fuente": "OpenStreetMap",
             "lugar": lugar,
-            "radio_metros": radio_metros,
+            "modo_descarga": meta_modo,
+            "radio_metros": radio_metros if modo_norm in ("point", "mosaico") else None,
+            "mosaico_tiles": len(BOGOTA_MOSAICO_CENTROS) if "mosaico" in meta_modo else None,
             "tipo_red": tipo_red,
             "nodos_originales": G.number_of_nodes(),
             "aristas_originales": G.number_of_edges(),
@@ -520,31 +607,46 @@ class RepositorioGrafo:
             highway = highway[0]
         return mapeo.get(str(highway).lower(), TipoVia.OTRO)
 
+    def cargar_dataset_osm_desde_disco(self) -> Grafo:
+        """Carga el grafo OSM pregenerado desde ``dataset_osm.json`` o ``grafo_osm.json``."""
+        for nombre in ("dataset_osm.json", "grafo_osm.json"):
+            ruta = self.directorio / nombre
+            if ruta.is_file():
+                return self.cargar_json(nombre)
+        raise ExcepcionRepositorio(
+            "No hay dataset OSM en disco. Ejecute: python generar_dataset.py --osm"
+        )
+
     def generar_dataset_osm(
         self,
-        lugar: str = "Universidad Sergio Arboleda, BogotÃ¡, Colombia",
-        radio_metros: int = 1500,
+        lugar: str = "Universidad Sergio Arboleda, Bogotá, Colombia",
+        radio_metros: int = 1200,
         tipo_red: str = "drive",
+        modo: str = "point",
     ) -> Grafo:
         """Genera dataset real desde OpenStreetMap y lo persiste en todos los formatos.
 
         Args:
-            lugar: Lugar/geocodificaciÃ³n para descargar la red vial.
-            radio_metros: Radio de descarga alrededor del punto central.
+            lugar: Lugar OSM (por defecto zona de estudio Chapinero en modo ``point``).
+            radio_metros: Radio de descarga; solo en modo ``point``.
             tipo_red: Tipo de red OSM ('drive', 'walk', 'bike', 'all').
+            modo: ``place`` (ciudad/admin) o ``point`` (radio alrededor del lugar).
 
         Returns:
             Grafo real de OpenStreetMap guardado en datos/.
         """
         print("=== GENERANDO DATASET OPENSTREETMAP (OSMnx) ===")
         print(f"  Lugar: {lugar}")
-        print(f"  Radio: {radio_metros} m | Red: {tipo_red}")
+        print(f"  Modo: {modo} | Red: {tipo_red}")
+        if (modo or "place").lower() == "point":
+            print(f"  Radio: {radio_metros} m")
 
         grafo = self.descargar_desde_osm(
             lugar=lugar,
             radio_metros=radio_metros,
             tipo_red=tipo_red,
             nombre_salida="osm_grafo",
+            modo=modo,
         )
 
         print(

@@ -60,10 +60,23 @@ def intensidad_en_hora(hora_salida: str) -> float:
     raise AssertionError("La hora normalizada debe pertenecer al perfil")
 
 
+def peso_tipo_via(tipo_via: str) -> float:
+    """Peso relativo de congestión por tipo de vía OSM (público para ML)."""
+    return _PESO_VIA.get(tipo_via, _PESO_VIA["otro"])
+
+
 def _factor_calle(arista_id: str) -> float:
     """Variación espacial determinista de +/-15 %, independiente del horario."""
     valor = int.from_bytes(hashlib.sha256(arista_id.encode()).digest()[:4], "big")
     return 0.85 + (valor / (2**32 - 1)) * 0.30
+
+
+_cache_grafo_en_hora: dict[tuple[int, str], Grafo] = {}
+
+
+def invalidar_cache_grafo_en_hora() -> None:
+    """Vacía la caché de escenarios por hora (p. ej. tras recargar el grafo base)."""
+    _cache_grafo_en_hora.clear()
 
 
 def grafo_en_hora(grafo: Grafo, hora_salida: str | None) -> Grafo:
@@ -76,11 +89,15 @@ def grafo_en_hora(grafo: Grafo, hora_salida: str | None) -> Grafo:
     if hora_salida is None:
         return grafo
 
+    clave = (id(grafo), hora_salida)
+    if clave in _cache_grafo_en_hora:
+        return _cache_grafo_en_hora[clave]
+
     intensidad = intensidad_en_hora(hora_salida)
     aristas_simuladas = []
     for arista in grafo.aristas:
         tipo = arista.atributos.tipo_via.value
-        peso = _PESO_VIA.get(tipo, _PESO_VIA["otro"])
+        peso = peso_tipo_via(tipo)
         factor = 1.0 + intensidad * peso * _factor_calle(arista.id)
         tiempo = round(arista.tiempo_estimado * factor, 6)
         velocidad = round(arista.velocidad_promedio / factor, 6)
@@ -104,4 +121,6 @@ def grafo_en_hora(grafo: Grafo, hora_salida: str | None) -> Grafo:
             )
         )
 
-    return grafo.model_copy(update={"aristas": aristas_simuladas})
+    escenario = grafo.model_copy(update={"aristas": aristas_simuladas})
+    _cache_grafo_en_hora[clave] = escenario
+    return escenario

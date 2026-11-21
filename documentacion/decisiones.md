@@ -703,3 +703,209 @@ El grafo base tiene tiempos y congestión fijos, así que una ruta era idéntica
 - Es un escenario **sintético**, no tráfico observado ni un pronóstico; no considera fecha ni festivos. La geometría sigue siendo OSM.
 - Tests: `tests/test_congestion/test_horarios.py` (20 casos) cubre validación, interpolación, determinismo, copia del grafo y preservación de bloqueos. Total del backend: 229 pruebas.
 - Los cinco algoritmos y el comparador consumen el grafo ajustado sin cambios propios.
+
+---
+
+## ADR-027 — Clasificación supervisada de congestión (Persona 2 / Corte 3)
+
+**Fecha:** 2026-11-17
+**Estado:** Aceptado
+
+### Contexto
+El PDF del Corte 3 exige modelos de clasificación para estimar niveles de congestión (`baja` / `media` / `alta`), con dataset depurado, comparación de resultados y métricas. El grafo OSM solo traía congestión fija `baja`; el perfil horario del Corte 2 ya genera etiquetas sintéticas coherentes.
+
+### Decisión
+- **Categorías:** reutilizar umbrales ADR-026 (`<1.40`, `[1.40, 2.00)`, `≥2.00`). Excluir `bloqueada` del entrenamiento.
+- **Dataset compartido:** `construir_dataset_clasificacion()` cruza cada arista OSM con 16 horas de muestreo → CSV en `backend/datos/ml/`. Features observables (hora, intensidad, geometría/atributos de vía); target = congestión simulada.
+- **Modelos:** regresión logística, Random Forest, Gradient Boosting, KNN y SVM lineal, con el mismo preprocesado (escalado + one-hot). Hold-out estratificado 75/25, semilla 42.
+- **Entrega:** notebook `notebooks/clasificacion_congestion.ipynb`, métricas + matrices de confusión, módulo `backend/src/ml/`, script `scripts/generar_dataset_clasificacion.py` y tests en `tests/test_ml/`.
+- **API inicial:** ver ADR-028 (integración dashboard + recarga OSM).
+
+### Consecuencias
+- ✅ En la corrida de referencia (radio 1 500 m), Gradient Boosting obtiene F1 macro ≈ 0.91 y accuracy ≈ 0.94.
+- ✅ Otras personas del equipo pueden consumir el mismo CSV para regresión/agrupamiento.
+- ⚠️ Las etiquetas son sintéticas: el modelo aprende el perfil simulado, no tráfico observado.
+
+---
+
+## ADR-028 — Dashboard ML y radio OSM configurable (Corte 3)
+
+**Fecha:** 2026-11-17  
+**Estado:** Aceptado
+
+### Contexto
+ADR-027 entregó dataset, métricas y módulo `src/ml/`, pero el dashboard seguía coloreando aristas solo con congestión sintética por hora. El grafo por defecto usaba radio OSM ~1 500 m (~888 nodos). Se pidió mostrar métricas del clasificador en la UI, predecir congestión al cambiar la hora de salida y ampliar la red sin romper el flujo de recarga existente.
+
+### Decisión
+- **Radio OSM por defecto:** **2 500 m** en `generar_dataset.py`, repositorio y query `radio_metros` de `POST /api/v1/grafo/recargar` (UI ofrece 1 500 / 2 500 / 3 500 m).
+- **Endpoints ML** bajo `/api/v1/ml/clasificacion` (GET métricas, POST predecir, POST reentrenar); persistencia `.joblib` en `datos/ml/`.
+- **Hook tras OSM:** al recargar grafo real, `reentrenar_tras_grafo_nuevo()` regenera CSV, JSON y modelo (errores ML se devuelven en el campo `ml` sin abortar la descarga).
+- **Frontend:** panel “Clasificación ML” (métricas + matriz del mejor modelo) y `POST .../predecir` al cargar grafo o cambiar hora; fallback a congestión sintética si el modelo no está disponible.
+- **Contrato de predicción:** cada ítem es `{ arista_id, congestion, hora_salida }` (clases `baja`|`media`|`alta`).
+
+### Consecuencias
+- ✅ Corrida local Nov 2026 (Chapinero 2 500 m): **3 161 nodos**, **6 665 aristas**, Gradient Boosting **~93,9 %** accuracy.
+- ✅ Tests API en `tests/test_ml/test_rutas_api.py` (handlers async + grafo mini, sin reentrenar OSM en CI).
+- ⚠️ Radios grandes (3 500 m) alargan descarga y tamaño del JSON; el UI muestra estado de carga prolongado.
+- Pendiente Corte 3: regresión, agrupamiento y modelos de las otras personas del equipo.
+
+---
+
+## ADR-029 — Visualización multi-algoritmo en mapa y utilidades frontend
+
+**Fecha:** 2026-11-17  
+**Estado:** Aceptado
+
+### Contexto
+``POST /busqueda/comparar`` ya devolvía `camino` y `aristas_camino` por algoritmo, pero el dashboard solo mostraba la tabla. La ruta activa en Leaflet/Cytoscape asumía un único `rutaResaltada` verde.
+
+### Decisión
+- Tras una comparación exitosa, derivar en el cliente un arreglo `RutaAlgoritmo` (utilidad `utils/busqueda.ts`) con paleta fija por ID de algoritmo y contorno oscuro en Leaflet.
+- `MapaOSM` y `GraphView` aceptan `rutasComparacion` + `algoritmoEnfocado`; si no hay búsqueda individual, dibujan todas las rutas. Clic en fila de la tabla atenúa las demás.
+- Búsqueda individual conserva el trazado verde (`rutaResaltada`). Limpiar sesión / nueva búsqueda borra overlays y comparación.
+- Extraer helpers ML y `postJson` a `utils/ml.ts` y `utils/api.ts` para aligerar `app.vue`.
+
+### Consecuencias
+- ✅ Comparación alineada con la simbología del mapa (leyenda flotante + tabla).
+- ✅ Sin dependencias nuevas ni cambios en la API.
+- ⚠️ Rutas coincidentes se superponen: el contorno y el foco por fila mitigan, pero no separan geometrías idénticas.
+
+---
+
+## ADR-030 — Red OSM Bogotá precargada (sin descarga en dashboard)
+
+**Fecha:** 2026-11-17  
+**Estado:** Aceptado
+
+### Contexto
+ADR-028 permitía descargar OSM desde el dashboard con radio configurable (~2,5 km). Para Corte 3 se requiere cobertura urbana amplia (Bogotá) sin depender de OSMnx en cada sesión del navegador ni bloquear la UI durante descargas grandes.
+
+### Decisión
+- **Modo por defecto OSM:** mosaico de **9 discos** (4,5 km, centros urbanos) fusionados con `networkx.compose_all`, porque `graph_from_place` de Bogotá completa suele fallar en Overpass público (502/timeout). Alternativas: `modo=place` (con fallback a mosaico) o `modo=point`.
+- **Generación offline:** `python backend/generar_dataset.py --osm` (default `--modo mosaico`). Artefactos en `backend/datos/` (`dataset_osm.json`, geojson, csv, graphml).
+- **API:** `POST /grafo/recargar?desde_archivo=true` recarga el JSON del disco; `usar_sintetico=false&modo=place` conserva descarga en servidor para mantenimiento.
+- **Dashboard:** se elimina «Descargar red OSM»; «Actualizar Grafo» invalida caché y lee el dataset precargado.
+
+### Consecuencias
+- ✅ Arranque predecible del dashboard sin red externa en tiempo de ejecución.
+- ✅ Corrida mosaico Nov 2026: **~25 183 nodos**, **~58 989 aristas**, `dataset_osm.json` ~59 MB (9 tiles × 4,5 km).
+- ⚠️ ~~El dashboard carga el grafo completo~~ → mitigado en **ADR-031** (resumen + índice + mapa por bbox).
+- ⚠️ Reentrenar ML sobre ~59k aristas × horas de muestreo es offline y costoso; hasta reentrenar, la predicción ML puede no cubrir aristas nuevas (fallback sintético).
+- ⚠️ Tras regenerar datos, reiniciar uvicorn o usar `POST /grafo/recargar?desde_archivo=true`.
+
+---
+
+## ADR-031 — Visualización por bbox; grafo completo solo en backend
+
+**Fecha:** 2026-11-17  
+**Estado:** Aceptado
+
+### Contexto
+Con el dataset precargado de Bogotá (~25 183 nodos, ~58 989 aristas, JSON ~59 MB), el dashboard intentaba al arrancar `GET /grafo/` completo, GeoJSON de toda la ciudad y predicción ML sobre todas las aristas. Eso bloqueaba el navegador y duplicaba trabajo: `rutas_mapa` releía el JSON del disco en cada petición en lugar de la caché de `obtener_grafo()`.
+
+### Decisión
+- **Backend en RAM:** `obtener_grafo()` mantiene el grafo completo para `/busqueda/*` y el agente; `grafo_en_hora()` se memoiza por `hora_salida`.
+- **API ligera para la UI:** `GET /grafo/resumen` (totales + metadata) y `GET /grafo/nodos/indice` (id, nombre, lat, lon). `GET /grafo/` conserva compatibilidad pero `incluir_geometria=false` por defecto.
+- **Mapa por viewport:** `GET /mapa/geojson/nodos|aristas` aceptan `min_lat`, `min_lon`, `max_lat`, `max_lon` y opcional `hora_salida`; filtran features y devuelven metadatos `truncado`, `total_filtrado` y `limite` (tope ~4000). `rutas_mapa` usa el mismo `obtener_grafo()` que `rutas_grafo`.
+- **Frontend por capas:** `app.vue` arranca con resumen + índice y buscador de nodos; `MapaOSM` recarga GeoJSON en `moveend`/`zoomend` (debounce ~300 ms), sin aristas si zoom &lt; 13. ML solo sobre `arista_ids` visibles en el viewport (evento `aristas-visibles`).
+
+### Consecuencias
+- ✅ El dashboard abre en segundos; los totales del resumen reflejan el crecimiento de la red sin volcar ~59 MB al cliente.
+- ✅ Búsqueda y comparación siguen usando el grafo completo en servidor.
+- ⚠️ Zoom abierto o viewport enorme puede truncar capas (`truncado: true`); el usuario debe acercar el mapa.
+- ⚠️ La vista **Grafo** (Cytoscape) depende de aristas ya vistas en mapa o de la ruta activa; no dibuja las 59k aristas de una vez.
+
+---
+
+## ADR-032 — Rollback mosaico Bogotá; Chapinero como dataset por defecto
+
+**Fecha:** 2026-11-17  
+**Estado:** Aceptado
+
+### Contexto
+ADR-030 introdujo un mosaico OSM de 9 tiles (~25 183 nodos, ~58 989 aristas) para ampliar cobertura. En el dashboard el mapa perdió el foco en Chapinero, la red se percibía menos densa al hacer zoom, y la carga por viewport + predicción ML resultó lenta. El valor del branch `dashboard-ml-comparacion-colores` es la **comparación multicolor** de algoritmos y el **panel ML Persona 2**, no la expansión ciudad completa.
+
+### Decisión
+- **Dataset precargado:** restaurar/redescargar red **point 2 500 m** alrededor de Universidad Sergio Arboleda (`dataset_osm.json`, ~3 161 nodos / ~6 665 aristas). El mosaico permanece como opción de mantenimiento (`--modo mosaico`), no como default.
+- **Defaults offline:** `generar_dataset.py --osm` usa `modo=point`, radio 2 500 m y lugar USAB; `POST /grafo/recargar` en vivo alinea los mismos defaults.
+- **UI:** copy y encuadre del mapa vuelven a **Chapinero** (`fitBounds` con `maxZoom`, centro de respaldo USAB). `MapaOSM` carga GeoJSON completo **una vez** al montar (sin `moveend`/`zoomend`); pan/zoom no dispara refetch.
+- **ML:** reentrenar offline (`scripts/generar_dataset_clasificacion.py`) sobre el grafo Chapinero restaurado.
+- **Conservar:** ADR-029 (rutas multicolor), ADR-031 (resumen/índice en `app.vue`; bbox en API sin uso en mapa), endpoints ML y predicción tras carga inicial (`aristas-visibles`).
+
+### Consecuencias
+- ✅ Dashboard denso y usable en la zona de estudio del PDF.
+- ✅ Modelo ML alineado con las ~6 665 aristas del grafo activo (~93,9 % accuracy GB, Nov 2026).
+- ⚠️ Búsquedas fuera del radio 2,5 km requieren regenerar el dataset o usar modo mosaico explícito (no soportado en UI).
+
+---
+
+## ADR-033 — Mapa Chapinero: carga GeoJSON única (sin viewport)
+
+**Fecha:** 2026-11-17  
+**Estado:** Aceptado
+
+### Contexto
+ADR-031 recargaba nodos/aristas en cada `moveend`/`zoomend` (debounce ~300 ms). Con Chapinero (~3 161 nodos / ~6 665 aristas) el pan/zoom se sentía peor que la carga única previa y generaba tormentas de peticiones (incl. ML por viewport).
+
+### Decisión
+- **`MapaOSM`:** una petición a `GET /mapa/geojson/nodos` y `GET /mapa/geojson/aristas` al montar; recarga solo si cambia `hora_salida`. Sin listeners de viewport.
+- **Backend:** se mantienen query params de bbox en `rutas_mapa.py` por compatibilidad; la UI Chapinero no los usa.
+- **`app.vue`:** conserva `resumen` + `indice` para métricas y búsqueda por texto.
+
+### Consecuencias
+- ✅ Pan/zoom instantáneo (solo tiles OSM).
+- ✅ ML se programa una vez tras la carga del grafo visible (~6k aristas).
+- ⚠️ Si el dataset vuelve a crecer masivamente (mosaico ciudad), hará falta reactivar bbox o tiles vectoriales.
+
+---
+
+## ADR-034 — Scroll único del dashboard y selección por nodo cercano (Chapinero)
+
+**Fecha:** 2026-11-17  
+**Estado:** Aceptado
+
+### Contexto
+Tras el rework (sidebar sticky + `tx-map-stage` sticky + deck analítico), el usuario enfrentaba **doble scroll** (barra lateral con `overflow-y` vs. documento) y el mapa “pegado” competía con el scroll de la página. En «Parámetros de Ruta», forzar «Mostrar nodos» al marcar origen/destino y el copy de regeneración OSM entorpecían el flujo.
+
+### Decisión
+- **Layout:** quitar `overflow-y`/`max-height` del sidebar; eliminar `position: sticky` del `tx-map-stage`; un solo scroll de página (`html { scroll-behavior: smooth }`).
+- **Selección:** `MapaOSM` emite `nodo-click` con el nodo del índice más cercano (Haversine) al hacer clic en mapa o arista con modo origen/destino activo; capa «Nodos» opcional (default oculta).
+- **Copy:** panel «Parámetros de Ruta» reducido a controles operativos + una línea de resumen del grafo Chapinero.
+- **Futuro Bogotá:** documentado en `documentacion/idea_seleccion_cercana_bogota.md` (snap con mosaico completo vía API o índice espacial; sin regenerar datos ahora).
+
+### Consecuencias
+- ✅ Scroll predecible; mapa solo captura rueda dentro del lienzo Leaflet.
+- ✅ Origen/destino sin marcar todos los nodos en pantalla.
+- ⚠️ Snap lineal ~3k nodos no escala a ciudad completa sin ADR futuro.
+
+---
+
+## ADR-035 — Retorno a Chapinero 1 200 m, corrección de consistencia GeoJSON/frontend e integración con regresión lineal
+
+**Fecha:** 2026-11-20  
+**Estado:** Aceptado
+
+### Contexto
+Tras la rama experimental de expansión a 2 500 m / mosaico urbano y su integración con la rama principal (que ya incluye EDA y regresión lineal entrenada sobre la auditoría Bitcarrier+OSM de 1 741 aristas), se detectaron tres regresiones reales de consistencia y compatibilidad:
+
+1. **Truncamiento silencioso del mapa:** `rutas_mapa.py` aplicaba `LIMITE_FEATURES_GEOJSON = 4000` incluso en peticiones sin `bbox`, cortando el 40 % de las aristas de 2 500 m (2 665/6 665) y dejando 581 nodos desconectados visualmente.
+2. **Desalineación con regresión lineal y límite de Vercel:** el payload GeoJSON completo de 2 500 m pesa ~4.13 MB (muy cerca del límite de 4.5 MB de Vercel Serverless Functions), las 4 924 aristas adicionales no están en el dataset operativo auditado, y Cytoscape (`cose-bilkent`) se degrada por encima de 3 000 nodos.
+3. **Atributos descartados en el frontend y recarga innecesaria:** `MapaOSM.vue` y `app.vue` reemplazaban `distancia`, `tiempo_estimado` y `disponible` por `0`/`true`, `/grafo/nodos/indice` omitía `tipo`, y `onMounted` disparaba `POST /grafo/recargar` en cada carga.
+
+### Decisión
+- **Dataset activo (`backend/datos/`):** conservar el grafo OSM de **Chapinero 1 200 m** (**888 nodos**, **1 741 aristas**) de `main` y alinear el radio por defecto a `1200` en `generar_dataset.py`, `RepositorioGrafo.generar_dataset_osm()` y `POST /grafo/recargar`.
+- **Clasificación ML:** reentrenar `scripts/generar_dataset_clasificacion.py` sobre las 1 741 aristas (`27 856` filas; Gradient Boosting accuracy `93.8 %`, F1 macro `0.909`).
+- **Consistencia de API (`rutas_mapa.py`, `rutas_grafo.py`, `main.py`):**
+  - Aplicar `LIMITE_FEATURES_GEOJSON` únicamente cuando hay `bbox` activo o `limite` explícito; sin `bbox` el mapa recibe el grafo completo.
+  - Agregar `GZipMiddleware` (`minimum_size=1000`) en FastAPI.
+  - Exponer `tipo` en `/grafo/nodos/indice`.
+  - Unificar en `rutas_ml.py` los endpoints de regresión (`/estado`, `/predecir`, `/ruta`) y clasificación (`/clasificacion`, `/clasificacion/predecir`, `/clasificacion/reentrenar`).
+- **Frontend (`grafo.ts`, `MapaOSM.vue`, `app.vue`):**
+  - Propagar `distancia`, `tiempo_estimado` y `disponible` reales en `aristas-visibles` y `arista-click`, y `tipo` en nodos del índice.
+  - Reservar `POST /grafo/recargar?desde_archivo=true` exclusivamente para el botón «Actualizar Grafo» (sin recargar en `onMounted`).
+  - Integrar en `app.vue` la pestaña «Análisis de movilidad» (`AnalisisMovilidad.vue`), el panel de ruta con regresión lineal, el fallback de Voraz a UCS, la comparación multicolor y el panel de clasificación ML.
+
+### Consecuencias
+- ✅ 100 % de las 1 741 aristas y 888 nodos coinciden con la auditoría Bitcarrier+OSM de regresión y con los informes de los Cortes 1 y 2.
+- ✅ Payload de `/mapa/geojson/aristas` baja a ~1.08 MB sin compresión (amplio margen bajo 4.5 MB en Vercel) y ambas vistas (Leaflet y Cytoscape) responden con fluidez.
+- ✅ Para escalar a más nodos en el futuro (>888): usar `GZipMiddleware` + GeoJSON simplificado o tiles vectoriales, activar recorte por viewport en el cliente cuando el grafo supere ~2 000 aristas, limitar `GraphView` al subgrafo de la ruta y ampliar la auditoría Bitcarrier+OSM al radio mayor.

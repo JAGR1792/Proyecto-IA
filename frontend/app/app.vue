@@ -1,11 +1,29 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from 'vue'
-import GraphView from '@/components/GraphView.vue'
 import AnalisisMovilidad from '@/components/AnalisisMovilidad.vue'
+import GraphView from '@/components/GraphView.vue'
 import MapaOSM from '@/components/MapaOSM.vue'
 import type { NodoGrafo, AristaGrafo } from '@/components/GraphView.vue'
-import { esJson } from '@/utils/api'
+import { esJson, postJson } from '@/utils/api'
 import { construirNombresAmigables, sufijoIdNodo } from '@/utils/nombres'
+import {
+  etiquetaDeAlgoritmo,
+  rutasDesdeComparacion,
+  type ComparacionAlgoritmos,
+  type ResultadoAlgoritmo,
+} from '@/utils/busqueda'
+import {
+  formatearPorcentajeMl,
+  normalizarPrediccionesMl,
+  type MetricasMl,
+} from '@/utils/ml'
+import {
+  filtrarNodosIndice,
+  obtenerIndiceNodos,
+  obtenerResumenGrafo,
+  type AristaVisibleMapa,
+  type ResumenGrafoResponse,
+} from '@/utils/grafo'
 
 const nodos = ref<NodoGrafo[]>([])
 const aristas = ref<AristaGrafo[]>([])
@@ -19,27 +37,46 @@ const stats = ref<any>(null)
 const runtimeConfig = useRuntimeConfig()
 const apiBase = runtimeConfig.public.apiBase
 
+let temporizadorPrediccionMl: ReturnType<typeof setTimeout> | null = null
+
 const origenSeleccionado = ref<string>('')
 const destinoSeleccionado = ref<string>('')
 const criterioSeleccionado = ref<string>('menor_tiempo')
 const horaSalida = ref<string>('08:00')
 const algoritmoSeleccionado = ref<string>('voraz')
-// Ruta ML: se añade como alternativa, sin reemplazar los cinco algoritmos.
+
+// Ruta ML (regresión lineal): opción complementaria a los cinco algoritmos.
 const diaSemanaML = ref<number>(0)
 const rutaPorRegresion = ref(false)
 const avisoAlternativa = ref<string | null>(null)
-const comparacionRegresion = ref<any>(null) // TAXI_IA_COMPARACION_REGRESION_V2
+const comparacionRegresion = ref<any>(null)
 
 const resultadoRuta = ref<any>(null)
-const comparacion = ref<any>(null)
+const comparacion = ref<ComparacionAlgoritmos | null>(null)
 const comparando = ref(false)
+const algoritmoEnfocado = ref<string | null>(null)
 const panelComparacion = ref<HTMLElement | null>(null)
 const seccionActiva = ref<'rutas' | 'eda'>('rutas')
 const vistaActiva = ref<'grafo' | 'mapa'>('mapa')
 const temaActivo = ref<'oscuro' | 'claro'>('oscuro')
 // Capas de contexto: la ruta activa se dibuja siempre, aunque se oculten
 const mostrarRedVial = ref(true)
-const mostrarNodos = ref(true)
+const mostrarNodos = ref(false)
+
+const mlDatos = ref<MetricasMl | null>(null)
+const mlCargando = ref(false)
+const congestionFuente = ref<'sintetica' | 'ml'>('sintetica')
+const metadataGrafo = ref<Record<string, unknown> | null>(null)
+const resumenGrafo = ref<ResumenGrafoResponse | null>(null)
+const aristasPorId = ref(new Map<string, AristaGrafo>())
+const congestionMl = ref<Record<string, string>>({})
+
+const consultaOrigen = ref('')
+const consultaDestino = ref('')
+const focoBusquedaOrigen = ref(false)
+const focoBusquedaDestino = ref(false)
+let temporizadorCerrarOrigen: ReturnType<typeof setTimeout> | null = null
+let temporizadorCerrarDestino: ReturnType<typeof setTimeout> | null = null
 
 // Selección de extremos directamente sobre el mapa o el grafo
 type RolExtremo = 'origen' | 'destino'
@@ -55,8 +92,11 @@ const nodosConNombre = computed<NodoGrafo[]>(() =>
     nombre: nombresAmigables.value.get(nodo.id) ?? nodo.nombre,
   })),
 )
-const nodosOrdenados = computed(() =>
-  [...nodosConNombre.value].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
+const resultadosOrigen = computed(() =>
+  filtrarNodosIndice(nodosConNombre.value, consultaOrigen.value),
+)
+const resultadosDestino = computed(() =>
+  filtrarNodosIndice(nodosConNombre.value, consultaDestino.value),
 )
 
 function etiquetaNodoPorId(id: string): string {
@@ -95,18 +135,7 @@ function formatearCOP(valor: number): string {
   return FORMATO_COP.format(valor)
 }
 
-// Nombres legibles de los algoritmos devueltos por la API
-const ETIQUETAS_ALGORITMO: Record<string, string> = {
-  voraz: 'Voraz (Greedy)',
-  ucs: 'UCS (Costo Uniforme)',
-  a_estrella: 'A*',
-  bfs: 'BFS',
-  dfs: 'DFS',
-}
-
-function etiquetaDeAlgoritmo(id: string): string {
-  return ETIQUETAS_ALGORITMO[id] ?? id
-}
+const rutasComparacionMapa = computed(() => rutasDesdeComparacion(comparacion.value))
 
 const etiquetaAlgoritmo = computed(() => {
   const id = resultadoRuta.value?.algoritmo
@@ -114,7 +143,7 @@ const etiquetaAlgoritmo = computed(() => {
 })
 
 const comparacionOrdenada = computed(() => {
-  const filas: any[] = comparacion.value?.resultados ?? []
+  const filas = comparacion.value?.resultados ?? []
   return [...filas].sort((a, b) => {
     if (a.ruta_encontrada !== b.ruta_encontrada) return a.ruta_encontrada ? -1 : 1
     if (a.costo_total !== b.costo_total) return a.costo_total - b.costo_total
@@ -122,7 +151,7 @@ const comparacionOrdenada = computed(() => {
   })
 })
 
-function esMejorResultado(resultado: any): boolean {
+function esMejorResultado(resultado: ResultadoAlgoritmo): boolean {
   const mejor = comparacion.value?.mejor_costo
   return (
     resultado.ruta_encontrada &&
@@ -132,6 +161,141 @@ function esMejorResultado(resultado: any): boolean {
   )
 }
 
+const metricasMejorModelo = computed(() => {
+  if (!mlDatos.value) return null
+  const nombre = mlDatos.value.mejor_modelo
+  return mlDatos.value.metricas.find((fila) => fila.modelo === nombre) ?? null
+})
+
+const matrizConfusionMejor = computed(() => {
+  if (!mlDatos.value) return null
+  return mlDatos.value.matrices_confusion[mlDatos.value.mejor_modelo] ?? null
+})
+
+const maxCeldaMatriz = computed(() => {
+  const bloque = matrizConfusionMejor.value
+  if (!bloque) return 1
+  let max = 0
+  for (const fila of bloque.matriz) {
+    for (const celda of fila) {
+      if (celda > max) max = celda
+    }
+  }
+  return max || 1
+})
+
+function esMejorModeloMl(modelo: string): boolean {
+  return mlDatos.value?.mejor_modelo === modelo
+}
+
+function intensidadCeldaMatriz(valor: number): number {
+  return Math.min(1, valor / maxCeldaMatriz.value)
+}
+
+async function cargarMetricasMl() {
+  mlCargando.value = true
+  try {
+    const response = await fetch(`${apiBase}/ml/clasificacion`)
+    const tipo = response.headers.get('content-type') || ''
+    if (!response.ok || !esJson(tipo)) {
+      mlDatos.value = null
+      return
+    }
+    mlDatos.value = (await response.json()) as MetricasMl
+  } catch (e) {
+    console.warn('Métricas ML no disponibles:', e)
+    mlDatos.value = null
+  } finally {
+    mlCargando.value = false
+  }
+}
+
+async function intentarAplicarPrediccionMl(aristaIds: readonly string[]) {
+  const ids = [...new Set(aristaIds)].filter(
+    (id) => id && congestionMl.value[id] === undefined,
+  )
+  if (!ids.length) return
+  congestionFuente.value = 'sintetica'
+  try {
+    const response = await fetch(`${apiBase}/ml/clasificacion/predecir`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        hora_salida: horaSalida.value,
+        arista_ids: ids,
+      }),
+    })
+    const tipo = response.headers.get('content-type') || ''
+    if (!response.ok || !esJson(tipo)) return
+    const data = await response.json()
+    const mapa = normalizarPrediccionesMl(data)
+    if (!mapa) return
+    const overrides: Record<string, string> = { ...congestionMl.value }
+    for (const id of ids) {
+      const pred = mapa.get(id)
+      if (!pred) continue
+      overrides[id] = pred
+      const existente = aristasPorId.value.get(id)
+      if (existente) {
+        aristasPorId.value.set(id, { ...existente, congestion: pred })
+      }
+    }
+    congestionMl.value = overrides
+    aristas.value = [...aristasPorId.value.values()]
+    congestionFuente.value = 'ml'
+  } catch (e) {
+    console.warn('Predicción ML no disponible, usando congestión sintética:', e)
+  }
+}
+
+function manejarAristasVisibles(visibles: AristaVisibleMapa[]) {
+  for (const arista of visibles) {
+    aristasPorId.value.set(arista.id, {
+      id: arista.id,
+      origen: arista.origen,
+      destino: arista.destino,
+      distancia: arista.distancia,
+      tiempo_estimado: arista.tiempo_estimado,
+      congestion: arista.congestion,
+      disponible: arista.disponible,
+      nombre_via: arista.nombre_via,
+      geometria: arista.geometria ?? null,
+    })
+  }
+  aristas.value = [...aristasPorId.value.values()]
+  const idsVisibles = visibles.map((a) => a.id)
+  if (temporizadorPrediccionMl) clearTimeout(temporizadorPrediccionMl)
+  temporizadorPrediccionMl = setTimeout(() => {
+    void intentarAplicarPrediccionMl(idsVisibles)
+  }, 350)
+}
+
+function elegirOrigen(nodo: NodoGrafo) {
+  origenSeleccionado.value = nodo.id
+  consultaOrigen.value = `${nodo.nombre} · ${sufijoIdNodo(nodo.id)}`
+  focoBusquedaOrigen.value = false
+}
+
+function elegirDestino(nodo: NodoGrafo) {
+  destinoSeleccionado.value = nodo.id
+  consultaDestino.value = `${nodo.nombre} · ${sufijoIdNodo(nodo.id)}`
+  focoBusquedaDestino.value = false
+}
+
+function programarCerrarBusquedaOrigen() {
+  if (temporizadorCerrarOrigen) clearTimeout(temporizadorCerrarOrigen)
+  temporizadorCerrarOrigen = setTimeout(() => {
+    focoBusquedaOrigen.value = false
+  }, 150)
+}
+
+function programarCerrarBusquedaDestino() {
+  if (temporizadorCerrarDestino) clearTimeout(temporizadorCerrarDestino)
+  temporizadorCerrarDestino = setTimeout(() => {
+    focoBusquedaDestino.value = false
+  }, 150)
+}
+
 function aplicarTema() {
   const root = document.documentElement
   // Congela transiciones durante el switch: el tema aplica en 1 frame
@@ -139,7 +303,7 @@ function aplicarTema() {
   root.classList.add('tx-theme-switching')
   root.setAttribute('data-theme', temaActivo.value)
   requestAnimationFrame(() =>
-    requestAnimationFrame(() => root.classList.remove('tx-theme-switching'))
+    requestAnimationFrame(() => root.classList.remove('tx-theme-switching')),
   )
 }
 
@@ -163,44 +327,41 @@ function alternarTema() {
   aplicarTema()
 }
 
-async function cargarGrafo() {
+async function cargarGrafo(forzarRecarga = false) {
   cargando.value = true
   error.value = null
+  if (forzarRecarga) {
+    aristasPorId.value = new Map()
+    aristas.value = []
+    congestionMl.value = {}
+    congestionFuente.value = 'sintetica'
+  }
   try {
-    // Cargar grafo completo
-    const response = await fetch(`${apiBase}/grafo/?hora_salida=${encodeURIComponent(horaSalida.value)}`)
-    const tipo = response.headers.get('content-type') || ''
-    if (!response.ok || !esJson(tipo)) {
-      throw new Error(
-        `La API respondió ${tipo || 'un formato desconocido'} (status ${response.status}) en lugar de JSON. ` +
-          'Verifica que el backend esté activo; si cambiaste la configuración, reinicia el servidor de desarrollo.',
+    if (forzarRecarga) {
+      const recarga = await fetch(
+        `${apiBase}/grafo/recargar?usar_sintetico=false&desde_archivo=true`,
+        { method: 'POST' },
       )
+      const tipoRecarga = recarga.headers.get('content-type') || ''
+      if (recarga.ok && esJson(tipoRecarga)) {
+        const infoRecarga = await recarga.json()
+        metadataGrafo.value = infoRecarga.metadata ?? null
+      }
     }
-    const data = await response.json()
 
-    // Transformar nodos
-    nodos.value = Object.values(data.nodos).map((n: any) => ({
+    const resumen = await obtenerResumenGrafo(apiBase)
+    resumenGrafo.value = resumen
+    metadataGrafo.value = resumen.metadata ?? metadataGrafo.value
+
+    const indice = await obtenerIndiceNodos(apiBase)
+    nodos.value = indice.nodos.map((n) => ({
       id: n.id,
       nombre: n.nombre,
-      lat: n.coordenadas.latitud,
-      lon: n.coordenadas.longitud,
-      tipo: n.tipo,
+      lat: n.lat,
+      lon: n.lon,
+      tipo: n.tipo || 'interseccion',
     }))
 
-    // Transformar aristas
-    aristas.value = data.aristas.map((a: any) => ({
-      id: a.id,
-      origen: a.origen,
-      destino: a.destino,
-      distancia: a.distancia,
-      tiempo_estimado: a.tiempo_estimado,
-      congestion: a.congestion,
-      disponible: a.disponible,
-      nombre_via: a.atributos?.nombre_via,
-      geometria: a.atributos?.geometria ?? null,
-    }))
-
-    // Cargar estadísticas: si falla, no debe tumbar la carga del grafo
     const statsResp = await fetch(`${apiBase}/grafo/estadisticas`)
     const tipoStats = statsResp.headers.get('content-type') || ''
     if (statsResp.ok && esJson(tipoStats)) {
@@ -216,10 +377,13 @@ async function cargarGrafo() {
 
 function fijarExtremo(rol: RolExtremo, nodo: NodoGrafo) {
   const nodoAmigable = nodosConNombre.value.find((n) => n.id === nodo.id) ?? nodo
+  const etiqueta = `${nodoAmigable.nombre} · ${sufijoIdNodo(nodoAmigable.id)}`
   if (rol === 'origen') {
     origenSeleccionado.value = nodo.id
+    consultaOrigen.value = etiqueta
   } else {
     destinoSeleccionado.value = nodo.id
+    consultaDestino.value = etiqueta
   }
   nodoSeleccionado.value = nodoAmigable
   aristaSeleccionada.value = null
@@ -244,9 +408,6 @@ function manejarClickArista(arista: AristaGrafo) {
 
 function alternarModoSeleccion(rol: RolExtremo) {
   modoSeleccionMapa.value = modoSeleccionMapa.value === rol ? null : rol
-  if (modoSeleccionMapa.value) {
-    mostrarNodos.value = true
-  }
 }
 
 function usarNodoComo(rol: RolExtremo) {
@@ -255,22 +416,20 @@ function usarNodoComo(rol: RolExtremo) {
 }
 
 function limpiarRuta() {
+  avisoAlternativa.value = null
   comparacionRegresion.value = null
   rutaPorRegresion.value = false
   rutaResaltada.value = []
   aristaResaltada.value = []
   resultadoRuta.value = null
   comparacion.value = null
+  algoritmoEnfocado.value = null
 }
 
 async function cambiarHoraSalida() {
-  comparacionRegresion.value = null
-  rutaPorRegresion.value = false
-  rutaResaltada.value = []
-  aristaResaltada.value = []
-  resultadoRuta.value = null
-  comparacion.value = null
-  await cargarGrafo()
+  limpiarRuta()
+  congestionMl.value = {}
+  congestionFuente.value = 'sintetica'
 }
 
 async function buscarRuta() {
@@ -284,35 +443,27 @@ async function buscarRuta() {
   error.value = null
   resultadoRuta.value = null
   comparacion.value = null
+  algoritmoEnfocado.value = null
 
   try {
-    const response = await fetch(`${apiBase}/busqueda/buscar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const data = await postJson<{
+      camino?: string[]
+      aristas_camino?: string[]
+      ruta_encontrada?: boolean
+    }>(
+      `${apiBase}/busqueda/buscar`,
+      {
         origen: origenSeleccionado.value,
         destino: destinoSeleccionado.value,
         algoritmo: algoritmoSeleccionado.value,
         criterio: criterioSeleccionado.value,
         hora_salida: horaSalida.value,
         tarifa: opcionesTarifa.value,
-      }),
-    })
-
-    const tipoContenido = response.headers.get('content-type') || ''
-    if (!esJson(tipoContenido)) {
-      throw new Error(
-        `La API no respondió JSON (status ${response.status}). Verifica que el backend esté activo en ${apiBase}.`
-      )
-    }
-
-    const data = await response.json()
-    if (!response.ok) {
-      throw new Error(data.detail || `Error ${response.status} en la búsqueda`)
-    }
+      },
+      `La API no respondió JSON. Verifica que el backend esté activo en ${apiBase}.`,
+    )
 
     // Si Voraz se atasca, ofrecer automáticamente la alternativa óptima UCS.
-    // No se cambia el algoritmo Voraz ni los algoritmos de los compañeros.
     let resultadoFinal = data
     if (!data.ruta_encontrada && algoritmoSeleccionado.value === 'voraz') {
       const altResp = await fetch(`${apiBase}/busqueda/buscar`, {
@@ -331,17 +482,20 @@ async function buscarRuta() {
         const alt = await altResp.json()
         if (alt.ruta_encontrada) {
           resultadoFinal = alt
-          avisoAlternativa.value = 'Voraz no encontró un recorrido; se muestra la alternativa encontrada por UCS.'
+          avisoAlternativa.value =
+            'Voraz no encontró un recorrido; se muestra la alternativa encontrada por UCS.'
         }
       }
     }
-    const rutaActual = resultadoFinal
-    rutaResaltada.value = rutaActual.camino || []
-    aristaResaltada.value = rutaActual.aristas_camino || []
-    resultadoRuta.value = rutaActual
 
-    if (!rutaActual.ruta_encontrada) {
+    rutaResaltada.value = resultadoFinal.camino || []
+    aristaResaltada.value = resultadoFinal.aristas_camino || []
+    resultadoRuta.value = resultadoFinal
+
+    if (!resultadoFinal.ruta_encontrada) {
       error.value = 'No se encontró una ruta entre esos nodos.'
+    } else if (resultadoFinal.aristas_camino?.length) {
+      void intentarAplicarPrediccionMl(resultadoFinal.aristas_camino)
     }
   } catch (e: any) {
     error.value = e.message
@@ -352,6 +506,7 @@ async function buscarRuta() {
 }
 
 async function compararAlgoritmos() {
+  avisoAlternativa.value = null
   comparacionRegresion.value = null
   rutaPorRegresion.value = false
   if (!origenSeleccionado.value || !destinoSeleccionado.value) return
@@ -359,31 +514,22 @@ async function compararAlgoritmos() {
 
   comparando.value = true
   error.value = null
+  rutaResaltada.value = []
+  aristaResaltada.value = []
+  resultadoRuta.value = null
+  algoritmoEnfocado.value = null
 
   try {
-    const response = await fetch(`${apiBase}/busqueda/comparar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const data = await postJson<ComparacionAlgoritmos>(
+      `${apiBase}/busqueda/comparar`,
+      {
         origen: origenSeleccionado.value,
         destino: destinoSeleccionado.value,
         criterio: criterioSeleccionado.value,
         hora_salida: horaSalida.value,
         tarifa: opcionesTarifa.value,
-      }),
-    })
-
-    const tipoContenido = response.headers.get('content-type') || ''
-    if (!esJson(tipoContenido)) {
-      throw new Error(
-        `La API no respondió JSON (status ${response.status}). Verifica que el backend esté activo.`
-      )
-    }
-
-    const data = await response.json()
-    if (!response.ok) {
-      throw new Error(data.detail || `Error ${response.status} en la comparación`)
-    }
+      },
+    )
 
     comparacion.value = data
     await nextTick()
@@ -396,11 +542,16 @@ async function compararAlgoritmos() {
   }
 }
 
-
-// Predicción aplicada al grafo: conserva la búsqueda y el mapa existentes.
+// Predicción aplicada al grafo con LinearRegression: conserva la búsqueda y el mapa existentes.
 async function buscarRutaConRegresion() {
   avisoAlternativa.value = null
-  if (!origenSeleccionado.value || !destinoSeleccionado.value || origenSeleccionado.value === destinoSeleccionado.value) return
+  if (
+    !origenSeleccionado.value ||
+    !destinoSeleccionado.value ||
+    origenSeleccionado.value === destinoSeleccionado.value
+  ) {
+    return
+  }
   const hora = Number(horaSalida.value.split(':')[0])
   if (!Number.isInteger(hora) || hora < 0 || hora > 23) {
     error.value = 'Selecciona una hora válida para la regresión.'
@@ -412,8 +563,10 @@ async function buscarRutaConRegresion() {
   comparacionRegresion.value = null
   resultadoRuta.value = null
   comparacion.value = null
+  algoritmoEnfocado.value = null
   rutaResaltada.value = []
   aristaResaltada.value = []
+
   try {
     const response = await fetch(`${apiBase}/ml/ruta`, {
       method: 'POST',
@@ -426,17 +579,23 @@ async function buscarRutaConRegresion() {
       }),
     })
     const contenido = response.headers.get('content-type') || ''
-    if (!esJson(contenido)) throw new Error(`La API ML respondió ${response.status} sin JSON. Verifica que FastAPI esté activo.`)
+    if (!esJson(contenido)) {
+      throw new Error(
+        `La API ML respondió ${response.status} sin JSON. Verifica que FastAPI esté activo.`,
+      )
+    }
     const data = await response.json()
     if (!response.ok) {
-      const detalle = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail ?? data)
+      const detalle =
+        typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail ?? data)
       if (response.status === 422 && detalle.includes('Grafo y dataset')) {
-        throw new Error('La red del mapa todavía no coincide con el dataset OSM utilizado para la regresión. No se aplicaron tiempos a aristas incompatibles. Detalle: ' + detalle)
+        throw new Error(
+          'La red del mapa todavía no coincide con el dataset OSM utilizado para la regresión. ' +
+            `No se aplicaron tiempos a aristas incompatibles. Detalle: ${detalle}`,
+        )
       }
       throw new Error(detalle || `Error HTTP ${response.status}`)
     }
-    // El endpoint ML devuelve {resultado, modelo, auditoria}; reutilizamos
-    // el mismo modelo de respuesta de la interfaz de búsqueda existente.
     const resultado = data.resultado
     if (!resultado || typeof resultado.ruta_encontrada !== 'boolean') {
       throw new Error('Formato de respuesta de ruta ML inesperado.')
@@ -446,7 +605,11 @@ async function buscarRutaConRegresion() {
     resultadoRuta.value = resultado
     rutaResaltada.value = resultado.camino ?? []
     aristaResaltada.value = resultado.aristas_camino ?? []
-    if (!resultado.ruta_encontrada) error.value = 'No se encontró un camino dirigido entre los puntos elegidos.'
+    if (!resultado.ruta_encontrada) {
+      error.value = 'No se encontró un camino dirigido entre los puntos elegidos.'
+    } else if (resultado.aristas_camino?.length) {
+      void intentarAplicarPrediccionMl(resultado.aristas_camino)
+    }
   } catch (e: any) {
     error.value = e instanceof Error ? e.message : String(e)
     console.error('Error calculando ruta ML:', e)
@@ -468,6 +631,7 @@ function claseCongestion(nivel: string) {
 onMounted(() => {
   inicializarTema()
   cargarGrafo()
+  cargarMetricasMl()
 })
 </script>
 
@@ -490,8 +654,10 @@ onMounted(() => {
       </div>
       <div class="tx-header-actions">
         <button
-type="button" class="tx-button tx-button-secondary"
-          @click="seccionActiva = seccionActiva === 'rutas' ? 'eda' : 'rutas'">
+          type="button"
+          class="tx-button tx-button-secondary"
+          @click="seccionActiva = seccionActiva === 'rutas' ? 'eda' : 'rutas'"
+        >
           {{ seccionActiva === 'rutas' ? 'Análisis de movilidad' : 'Volver a rutas' }}
         </button>
         <button
@@ -507,7 +673,7 @@ type="button" class="tx-button tx-button-secondary"
         <button
           :disabled="cargando"
           class="tx-button tx-button-primary"
-          @click="cargarGrafo"
+          @click="cargarGrafo(true)"
         >
           {{ cargando ? 'Sincronizando...' : 'Actualizar Grafo' }}
         </button>
@@ -527,23 +693,59 @@ type="button" class="tx-button tx-button-secondary"
         <!-- Selector Origen/Destino -->
         <div class="tx-panel">
           <h3 class="tx-panel-title">Parámetros de Ruta</h3>
-          <div class="tx-form-group">
-            <label class="tx-label">Punto de Origen</label>
-            <select v-model="origenSeleccionado" class="tx-select">
-              <option value="">Seleccionar intersección...</option>
-              <option v-for="n in nodosOrdenados" :key="n.id" :value="n.id">
+          <div class="tx-form-group tx-busqueda-nodo">
+            <label class="tx-label" for="busqueda-origen">Punto de Origen</label>
+            <input
+              id="busqueda-origen"
+              v-model="consultaOrigen"
+              type="search"
+              class="tx-input"
+              placeholder="Buscar por nombre o id (mín. 2 caracteres)..."
+              autocomplete="off"
+              @focus="focoBusquedaOrigen = true"
+              @blur="programarCerrarBusquedaOrigen"
+            />
+            <ul
+              v-if="focoBusquedaOrigen && resultadosOrigen.length"
+              class="tx-busqueda-lista"
+              role="listbox"
+            >
+              <li
+                v-for="n in resultadosOrigen"
+                :key="n.id"
+                role="option"
+                @mousedown.prevent="elegirOrigen(n)"
+              >
                 {{ n.nombre }} · {{ sufijoIdNodo(n.id) }}
-              </option>
-            </select>
+              </li>
+            </ul>
           </div>
-          <div class="tx-form-group">
-            <label class="tx-label">Destino Final</label>
-            <select v-model="destinoSeleccionado" class="tx-select">
-              <option value="">Seleccionar intersección...</option>
-              <option v-for="n in nodosOrdenados" :key="n.id" :value="n.id">
+          <div class="tx-form-group tx-busqueda-nodo">
+            <label class="tx-label" for="busqueda-destino">Destino Final</label>
+            <input
+              id="busqueda-destino"
+              v-model="consultaDestino"
+              type="search"
+              class="tx-input"
+              placeholder="Buscar por nombre o id (mín. 2 caracteres)..."
+              autocomplete="off"
+              @focus="focoBusquedaDestino = true"
+              @blur="programarCerrarBusquedaDestino"
+            />
+            <ul
+              v-if="focoBusquedaDestino && resultadosDestino.length"
+              class="tx-busqueda-lista"
+              role="listbox"
+            >
+              <li
+                v-for="n in resultadosDestino"
+                :key="n.id"
+                role="option"
+                @mousedown.prevent="elegirDestino(n)"
+              >
                 {{ n.nombre }} · {{ sufijoIdNodo(n.id) }}
-              </option>
-            </select>
+              </li>
+            </ul>
           </div>
           <div class="tx-form-group">
             <label class="tx-label">Selección rápida en mapa</label>
@@ -566,7 +768,11 @@ type="button" class="tx-button tx-button-secondary"
               </button>
             </div>
             <p class="tx-panel-note tx-map-pick-note">
-              {{ modoSeleccionMapa ? 'Haz clic en un nodo del mapa o del grafo.' : 'También puedes elegir en los desplegables.' }}
+              {{
+                modoSeleccionMapa
+                  ? 'Clic en el mapa o en una vía: se asigna el nodo más cercano (capa Nodos opcional).'
+                  : 'Busca por nombre arriba o marca origen/destino en el mapa.'
+              }}
             </p>
             <div v-if="origenSeleccionado || destinoSeleccionado" class="tx-ruta-resumen">
               <span v-if="origenSeleccionado"><strong>Origen:</strong> {{ etiquetaNodoPorId(origenSeleccionado) }}</span>
@@ -593,9 +799,19 @@ type="button" class="tx-button tx-button-secondary"
               @change="cambiarHoraSalida"
             />
             <p class="tx-panel-note">
-              Cualquier hora de 00:00 a 23:59. Tráfico simulado para un día hábil típico; no es tráfico en vivo.
+              Tráfico
+              {{ congestionFuente === 'ml' ? 'con predicción ML' : 'sintético' }}
+              para la hora elegida (no en vivo).
             </p>
           </div>
+          <p
+            v-if="resumenGrafo"
+            class="tx-panel-note tx-resumen-grafo"
+          >
+            Red Chapinero:
+            {{ resumenGrafo.total_nodos.toLocaleString('es-CO') }} nodos,
+            {{ resumenGrafo.total_aristas.toLocaleString('es-CO') }} aristas.
+          </p>
           <div class="tx-form-group">
             <label class="tx-label">Algoritmo de Búsqueda</label>
             <select v-model="algoritmoSeleccionado" class="tx-select">
@@ -603,7 +819,7 @@ type="button" class="tx-button tx-button-secondary"
               <option value="ucs">UCS (óptimo sin heurística)</option>
               <option value="voraz">Voraz (Greedy)</option>
               <option value="bfs">BFS (amplitud, menos conexiones)</option>
-              <option value="dfs" >DFS (busqueda en profundidad)</option>
+              <option value="dfs">DFS (búsqueda en profundidad)</option>
             </select>
           </div>
           <button
@@ -622,34 +838,40 @@ type="button" class="tx-button tx-button-secondary"
           </button>
         </div>
 
-
-          <!-- Regresión lineal ML: opción independiente del motor de búsqueda. -->
-          <div class="tx-ml-route-box">
-            <div class="tx-ml-route-heading">Predicción de tiempo · Regresión lineal</div>
-            <p class="tx-panel-note">Calcula la ruta de menor tiempo estimado con UCS usando nuestro modelo LinearRegression. No reemplaza los cinco algoritmos de búsqueda.</p>
-            <div class="tx-form-group">
-              <label for="dia-regresion" class="tx-label">Día de la semana</label>
-              <select id="dia-regresion" v-model.number="diaSemanaML" class="tx-select">
-                <option :value="0">Lunes</option>
-                <option :value="1">Martes</option>
-                <option :value="2">Miércoles</option>
-                <option :value="3">Jueves</option>
-                <option :value="4">Viernes</option>
-                <option :value="5">Sábado</option>
-                <option :value="6">Domingo</option>
-              </select>
-            </div>
-            <button
-              type="button"
-              class="tx-button tx-button-primary tx-ml-route-button"
-              :disabled="!origenSeleccionado || !destinoSeleccionado || origenSeleccionado === destinoSeleccionado || cargando || comparando"
-              @click="buscarRutaConRegresion"
-            >{{ cargando ? 'Calculando...' : 'Predecir tiempo y mostrar ruta' }}</button>
-            <p class="tx-panel-note">Utiliza la hora seleccionada arriba. Estimación sobre escenarios del dataset, no tráfico en vivo.</p>
+        <!-- Regresión lineal ML: opción independiente del motor de búsqueda -->
+        <div class="tx-ml-route-box">
+          <div class="tx-ml-route-heading">Predicción de tiempo · Regresión lineal</div>
+          <p class="tx-panel-note">
+            Calcula la ruta de menor tiempo estimado con UCS usando nuestro modelo LinearRegression.
+            No reemplaza los cinco algoritmos de búsqueda.
+          </p>
+          <div class="tx-form-group">
+            <label for="dia-regresion" class="tx-label">Día de la semana</label>
+            <select id="dia-regresion" v-model.number="diaSemanaML" class="tx-select">
+              <option :value="0">Lunes</option>
+              <option :value="1">Martes</option>
+              <option :value="2">Miércoles</option>
+              <option :value="3">Jueves</option>
+              <option :value="4">Viernes</option>
+              <option :value="5">Sábado</option>
+              <option :value="6">Domingo</option>
+            </select>
           </div>
+          <button
+            type="button"
+            class="tx-button tx-button-primary tx-ml-route-button"
+            :disabled="!origenSeleccionado || !destinoSeleccionado || origenSeleccionado === destinoSeleccionado || cargando || comparando"
+            @click="buscarRutaConRegresion"
+          >
+            {{ cargando ? 'Calculando...' : 'Predecir tiempo y mostrar ruta' }}
+          </button>
+          <p class="tx-panel-note">
+            Utiliza la hora seleccionada arriba. Estimación sobre escenarios del dataset, no tráfico en vivo.
+          </p>
+        </div>
 
         <!-- Opciones de Tarifa de Taxi -->
-        <div class="tx-panel" style="margin-top: 1.5rem;">
+        <div class="tx-panel">
           <h3 class="tx-panel-title">Tarifa de Taxi</h3>
           <div class="tx-form-group">
             <label class="tx-label">Condiciones del viaje</label>
@@ -704,430 +926,694 @@ type="button" class="tx-button tx-button-secondary"
           </p>
         </div>
 
-        <!-- Resultado de Ruta -->
-        <div v-if="resultadoRuta" class="tx-panel" style="margin-top: 1.5rem;">
-          <h3 class="tx-panel-title">Resultado de Ruta</h3>
-          <p class="tx-panel-note">Salida: {{ horaSalida }} · {{ rutaPorRegresion ? "tiempos de regresión lineal" : "congestión sintética" }}</p>
-          <dl class="tx-data-list">
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Estado</dt>
-              <dd class="tx-data-value">
-                <span
-                  class="tx-badge"
-                  :class="resultadoRuta.ruta_encontrada ? 'tx-badge-ruta-ok' : 'tx-badge-ruta-fallida'"
-                >
-                  {{ resultadoRuta.ruta_encontrada ? 'Ruta encontrada' : 'Sin ruta' }}
-                </span>
-              </dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Algoritmo</dt>
-              <dd class="tx-data-value tx-font-mono">{{ etiquetaAlgoritmo }}</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Origen / Destino</dt>
-              <dd class="tx-data-value" style="max-width: 220px; overflow-wrap: anywhere;">
-                {{ etiquetaNodoPorId(resultadoRuta.camino[0]) }}
-                →
-                {{ etiquetaNodoPorId(resultadoRuta.camino[resultadoRuta.camino.length - 1]) }}
-              </dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Camino</dt>
-              <dd class="tx-data-value tx-font-mono" style="max-width: 220px; overflow-wrap: break-word;">
-                {{ resultadoRuta.camino.join(' → ') || '—' }}
-              </dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Distancia</dt>
-              <dd class="tx-data-value tx-font-mono">{{ (resultadoRuta.distancia_total_m / 1000).toFixed(2) }} km</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Tiempo Est.</dt>
-              <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.tiempo_total_min.toFixed(1) }} min</dd>
-            </div>
-            <div v-if="resultadoRuta.tarifa_taxi" class="tx-data-row">
-              <dt class="tx-data-term">Tarifa taxi</dt>
-              <dd class="tx-data-value tx-font-mono">
-                {{ formatearCOP(resultadoRuta.tarifa_taxi.total) }}
-                <span class="tx-result-nota" style="display: block; margin: 0;">
-                  {{ resultadoRuta.tarifa_taxi.unidades }} unidades<span
-                    v-if="resultadoRuta.tarifa_taxi.recargos > 0"
-                  >
-                    · recargos {{ formatearCOP(resultadoRuta.tarifa_taxi.recargos) }}</span
-                  >
-                </span>
-              </dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Costo (criterio)</dt>
-              <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.costo_total.toFixed(2) }}</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Conexiones</dt>
-              <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.detalle?.num_aristas || 0 }}</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Nodos Expl.</dt>
-              <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.nodos_explorados }}</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Tiempo Ejec.</dt>
-              <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.tiempo_ejecucion_ms.toFixed(2) }} ms</dd>
-            </div>
-          </dl>
-          <p v-if="resultadoRuta.detalle?.mensaje" class="tx-result-nota">
-            {{ resultadoRuta.detalle.mensaje }}
-          </p>
-        </div>
-
-        <!-- Estadísticas del Grafo -->
-        <div v-if="stats" class="tx-panel" style="margin-top: 1.5rem;">
-          <h3 class="tx-panel-title">Métricas de Red</h3>
-          <dl class="tx-data-list">
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Nodos Activos</dt>
-              <dd class="tx-data-value tx-font-mono">{{ stats.estadisticas?.nodos || 0 }}</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Enlaces (Aristas)</dt>
-              <dd class="tx-data-value tx-font-mono">{{ stats.estadisticas?.aristas_totales || 0 }}</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Dist. Promedio</dt>
-              <dd class="tx-data-value tx-font-mono">{{ stats.estadisticas?.distancia_promedio_m ? (stats.estadisticas.distancia_promedio_m / 1000).toFixed(1) + ' km' : '-' }}</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Tiempo Prom.</dt>
-              <dd class="tx-data-value tx-font-mono">{{ stats.estadisticas?.tiempo_promedio_min ? stats.estadisticas.tiempo_promedio_min.toFixed(1) + ' min' : '-' }}</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Vel. Promedio</dt>
-              <dd class="tx-data-value tx-font-mono">{{ stats.estadisticas?.velocidad_promedio_kmh ? stats.estadisticas.velocidad_promedio_kmh.toFixed(0) + ' km/h' : '-' }}</dd>
-            </div>
-          </dl>
-        </div>
-
-        <!-- Nodo Seleccionado -->
-        <div v-if="nodoSeleccionado" class="tx-panel" style="margin-top: 1.5rem;">
-          <h3 class="tx-panel-title">Telemetría de Nodo</h3>
-          <dl class="tx-data-list">
-            <div class="tx-data-row">
-              <dt class="tx-data-term">ID</dt> 
-              <dd class="tx-data-value tx-font-mono">{{ nodoSeleccionado.id }}</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Nombre</dt> 
-              <dd class="tx-data-value">{{ nodoSeleccionado.nombre }}</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Tipo</dt> 
-              <dd class="tx-data-value" style="text-transform: capitalize;">{{ nodoSeleccionado.tipo }}</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Coords</dt> 
-              <dd class="tx-data-value tx-font-mono">{{ nodoSeleccionado.lat.toFixed(6) }}, {{ nodoSeleccionado.lon.toFixed(6) }}</dd>
-            </div>
-          </dl>
-          <div v-if="nodoSeleccionado.id === origenSeleccionado || nodoSeleccionado.id === destinoSeleccionado" class="tx-node-roles">
-            <span v-if="nodoSeleccionado.id === origenSeleccionado">Origen actual</span>
-            <span v-if="nodoSeleccionado.id === destinoSeleccionado">Destino actual</span>
-          </div>
-          <div class="tx-node-actions">
-            <button type="button" class="tx-button tx-button-secondary" @click="usarNodoComo('origen')">
-              Usar como origen
-            </button>
-            <button type="button" class="tx-button tx-button-secondary" @click="usarNodoComo('destino')">
-              Usar como destino
-            </button>
-          </div>
-        </div>
-
-        <!-- Arista Seleccionada -->
-        <div v-if="aristaSeleccionada" class="tx-panel" style="margin-top: 1.5rem;">
-          <h3 class="tx-panel-title">Telemetría de Enlace</h3>
-          <dl class="tx-data-list">
-            <div class="tx-data-row">
-              <dt class="tx-data-term">ID</dt> 
-              <dd class="tx-data-value tx-font-mono">{{ aristaSeleccionada.id }}</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Vector</dt> 
-              <dd class="tx-data-value">{{ aristaSeleccionada.origen }} → {{ aristaSeleccionada.destino }}</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Distancia</dt> 
-              <dd class="tx-data-value tx-font-mono">{{ (aristaSeleccionada.distancia / 1000).toFixed(2) }} km</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Tiempo Est.</dt> 
-              <dd class="tx-data-value tx-font-mono">{{ aristaSeleccionada.tiempo_estimado.toFixed(1) }} min</dd>
-            </div>
-            <div class="tx-data-row">
-              <dt class="tx-data-term">Congestión</dt> 
-              <dd class="tx-data-value">
-                <span :class="claseCongestion(aristaSeleccionada.congestion)">
-                  {{ aristaSeleccionada.congestion }}
-                </span>
-              </dd>
-            </div>
-            <div v-if="aristaSeleccionada.nombre_via" class="tx-data-row">
-              <dt class="tx-data-term">Vía</dt> 
-              <dd class="tx-data-value">{{ aristaSeleccionada.nombre_via }}</dd>
-            </div>
-          </dl>
-        </div>
-
         <!-- Error -->
-        <div v-if="error" class="tx-alert" style="margin-top: 1.5rem;">
+        <div v-if="error" class="tx-alert">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
           {{ error }}
         </div>
       </aside>
 
-      <!-- Panel Central: Grafo -->
-      <section class="tx-graph-section">
-        <!-- TAXI_IA_RESULTADOS_MAPA_V3: comparación visible en área principal del mapa -->
-        <!-- Comparación académica del mismo recorrido y horario; referencia derivada, no observación real. -->
-          <section v-if="rutaPorRegresion && resultadoRuta.ruta_encontrada" class="tx-ml-eval" aria-label="Evaluación de predicción de la ruta">
-            <h3 class="tx-ml-eval-title">Resultado de regresión · ruta seleccionada</h3>
-            <p class="tx-panel-note">Predicción frente al tiempo derivado del dataset para exactamente el mismo recorrido, día y hora.</p>
-            <div class="tx-ml-eval-grid">
-              <div class="tx-ml-eval-stat">
-                <span>Tiempo predicho</span>
-                <strong>{{ comparacionRegresion?.tiempo_predicho_min != null ? comparacionRegresion.tiempo_predicho_min.toFixed(3) + ' min' : resultadoRuta.tiempo_total_min.toFixed(3) + ' min' }}</strong>
-              </div>
-              <div class="tx-ml-eval-stat">
-                <span>Tiempo de referencia</span>
-                <strong>{{ comparacionRegresion?.disponible ? comparacionRegresion.tiempo_referencia_min.toFixed(3) + ' min' : 'No disponible' }}</strong>
-              </div>
-              <div class="tx-ml-eval-stat">
-                <span>Error absoluto</span>
-                <strong>{{ comparacionRegresion?.disponible ? (comparacionRegresion.error_absoluto_min * 60).toFixed(2) + ' s' : '—' }}</strong>
-              </div>
-              <div class="tx-ml-eval-stat">
-                <span>Loss individual (error²)</span>
-                <strong>{{ comparacionRegresion?.disponible ? comparacionRegresion.loss_cuadratica_min2.toFixed(6) + ' min²' : '—' }}</strong>
-              </div>
-            </div>
-            <p v-if="!comparacionRegresion?.disponible" class="tx-panel-note tx-ml-eval-warning">
-              {{ comparacionRegresion?.motivo || 'El backend no envió una referencia comparable. Reinicia FastAPI después de instalar el parche.' }}
-            </p>
-            <p v-if="comparacionRegresion?.tramos_total" class="tx-panel-note">Tramos con referencia: {{ comparacionRegresion.tramos_con_referencia }} de {{ comparacionRegresion.tramos_total }}.</p>
-            <p class="tx-panel-note">Fuente: {{ comparacionRegresion?.fuente || "Referencia no disponible" }}. Ninguna referencia aquí es un viaje real observado; esta pérdida individual no es el MSE global de prueba.</p>
-          </section>
-        <p v-if="rutaPorRegresion && resultadoRuta && !resultadoRuta.ruta_encontrada" class="tx-ml-map-warning">No existe un camino dirigido entre los puntos seleccionados. UCS comprueba todas las alternativas alcanzables; otro algoritmo no puede crear una conexión inexistente.</p>
-        <div class="tx-view-toggle">
-          <div class="tx-view-toggle-grupo">
-            <button
-              class="tx-button tx-button-secondary"
-              :class="{ 'tx-view-btn-activo': vistaActiva === 'mapa' }"
-              @click="vistaActiva = 'mapa'"
-            >
-              Mapa OSM
-            </button>
-            <button
-              class="tx-button tx-button-secondary"
-              :class="{ 'tx-view-btn-activo': vistaActiva === 'grafo' }"
-              @click="vistaActiva = 'grafo'"
-            >
-              Vista Grafo
-            </button>
-          </div>
-          <div class="tx-layers" role="group" aria-label="Capas visibles en el mapa">
-            <span class="tx-layers-label">Capas</span>
-            <label class="tx-check" title="Mostrar u ocultar la red vial de fondo">
-              <input v-model="mostrarRedVial" type="checkbox" />
-              Vías
-            </label>
-            <label class="tx-check" title="Mostrar u ocultar los nodos de la red">
-              <input v-model="mostrarNodos" type="checkbox" />
-              Nodos
-            </label>
-          </div>
-        </div>
-        <div class="tx-panel tx-panel--flat">
-          <MapaOSM
-            v-if="vistaActiva === 'mapa'"
-            :nodos="nodosConNombre"
-            :aristas="aristas"
-            :ruta-resaltada="rutaResaltada"
-            :arista-resaltada="aristaResaltada"
-            :mostrar-red-vial="mostrarRedVial"
-            :mostrar-nodos="mostrarNodos"
-            :modo-seleccion="modoSeleccionMapa"
-            :origen-id="origenSeleccionado"
-            :destino-id="destinoSeleccionado"
-            :api-base="apiBase"
-            @nodo-click="manejarClickNodo"
-            @arista-click="manejarClickArista"
-          />
-          <GraphView
-            v-else
-            :nodos="nodosConNombre"
-            :aristas="aristas"
-            :ruta-resaltada="rutaResaltada"
-            :arista-resaltada="aristaResaltada"
-            :mostrar-red-vial="mostrarRedVial"
-            :mostrar-nodos="mostrarNodos"
-            :tema="temaActivo"
-            @nodo-click="manejarClickNodo"
-            @arista-click="manejarClickArista"
-          />
-        </div>
-
-        <p v-if="avisoAlternativa" class="tx-ml-map-info" role="status">{{ avisoAlternativa }}</p>
-        <!-- Leyenda -->
-        <div class="tx-panel" style="margin-top: 1.5rem;">
-          <h4 class="tx-panel-title" style="margin-bottom: 0.5rem;">Simbología</h4>
-          <div class="tx-legend">
-            <div class="tx-legend-item">
-              <span class="tx-legend-node" style="color: #ef4444;"></span> Intersección
-            </div>
-            <div class="tx-legend-item">
-              <span class="tx-legend-node" style="color: #f59e0b;"></span> Otro
-            </div>
-            <div class="tx-legend-item">
-              <span class="tx-legend-node" style="color: #3b82f6;"></span> Edificio
-            </div>
-            <div class="tx-legend-item">
-              <span class="tx-legend-node" style="color: #10b981;"></span> Zona
-            </div>
-            <div class="tx-legend-item" style="margin-left: 1rem;">
-              <div class="tx-legend-edge" style="background-color: #3f3f46;"></div> Congestión Baja
-            </div>
-            <div class="tx-legend-item">
-              <div class="tx-legend-edge" style="background-color: #f59e0b;"></div> Congestión Media
-            </div>
-            <div class="tx-legend-item">
-              <div class="tx-legend-edge" style="background-color: #ef4444;"></div> Congestión Alta
-            </div>
-            <div class="tx-legend-item" style="margin-left: 1rem;">
-              <div class="tx-legend-edge" style="background-color: var(--accent-route); box-shadow: var(--shadow-glow);"></div> Ruta Activa
-            </div>
-          </div>
-        </div>
-
-        <!-- Comparación de Algoritmos -->
-        <div
-          v-if="comparacion"
-          ref="panelComparacion"
-          class="tx-panel"
-          style="margin-top: 1.5rem;"
+      <!-- Panel principal: mapa + analítica -->
+      <section class="tx-workspace">
+        <!-- Evaluación de regresión lineal sobre la ruta seleccionada -->
+        <section
+          v-if="rutaPorRegresion && resultadoRuta?.ruta_encontrada"
+          class="tx-ml-eval"
+          aria-label="Evaluación de predicción de la ruta"
         >
-          <h3 class="tx-panel-title">Comparación de Algoritmos</h3>
-          <p class="tx-panel-note">Salida: {{ horaSalida }} · misma simulación para todos los algoritmos</p>
+          <h3 class="tx-ml-eval-title">Resultado de regresión · ruta seleccionada</h3>
           <p class="tx-panel-note">
-            Mismo origen, destino y criterio ({{ comparacion.criterio }}).
+            Predicción frente al tiempo derivado del dataset para exactamente el mismo recorrido, día y hora.
           </p>
-          <div class="tx-table-wrap">
-            <table class="tx-table">
-              <thead>
-                <tr>
-                  <th scope="col">Algoritmo</th>
-                  <th scope="col">Costo</th>
-                  <th scope="col">Dist.</th>
-                  <th scope="col">Tiempo</th>
-                  <th scope="col">Tarifa taxi</th>
-                  <th scope="col">Aristas</th>
-                  <th scope="col">Nodos</th>
-                  <th scope="col">ms</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="fila in comparacionOrdenada"
-                  :key="fila.algoritmo"
-                  :class="{ 'tx-table-optimo': esMejorResultado(fila) }"
-                >
-                  <td>
-                    {{ etiquetaDeAlgoritmo(fila.algoritmo) }}
-                    <span v-if="esMejorResultado(fila)" class="tx-badge tx-badge-ruta-ok">óptimo</span>
-                  </td>
-                  <td class="tx-font-mono">
-                    {{ fila.ruta_encontrada ? fila.costo_total.toFixed(2) : '—' }}
-                  </td>
-                  <td class="tx-font-mono">
-                    {{ fila.ruta_encontrada ? (fila.distancia_total_m / 1000).toFixed(2) + ' km' : '—' }}
-                  </td>
-                  <td class="tx-font-mono">
-                    {{ fila.ruta_encontrada ? fila.tiempo_total_min.toFixed(2) + ' min' : '—' }}
-                  </td>
-                  <td class="tx-font-mono">
-                    {{ fila.tarifa_taxi ? formatearCOP(fila.tarifa_taxi.total) : '—' }}
-                  </td>
-                  <td class="tx-font-mono">{{ fila.detalle?.num_aristas ?? 0 }}</td>
-                  <td class="tx-font-mono">{{ fila.nodos_explorados }}</td>
-                  <td class="tx-font-mono">{{ fila.tiempo_ejecucion_ms.toFixed(2) }}</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="tx-ml-eval-grid">
+            <div class="tx-ml-eval-stat">
+              <span>Tiempo predicho</span>
+              <strong>
+                {{
+                  comparacionRegresion?.tiempo_predicho_min != null
+                    ? comparacionRegresion.tiempo_predicho_min.toFixed(3) + ' min'
+                    : resultadoRuta.tiempo_total_min.toFixed(3) + ' min'
+                }}
+              </strong>
+            </div>
+            <div class="tx-ml-eval-stat">
+              <span>Tiempo de referencia</span>
+              <strong>
+                {{
+                  comparacionRegresion?.disponible
+                    ? comparacionRegresion.tiempo_referencia_min.toFixed(3) + ' min'
+                    : 'No disponible'
+                }}
+              </strong>
+            </div>
+            <div class="tx-ml-eval-stat">
+              <span>Error absoluto</span>
+              <strong>
+                {{
+                  comparacionRegresion?.disponible
+                    ? (comparacionRegresion.error_absoluto_min * 60).toFixed(2) + ' s'
+                    : '—'
+                }}
+              </strong>
+            </div>
+            <div class="tx-ml-eval-stat">
+              <span>Loss individual (error²)</span>
+              <strong>
+                {{
+                  comparacionRegresion?.disponible
+                    ? comparacionRegresion.loss_cuadratica_min2.toFixed(6) + ' min²'
+                    : '—'
+                }}
+              </strong>
+            </div>
           </div>
-          <p class="tx-result-nota">
-            Tarifa de taxi con Decreto 042 de 2026 ·
-            {{ tarifaRedondeo === 'ceil' ? 'redondeo hacia arriba' : 'centena más cercana' }}.
+          <p v-if="!comparacionRegresion?.disponible" class="tx-panel-note tx-ml-eval-warning">
+            {{
+              comparacionRegresion?.motivo ||
+              'El backend no envió una referencia comparable. Reinicia FastAPI después de instalar el parche.'
+            }}
           </p>
-          <p v-if="comparacion.optimos?.length" class="tx-result-nota">
-            Óptimos: {{ comparacion.optimos.map(etiquetaDeAlgoritmo).join(', ') }} ·
-            mejor costo {{ comparacion.mejor_costo?.toFixed(2) }}
+          <p v-if="comparacionRegresion?.tramos_total" class="tx-panel-note">
+            Tramos con referencia: {{ comparacionRegresion.tramos_con_referencia }} de
+            {{ comparacionRegresion.tramos_total }}.
           </p>
-          <p v-else class="tx-result-nota">Ningún algoritmo encontró ruta entre esos nodos.</p>
+          <p class="tx-panel-note">
+            Fuente: {{ comparacionRegresion?.fuente || 'Referencia no disponible' }}.
+            Ninguna referencia aquí es un viaje real observado; esta pérdida individual no es el MSE global de prueba.
+          </p>
+        </section>
+        <p
+          v-if="rutaPorRegresion && resultadoRuta && !resultadoRuta.ruta_encontrada"
+          class="tx-ml-map-warning"
+        >
+          No existe un camino dirigido entre los puntos seleccionados. UCS comprueba todas las alternativas
+          alcanzables; otro algoritmo no puede crear una conexión inexistente.
+        </p>
+
+        <div class="tx-map-stage">
+          <div class="tx-view-toggle">
+            <div class="tx-view-toggle-grupo">
+              <button
+                class="tx-button tx-button-secondary"
+                :class="{ 'tx-view-btn-activo': vistaActiva === 'mapa' }"
+                @click="vistaActiva = 'mapa'"
+              >
+                Mapa OSM
+              </button>
+              <button
+                class="tx-button tx-button-secondary"
+                :class="{ 'tx-view-btn-activo': vistaActiva === 'grafo' }"
+                @click="vistaActiva = 'grafo'"
+              >
+                Vista Grafo
+              </button>
+            </div>
+            <div class="tx-layers" role="group" aria-label="Capas visibles en el mapa">
+              <span class="tx-layers-label">Capas</span>
+              <label class="tx-check" title="Mostrar u ocultar la red vial de fondo">
+                <input v-model="mostrarRedVial" type="checkbox" />
+                Vías
+              </label>
+              <label class="tx-check" title="Mostrar u ocultar los nodos de la red">
+                <input v-model="mostrarNodos" type="checkbox" />
+                Nodos
+              </label>
+            </div>
+          </div>
+          <div class="tx-panel tx-panel--flat">
+            <MapaOSM
+              v-if="vistaActiva === 'mapa'"
+              :nodos="nodosConNombre"
+              :aristas="aristas"
+              :ruta-resaltada="rutaResaltada"
+              :arista-resaltada="aristaResaltada"
+              :rutas-comparacion="rutasComparacionMapa"
+              :algoritmo-enfocado="algoritmoEnfocado"
+              :mostrar-red-vial="mostrarRedVial"
+              :mostrar-nodos="mostrarNodos"
+              :modo-seleccion="modoSeleccionMapa"
+              :origen-id="origenSeleccionado"
+              :destino-id="destinoSeleccionado"
+              :api-base="apiBase"
+              :hora-salida="horaSalida"
+              :congestion-ml="congestionMl"
+              @nodo-click="manejarClickNodo"
+              @arista-click="manejarClickArista"
+              @aristas-visibles="manejarAristasVisibles"
+              @toggle-algoritmo-enfocado="toggleEnfoqueAlgoritmo"
+            />
+            <GraphView
+              v-else
+              :nodos="nodosConNombre"
+              :aristas="aristas"
+              :ruta-resaltada="rutaResaltada"
+              :arista-resaltada="aristaResaltada"
+              :rutas-comparacion="rutasComparacionMapa"
+              :algoritmo-enfocado="algoritmoEnfocado"
+              :mostrar-red-vial="mostrarRedVial"
+              :mostrar-nodos="mostrarNodos"
+              :tema="temaActivo"
+              @nodo-click="manejarClickNodo"
+              @arista-click="manejarClickArista"
+            />
+          </div>
+
+          <p v-if="avisoAlternativa" class="tx-ml-map-info" role="status">{{ avisoAlternativa }}</p>
+
+          <!-- Leyenda -->
+          <div class="tx-panel tx-panel--compact">
+            <h4 class="tx-panel-title tx-panel-title--compact">Simbología</h4>
+            <div class="tx-legend tx-legend--compact">
+              <div class="tx-legend-item">
+                <span class="tx-legend-node" style="color: #ef4444;"></span> Intersección
+              </div>
+              <div class="tx-legend-item">
+                <span class="tx-legend-node" style="color: #f59e0b;"></span> Otro
+              </div>
+              <div class="tx-legend-item">
+                <span class="tx-legend-node" style="color: #3b82f6;"></span> Edificio
+              </div>
+              <div class="tx-legend-item">
+                <span class="tx-legend-node" style="color: #10b981;"></span> Zona
+              </div>
+              <div class="tx-legend-item" style="margin-left: 1rem;">
+                <div class="tx-legend-edge" style="background-color: #3f3f46;"></div> Congestión Baja
+              </div>
+              <div class="tx-legend-item">
+                <div class="tx-legend-edge" style="background-color: #f59e0b;"></div> Congestión Media
+              </div>
+              <div class="tx-legend-item">
+                <div class="tx-legend-edge" style="background-color: #ef4444;"></div> Congestión Alta
+              </div>
+              <div class="tx-legend-item" style="margin-left: 1rem;">
+                <div class="tx-legend-edge" style="background-color: var(--accent-route); box-shadow: var(--shadow-glow);"></div> Ruta Activa
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tx-analytics-deck">
+          <!-- Resultado de Ruta -->
+          <div v-if="resultadoRuta" class="tx-panel">
+            <h3 class="tx-panel-title">Resultado de Ruta</h3>
+            <p class="tx-panel-note tx-panel-note--inline">
+              Salida: {{ horaSalida }} ·
+              {{
+                rutaPorRegresion
+                  ? 'tiempos de regresión lineal'
+                  : congestionFuente === 'ml'
+                    ? 'congestión predicha (ML)'
+                    : 'congestión sintética'
+              }}
+            </p>
+            <dl class="tx-data-list">
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Estado</dt>
+                <dd class="tx-data-value">
+                  <span
+                    class="tx-badge"
+                    :class="resultadoRuta.ruta_encontrada ? 'tx-badge-ruta-ok' : 'tx-badge-ruta-fallida'"
+                  >
+                    {{ resultadoRuta.ruta_encontrada ? 'Ruta encontrada' : 'Sin ruta' }}
+                  </span>
+                </dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Algoritmo</dt>
+                <dd class="tx-data-value tx-font-mono">{{ etiquetaAlgoritmo }}</dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Origen / Destino</dt>
+                <dd class="tx-data-value tx-data-value--wrap">
+                  {{ etiquetaNodoPorId(resultadoRuta.camino[0]) }}
+                  →
+                  {{ etiquetaNodoPorId(resultadoRuta.camino[resultadoRuta.camino.length - 1]) }}
+                </dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Camino</dt>
+                <dd class="tx-data-value tx-font-mono tx-data-value--wrap">
+                  {{ resultadoRuta.camino.join(' → ') || '—' }}
+                </dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Distancia</dt>
+                <dd class="tx-data-value tx-font-mono">{{ (resultadoRuta.distancia_total_m / 1000).toFixed(2) }} km</dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Tiempo Est.</dt>
+                <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.tiempo_total_min.toFixed(1) }} min</dd>
+              </div>
+              <div v-if="resultadoRuta.tarifa_taxi" class="tx-data-row">
+                <dt class="tx-data-term">Tarifa taxi</dt>
+                <dd class="tx-data-value tx-font-mono">
+                  {{ formatearCOP(resultadoRuta.tarifa_taxi.total) }}
+                  <span class="tx-result-nota tx-result-nota--inline">
+                    {{ resultadoRuta.tarifa_taxi.unidades }} unidades<span
+                      v-if="resultadoRuta.tarifa_taxi.recargos > 0"
+                    >
+                      · recargos {{ formatearCOP(resultadoRuta.tarifa_taxi.recargos) }}</span
+                    >
+                  </span>
+                </dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Costo (criterio)</dt>
+                <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.costo_total.toFixed(2) }}</dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Conexiones</dt>
+                <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.detalle?.num_aristas || 0 }}</dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Nodos Expl.</dt>
+                <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.nodos_explorados }}</dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Tiempo Ejec.</dt>
+                <dd class="tx-data-value tx-font-mono">{{ resultadoRuta.tiempo_ejecucion_ms.toFixed(2) }} ms</dd>
+              </div>
+            </dl>
+            <p v-if="resultadoRuta.detalle?.mensaje" class="tx-result-nota">
+              {{ resultadoRuta.detalle.mensaje }}
+            </p>
+          </div>
+
+          <!-- Estadísticas del Grafo -->
+          <div v-if="resumenGrafo || stats" class="tx-panel">
+            <h3 class="tx-panel-title">Métricas de Red</h3>
+            <dl class="tx-data-list">
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Nodos Activos</dt>
+                <dd class="tx-data-value tx-font-mono">
+                  {{ (resumenGrafo?.total_nodos ?? stats?.estadisticas?.nodos ?? 0).toLocaleString('es-CO') }}
+                </dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Enlaces (Aristas)</dt>
+                <dd class="tx-data-value tx-font-mono">
+                  {{ (resumenGrafo?.total_aristas ?? stats?.estadisticas?.aristas_totales ?? 0).toLocaleString('es-CO') }}
+                </dd>
+              </div>
+              <template v-if="stats?.estadisticas">
+                <div class="tx-data-row">
+                  <dt class="tx-data-term">Dist. Promedio</dt>
+                  <dd class="tx-data-value tx-font-mono">{{ stats.estadisticas.distancia_promedio_m ? (stats.estadisticas.distancia_promedio_m / 1000).toFixed(1) + ' km' : '-' }}</dd>
+                </div>
+                <div class="tx-data-row">
+                  <dt class="tx-data-term">Tiempo Prom.</dt>
+                  <dd class="tx-data-value tx-font-mono">{{ stats.estadisticas.tiempo_promedio_min ? stats.estadisticas.tiempo_promedio_min.toFixed(1) + ' min' : '-' }}</dd>
+                </div>
+                <div class="tx-data-row">
+                  <dt class="tx-data-term">Vel. Promedio</dt>
+                  <dd class="tx-data-value tx-font-mono">{{ stats.estadisticas.velocidad_promedio_kmh ? stats.estadisticas.velocidad_promedio_kmh.toFixed(0) + ' km/h' : '-' }}</dd>
+                </div>
+              </template>
+            </dl>
+          </div>
+
+          <!-- Comparación de Algoritmos -->
+          <div
+            v-if="comparacion"
+            ref="panelComparacion"
+            class="tx-panel tx-analytics-span-full"
+          >
+            <h3 class="tx-panel-title">Comparación de Algoritmos</h3>
+            <p class="tx-panel-note">Salida: {{ horaSalida }} · misma simulación para todos los algoritmos</p>
+            <p class="tx-panel-note">
+              Mismo origen, destino y criterio ({{ comparacion.criterio }}).
+            </p>
+            <p v-if="rutasComparacionMapa.length" class="tx-panel-note">
+              Las rutas se dibujan en el mapa con colores distintos. Haz clic en una fila,
+              en la leyenda de colores o en el mapa para enfocar un algoritmo.
+            </p>
+            <div
+              v-if="rutasComparacionMapa.length"
+              class="tx-legend tx-legend--comparacion"
+              aria-label="Colores por algoritmo"
+            >
+              <button
+                v-for="ruta in rutasComparacionMapa"
+                :key="ruta.algoritmo"
+                type="button"
+                class="tx-legend-item tx-legend-item--clic"
+                :class="{ 'tx-legend-item--enfocado': algoritmoEnfocado === ruta.algoritmo }"
+                :aria-pressed="algoritmoEnfocado === ruta.algoritmo"
+                @click="toggleEnfoqueAlgoritmo(ruta.algoritmo)"
+              >
+                <span
+                  class="tx-legend-edge"
+                  :style="{ backgroundColor: ruta.color, boxShadow: '0 0 0 1px #09090b' }"
+                  aria-hidden="true"
+                />
+                {{ ruta.etiqueta }}
+              </button>
+            </div>
+            <div class="tx-table-wrap">
+              <table class="tx-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Algoritmo</th>
+                    <th scope="col">Costo</th>
+                    <th scope="col">Dist.</th>
+                    <th scope="col">Tiempo</th>
+                    <th scope="col">Tarifa taxi</th>
+                    <th scope="col">Aristas</th>
+                    <th scope="col">Nodos</th>
+                    <th scope="col">ms</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="fila in comparacionOrdenada"
+                    :key="fila.algoritmo"
+                    :class="{
+                      'tx-table-optimo': esMejorResultado(fila),
+                      'tx-table-fila-enfocada': algoritmoEnfocado === fila.algoritmo,
+                      'tx-table-fila-clic': fila.ruta_encontrada,
+                    }"
+                    :tabindex="fila.ruta_encontrada ? 0 : undefined"
+                    :aria-selected="algoritmoEnfocado === fila.algoritmo"
+                    @click="seleccionarFilaComparacion(fila)"
+                    @keydown.enter.prevent="seleccionarFilaComparacion(fila)"
+                  >
+                    <td>
+                      {{ etiquetaDeAlgoritmo(fila.algoritmo) }}
+                      <span v-if="esMejorResultado(fila)" class="tx-badge tx-badge-ruta-ok">óptimo</span>
+                    </td>
+                    <td class="tx-font-mono">
+                      {{ fila.ruta_encontrada ? fila.costo_total.toFixed(2) : '—' }}
+                    </td>
+                    <td class="tx-font-mono">
+                      {{ fila.ruta_encontrada ? (fila.distancia_total_m / 1000).toFixed(2) + ' km' : '—' }}
+                    </td>
+                    <td class="tx-font-mono">
+                      {{ fila.ruta_encontrada ? fila.tiempo_total_min.toFixed(2) + ' min' : '—' }}
+                    </td>
+                    <td class="tx-font-mono">
+                      {{ fila.tarifa_taxi ? formatearCOP(fila.tarifa_taxi.total) : '—' }}
+                    </td>
+                    <td class="tx-font-mono">{{ fila.detalle?.num_aristas ?? 0 }}</td>
+                    <td class="tx-font-mono">{{ fila.nodos_explorados }}</td>
+                    <td class="tx-font-mono">{{ fila.tiempo_ejecucion_ms.toFixed(2) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="tx-result-nota">
+              Tarifa de taxi con Decreto 042 de 2026 ·
+              {{ tarifaRedondeo === 'ceil' ? 'redondeo hacia arriba' : 'centena más cercana' }}.
+            </p>
+            <p v-if="comparacion.optimos?.length" class="tx-result-nota">
+              Óptimos: {{ comparacion.optimos.map(etiquetaDeAlgoritmo).join(', ') }} ·
+              mejor costo {{ comparacion.mejor_costo?.toFixed(2) }}
+            </p>
+            <p v-else class="tx-result-nota">Ningún algoritmo encontró ruta entre esos nodos.</p>
+          </div>
+
+          <!-- Clasificación ML (Corte 3) -->
+          <div class="tx-panel tx-analytics-span-full">
+            <h3 class="tx-panel-title">Clasificación ML</h3>
+            <p class="tx-panel-note tx-panel-note--inline">
+              Corte 3 · etiquetas sintéticas del simulador (entrenamiento supervisado, no sensores reales).
+            </p>
+            <p v-if="mlCargando && !mlDatos" class="tx-panel-note tx-panel-note--inline">
+              Cargando métricas del clasificador…
+            </p>
+            <template v-else-if="mlDatos">
+              <dl class="tx-data-list">
+                <div class="tx-data-row">
+                  <dt class="tx-data-term">Mejor modelo</dt>
+                  <dd class="tx-data-value">
+                    <span class="tx-badge tx-badge-ruta-ok">{{ mlDatos.mejor_modelo }}</span>
+                  </dd>
+                </div>
+                <template v-if="metricasMejorModelo">
+                  <div class="tx-data-row">
+                    <dt class="tx-data-term">Accuracy</dt>
+                    <dd class="tx-data-value tx-font-mono">
+                      {{ formatearPorcentajeMl(metricasMejorModelo.accuracy) }}
+                    </dd>
+                  </div>
+                  <div class="tx-data-row">
+                    <dt class="tx-data-term">F1 macro</dt>
+                    <dd class="tx-data-value tx-font-mono">
+                      {{ formatearPorcentajeMl(metricasMejorModelo.f1_macro) }}
+                    </dd>
+                  </div>
+                </template>
+                <div v-if="mlDatos.resumen_dataset" class="tx-data-row">
+                  <dt class="tx-data-term">Dataset</dt>
+                  <dd class="tx-data-value tx-font-mono tx-data-value--wrap">
+                    {{ mlDatos.resumen_dataset.filas.toLocaleString('es-CO') }} filas ·
+                    {{ mlDatos.resumen_dataset.aristas_unicas.toLocaleString('es-CO') }} aristas
+                  </dd>
+                </div>
+              </dl>
+              <h4 class="tx-ml-subtitle">Comparación de modelos</h4>
+              <div class="tx-table-wrap">
+                <table class="tx-table tx-table-ml">
+                  <thead>
+                    <tr>
+                      <th scope="col">Modelo</th>
+                      <th scope="col">Acc.</th>
+                      <th scope="col">F1</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="fila in mlDatos.metricas"
+                      :key="fila.modelo"
+                      :class="{ 'tx-table-optimo': esMejorModeloMl(fila.modelo) }"
+                    >
+                      <td>
+                        {{ fila.modelo }}
+                        <span v-if="esMejorModeloMl(fila.modelo)" class="tx-badge tx-badge-ruta-ok">mejor</span>
+                      </td>
+                      <td class="tx-font-mono">{{ formatearPorcentajeMl(fila.accuracy) }}</td>
+                      <td class="tx-font-mono">{{ formatearPorcentajeMl(fila.f1_macro) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <template v-if="matrizConfusionMejor">
+                <h4 class="tx-ml-subtitle">Matriz de confusión · {{ mlDatos.mejor_modelo }}</h4>
+                <p class="tx-panel-note tx-ml-matriz-leyenda">Filas: clase real · Columnas: clase predicha</p>
+                <div class="tx-table-wrap">
+                  <table class="tx-table tx-matriz-confusion">
+                    <thead>
+                      <tr>
+                        <th scope="col" class="tx-matriz-esquina">Real \ Pred.</th>
+                        <th
+                          v-for="clase in matrizConfusionMejor.clases"
+                          :key="'pred-' + clase"
+                          scope="col"
+                        >
+                          {{ clase }}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="(fila, i) in matrizConfusionMejor.matriz"
+                        :key="'fila-' + i"
+                      >
+                        <th scope="row">{{ matrizConfusionMejor.clases[i] }}</th>
+                        <td
+                          v-for="(celda, j) in fila"
+                          :key="'celda-' + i + '-' + j"
+                          class="tx-font-mono tx-matriz-celda"
+                          :style="{
+                            '--intensidad': intensidadCeldaMatriz(celda),
+                          }"
+                        >
+                          {{ celda.toLocaleString('es-CO') }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </template>
+              <p class="tx-result-nota tx-result-nota--flush">
+                Mapa:
+                {{
+                  congestionFuente === 'ml'
+                    ? 'coloreado con el mejor modelo según la hora de salida.'
+                    : 'congestión sintética (predicción ML no disponible).'
+                }}
+              </p>
+            </template>
+            <p v-else class="tx-panel-note tx-panel-note--inline">
+              Sin métricas ML en el servidor. Ejecuta el entrenamiento o descarga una red OSM.
+            </p>
+          </div>
+
+          <!-- Nodo Seleccionado -->
+          <div v-if="nodoSeleccionado" class="tx-panel">
+            <h3 class="tx-panel-title">Telemetría de Nodo</h3>
+            <dl class="tx-data-list">
+              <div class="tx-data-row">
+                <dt class="tx-data-term">ID</dt>
+                <dd class="tx-data-value tx-font-mono">{{ nodoSeleccionado.id }}</dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Nombre</dt>
+                <dd class="tx-data-value">{{ nodoSeleccionado.nombre }}</dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Tipo</dt>
+                <dd class="tx-data-value tx-capitalize">{{ nodoSeleccionado.tipo }}</dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Coords</dt>
+                <dd class="tx-data-value tx-font-mono">{{ nodoSeleccionado.lat.toFixed(6) }}, {{ nodoSeleccionado.lon.toFixed(6) }}</dd>
+              </div>
+            </dl>
+            <div v-if="nodoSeleccionado.id === origenSeleccionado || nodoSeleccionado.id === destinoSeleccionado" class="tx-node-roles">
+              <span v-if="nodoSeleccionado.id === origenSeleccionado">Origen actual</span>
+              <span v-if="nodoSeleccionado.id === destinoSeleccionado">Destino actual</span>
+            </div>
+            <div class="tx-node-actions">
+              <button type="button" class="tx-button tx-button-secondary" @click="usarNodoComo('origen')">
+                Usar como origen
+              </button>
+              <button type="button" class="tx-button tx-button-secondary" @click="usarNodoComo('destino')">
+                Usar como destino
+              </button>
+            </div>
+          </div>
+
+          <!-- Arista Seleccionada -->
+          <div v-if="aristaSeleccionada" class="tx-panel">
+            <h3 class="tx-panel-title">Telemetría de Enlace</h3>
+            <dl class="tx-data-list">
+              <div class="tx-data-row">
+                <dt class="tx-data-term">ID</dt>
+                <dd class="tx-data-value tx-font-mono">{{ aristaSeleccionada.id }}</dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Vector</dt>
+                <dd class="tx-data-value">{{ aristaSeleccionada.origen }} → {{ aristaSeleccionada.destino }}</dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Distancia</dt>
+                <dd class="tx-data-value tx-font-mono">{{ (Number(aristaSeleccionada.distancia ?? 0) / 1000).toFixed(2) }} km</dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Tiempo Est.</dt>
+                <dd class="tx-data-value tx-font-mono">{{ Number(aristaSeleccionada.tiempo_estimado ?? 0).toFixed(1) }} min</dd>
+              </div>
+              <div class="tx-data-row">
+                <dt class="tx-data-term">Congestión</dt>
+                <dd class="tx-data-value">
+                  <span :class="claseCongestion(aristaSeleccionada.congestion)">
+                    {{ aristaSeleccionada.congestion }}
+                  </span>
+                </dd>
+              </div>
+              <div v-if="aristaSeleccionada.nombre_via" class="tx-data-row">
+                <dt class="tx-data-term">Vía</dt>
+                <dd class="tx-data-value">{{ aristaSeleccionada.nombre_via }}</dd>
+              </div>
+            </dl>
+          </div>
         </div>
       </section>
     </main>
+
     <!-- Dashboard EDA: resultados descriptivos, no datos de tráfico actuales -->
-    <main v-else class="tx-main" style="display:block; width:100%">
+    <main v-else class="tx-main" style="display: block; width: 100%">
       <AnalisisMovilidad />
     </main>
   </div>
 </template>
 
 <style scoped>
-
-/* Resultado ML en el contenido principal del mapa, usando tokens Taxi IA */
-.tx-graph-section > .tx-ml-eval {
+/* Resultado ML de regresión lineal sobre la ruta seleccionada */
+.tx-workspace > .tx-ml-eval {
   margin-top: 0;
-  margin-bottom: 0.8rem;
+  margin-bottom: 0;
   background: var(--bg-surface);
   border-radius: var(--radius-md);
   border-color: var(--accent-brand);
 }
-.tx-graph-section > .tx-ml-eval .tx-ml-eval-grid {
-  grid-template-columns: repeat(4,minmax(0,1fr));
+.tx-workspace > .tx-ml-eval .tx-ml-eval-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
-.tx-ml-map-warning, .tx-ml-map-info {
+.tx-ml-map-warning,
+.tx-ml-map-info {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: .8rem;
-  margin: 0 0 .9rem;
-  font-size: .85rem;
+  padding: 0.8rem;
+  margin: 0;
+  font-size: 0.85rem;
   color: var(--text-secondary);
 }
-.tx-ml-map-warning { border-color: var(--status-warning); }
-.tx-ml-map-info { border-color: var(--accent-route); }
+.tx-ml-map-warning {
+  border-color: var(--status-warning);
+}
+.tx-ml-map-info {
+  border-color: var(--accent-route);
+}
 @media (max-width: 1200px) {
-  .tx-graph-section > .tx-ml-eval .tx-ml-eval-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tx-workspace > .tx-ml-eval .tx-ml-eval-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 560px) {
-  .tx-graph-section > .tx-ml-eval .tx-ml-eval-grid {grid-template-columns:1fr}
+  .tx-workspace > .tx-ml-eval .tx-ml-eval-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
+.tx-ml-eval {
+  border: 1px solid var(--border-focus);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem;
+  margin-top: 1rem;
+  background: var(--bg-base);
+}
+.tx-ml-eval-title {
+  font-size: 0.92rem;
+  color: var(--accent-brand);
+  margin: 0 0 0.5rem;
+}
+.tx-ml-eval-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0.8rem 0;
+}
+.tx-ml-eval-stat {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem;
+  min-width: 0;
+}
+.tx-ml-eval-stat span {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.35rem;
+}
+.tx-ml-eval-stat strong {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.83rem;
+  color: var(--accent-brand);
+  overflow-wrap: anywhere;
+}
+.tx-ml-eval-warning {
+  color: var(--status-warning);
+}
+@media (max-width: 390px) {
+  .tx-ml-eval-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
-/* Comparación individual de regresión: paleta original Taxi IA */
-.tx-ml-eval {border:1px solid var(--border-focus);border-radius:var(--radius-sm);padding:0.85rem;margin-top:1rem;background:var(--bg-base)}
-.tx-ml-eval-title {font-size:0.92rem;color:var(--accent-brand);margin:0 0 0.5rem}
-.tx-ml-eval-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.5rem;margin:0.8rem 0}
-.tx-ml-eval-stat {border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:0.65rem;min-width:0}
-.tx-ml-eval-stat span {display:block;font-size:0.72rem;color:var(--text-secondary);margin-bottom:0.35rem}
-.tx-ml-eval-stat strong {display:block;font-family:var(--font-mono);font-size:0.83rem;color:var(--accent-brand);overflow-wrap:anywhere}
-.tx-ml-eval-warning {color:var(--status-warning)}
-@media(max-width:390px){.tx-ml-eval-grid{grid-template-columns:1fr}}
-
-
-/* TAXI_IA_RUTA_REGRESION_V1 */
 .tx-ml-route-box {
-  margin-top: 1.1rem;
   padding: 1rem;
   background: var(--bg-surface-hover);
   border: 1px solid var(--border-focus);
@@ -1140,9 +1626,17 @@ type="button" class="tx-button tx-button-secondary"
   color: var(--accent-brand);
   margin-bottom: 0.55rem;
 }
-.tx-ml-route-box .tx-form-group { margin-top: 0.8rem; margin-bottom: 0.7rem; }
-.tx-ml-route-box .tx-panel-note { margin-top: 0.45rem; }
-.tx-ml-route-button { width: 100%; white-space: normal; }
+.tx-ml-route-box .tx-form-group {
+  margin-top: 0.8rem;
+  margin-bottom: 0.7rem;
+}
+.tx-ml-route-box .tx-panel-note {
+  margin-top: 0.45rem;
+}
+.tx-ml-route-button {
+  width: 100%;
+  white-space: normal;
+}
 
 .tx-view-toggle {
   display: flex;
@@ -1150,7 +1644,7 @@ type="button" class="tx-button tx-button-secondary"
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
 }
 
 .tx-view-toggle-grupo {
@@ -1278,6 +1772,39 @@ type="button" class="tx-button tx-button-secondary"
   box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.18);
 }
 
+.tx-busqueda-nodo {
+  position: relative;
+}
+
+.tx-busqueda-lista {
+  position: absolute;
+  z-index: 50;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.2rem);
+  margin: 0;
+  padding: 0.4rem 0;
+  max-height: 11rem;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.25));
+}
+
+.tx-busqueda-lista li {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.tx-busqueda-lista li:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
 .tx-view-btn-activo {
   background-color: var(--bg-surface-active);
   color: var(--text-primary, #fafafa);
@@ -1324,6 +1851,74 @@ type="button" class="tx-button tx-button-secondary"
   margin: -0.75rem 0 1rem;
   font-size: 0.8125rem;
   color: var(--text-secondary);
+}
+
+.tx-form-group .tx-panel-note {
+  margin-top: 0.35rem;
+  margin-bottom: 0;
+}
+
+.tx-panel-note--inline {
+  margin: 0 0 0.75rem;
+}
+
+.tx-panel--compact {
+  padding: 1rem 1.25rem;
+}
+
+.tx-panel-title--compact {
+  margin-bottom: 0.5rem;
+}
+
+.tx-legend--compact {
+  margin-top: 0;
+  gap: 1rem 1.5rem;
+}
+
+.tx-legend--comparacion {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  gap: 0.65rem 1.25rem;
+}
+
+.tx-legend-item--clic {
+  border: none;
+  background: transparent;
+  padding: 0.25rem 0.4rem;
+  margin: -0.25rem -0.4rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+  color: var(--text-secondary);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.tx-legend-item--clic:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.tx-legend-item--clic:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.tx-data-value--wrap {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.tx-capitalize {
+  text-transform: capitalize;
+}
+
+.tx-result-nota--inline {
+  display: block;
+  margin: 0;
+}
+
+.tx-result-nota--flush {
+  margin-bottom: 0;
 }
 
 .tx-map-pick {
@@ -1426,9 +2021,74 @@ type="button" class="tx-button tx-button-secondary"
   box-shadow: inset 3px 0 0 var(--accent-route);
 }
 
+.tx-table-fila-clic {
+  cursor: pointer;
+}
+
+.tx-table-fila-clic:hover td {
+  background-color: var(--bg-surface-hover, rgba(251, 191, 36, 0.08));
+}
+
+.tx-table-fila-enfocada td {
+  background-color: var(--bg-surface-hover, rgba(251, 191, 36, 0.12));
+}
+
+.tx-legend-item--enfocado {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .tx-table td .tx-badge {
   margin-left: 0.35rem;
   font-size: 0.62rem;
   padding: 0.05rem 0.35rem;
+}
+
+.tx-button-osm {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.tx-osm-note {
+  margin: 0.45rem 0 0;
+}
+
+.tx-ml-subtitle {
+  margin: 1rem 0 0.5rem;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.tx-ml-matriz-leyenda {
+  margin: -0.35rem 0 0.65rem;
+  font-size: 0.75rem;
+}
+
+.tx-table-ml th:nth-child(n + 2),
+.tx-table-ml td:nth-child(n + 2) {
+  min-width: 3.5rem;
+}
+
+.tx-matriz-confusion th[scope='row'],
+.tx-matriz-confusion .tx-matriz-esquina {
+  text-align: left;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.tx-matriz-celda {
+  text-align: center !important;
+  background-color: color-mix(
+    in srgb,
+    var(--accent-brand) calc(var(--intensidad, 0) * 42%),
+    transparent
+  );
 }
 </style>

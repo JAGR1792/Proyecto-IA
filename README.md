@@ -141,6 +141,8 @@ npm run preview
 >
 > ⚠️ No ejecutes `npm run build` con `npm run dev` activo: comparten el directorio de caché (`.nuxt`) y el dev server puede quedarse sin el proxy (la API respondería HTML). Si pasa, reinicia `npm run dev`.
 
+En el dashboard: pestaña **Análisis de movilidad** (EDA y regresión lineal), predicción de ruta con regresión (`/ml/ruta`), panel **Clasificación ML** (métricas y matriz de confusión), comparación multicolor de algoritmos y red vial precargada de **Chapinero 1 200 m** (888 nodos / 1 741 aristas). Al abrir, el cliente pide **resumen + índice de nodos** y el mapa carga el **GeoJSON completo** una sola vez (sin refetch en pan/zoom; ver ADR-033 y ADR-035).
+
 ---
 
 ## Tests, lint y type-check
@@ -225,15 +227,23 @@ Base: `/api/v1` · Documentación interactiva: `http://localhost:8000/docs`
 
 | Recurso | Método | Descripción |
 |---------|--------|-------------|
-| `/grafo/` | GET | Grafo completo (nodos + aristas) |
+| `/grafo/resumen` | GET | Totales y metadata del grafo en caché (sin geometría) |
+| `/grafo/nodos/indice` | GET | Lista compacta `{id, nombre, lat, lon, tipo}` + `total` (autocomplete y selección) |
+| `/grafo/` | GET | Grafo completo; `hora_salida` opcional; `incluir_geometria=false` por defecto |
+| `/grafo/recargar` | POST | `desde_archivo=true` recarga `dataset_osm.json` (flujo del dashboard); descarga OSMnx solo con `modo=mosaico\|place\|point` sin `desde_archivo` (mantenimiento offline) |
 | `/grafo/estadisticas` | GET | Métricas de la red |
 | `/grafo/geojson/nodos`, `/grafo/geojson/aristas` | GET | Exportación GeoJSON |
 | `/grafo/graphml` | GET | Exportación GraphML |
-| `/mapa/geojson/*`, `/mapa/graphml`, `/mapa/bbox` | GET | Datos para visualización |
+| `/mapa/geojson/nodos`, `/mapa/geojson/aristas` | GET | Capas para Leaflet; query opcional `min_lat`, `min_lon`, `max_lat`, `max_lon`, `hora_salida`; respuesta incluye `truncado` si supera el tope de features |
+| `/mapa/graphml`, `/mapa/bbox` | GET | GraphML y bounding box del grafo |
 | `/agente/estado`, `/agente/paso` | GET/POST | Estado y avance del agente |
 | `/busqueda/buscar` | POST | Búsqueda de rutas (Voraz, UCS y A*) con criterio y tarifa de taxi opcional |
 | `/busqueda/comparar` | POST | Compara todos los algoritmos implementados sobre la misma ruta y liquida la tarifa por algoritmo |
 | `/busqueda/algoritmos` | GET | Algoritmos disponibles y estado de implementación |
+| `/ml/estado`, `/ml/predecir`, `/ml/ruta` | GET/POST | Estado, predicción de tiempo y ruta UCS con regresión lineal |
+| `/ml/clasificacion` | GET | Métricas Corte 3, matrices y flag `modelo_disponible` |
+| `/ml/clasificacion/predecir` | POST | Predicción por `hora_salida` (y opcional `arista_ids`) |
+| `/ml/clasificacion/reentrenar` | POST | Regenera CSV, JSON y modelo joblib del grafo actual |
 | `/health` | GET | Health check |
 
 > Los endpoints de exportación generan las respuestas **en memoria** (sin escribir en disco), por lo que son compatibles con el entorno serverless *read-only* de Vercel (ver ADR-012).
@@ -299,11 +309,12 @@ Toda la documentación está en `documentacion/`:
 | `demo_corte2.md` | Guion de demostración del Corte 2 |
 | `diagrama_red.md` | Grafo de ejemplo (6 nodos) |
 | `dataset_inicial.md` | Estructura de datos (JSON/CSV/GeoJSON) |
+| `clasificacion_congestion.md` | Persona 2 / Corte 3: categorías, dataset, modelos y métricas |
 
 ---
 
 ## Roadmap
 
-- **Corte 1 (hecho):** modelos de grafo, repositorio, datos OSM reales (888 nodos / 1741 aristas), módulo de agente, frontend con mapa/grafo, deploy en Vercel.
+- **Corte 1 (hecho):** modelos de grafo, repositorio, datos OSM reales, módulo de agente, frontend con mapa/grafo, deploy en Vercel.
 - **Corte 2 (en curso):** motores **Voraz (greedy)**, **BFS**, **DFS**, **UCS** y **A\*** implementados y conectados al frontend; **comparador** (`POST /busqueda/comparar`), tabla comparativa en la UI, benchmark reproducible con escenarios base/cierre y agente que planifica con búsqueda. Incluye **tarifa oficial de taxi** (Decreto 042 de 2026) en la API y la UI, **mapa satelital** con capas Esri, **selección de origen/destino por clic** con nombres amigables de vías OSM y **congestión horaria sintética** por hora de salida. Ver [`documentacion/informe_corte2.md`](documentacion/informe_corte2.md), ADR-024 a ADR-026 en [`documentacion/decisiones.md`](documentacion/decisiones.md).
-- **Corte 3 (pendiente):** modelos de ML (predicción de congestión) sobre la red.
+- **Corte 3 (en curso):** clasificación supervisada de congestión (5 modelos, API `/ml/clasificacion`, panel ML y coloreado del mapa), regresión lineal de tiempos (`/ml/ruta`, vista EDA y análisis de movilidad), **comparación multicolor** en mapa (ADR-029), selección por nodo cercano (ADR-034) y red precargada **Chapinero 1 200 m** (888 nodos / 1 741 aristas; ADR-035). Ver [`documentacion/clasificacion_congestion.md`](documentacion/clasificacion_congestion.md) y ADR-027–035.

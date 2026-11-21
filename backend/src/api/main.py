@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from src.api.rutas_agente import router as agente_router
 from src.api.rutas_busqueda import router as busqueda_router
@@ -46,6 +47,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Routers
 app.include_router(grafo_router, prefix="/api/v1/grafo", tags=["Grafo"])
