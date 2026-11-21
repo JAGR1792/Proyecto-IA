@@ -426,6 +426,17 @@ function limpiarRuta() {
   algoritmoEnfocado.value = null
 }
 
+function seleccionarFilaComparacion(fila: ResultadoAlgoritmo) {
+  if (!fila.ruta_encontrada) return
+  algoritmoEnfocado.value =
+    algoritmoEnfocado.value === fila.algoritmo ? null : fila.algoritmo
+}
+
+function toggleEnfoqueAlgoritmo(algoritmo: string) {
+  const fila = comparacionOrdenada.value.find((f) => f.algoritmo === algoritmo)
+  if (fila) seleccionarFilaComparacion(fila)
+}
+
 async function cambiarHoraSalida() {
   limpiarRuta()
   congestionMl.value = {}
